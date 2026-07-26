@@ -1,0 +1,82 @@
+<view class="page">
+  <view class="topline">
+    <text class="topline-label">训练记录</text>
+    <text class="topline-hint" wx:if="{{pendingCount > 0}}">{{pendingCount}} 条待提交</text>
+    <text class="topline-hint" wx:else>仅展示已提交 session</text>
+  </view>
+  <view class="page-title">记录</view>
+  <view class="page-subtitle">历史快照不会随计划修改而变化</view>
+
+  <view class="record-tabs">
+    <button class="record-tab {{view === 'sessions' ? 'active' : ''}}" data-view="sessions" bindtap="onSwitchView">训练场次</button>
+    <button class="record-tab {{view === 'trend' ? 'active' : ''}}" data-view="trend" bindtap="onSwitchView">动作趋势</button>
+  </view>
+
+  <!-- 视图一:session 时间线倒序 -->
+  <block wx:if="{{view === 'sessions'}}">
+    <view class="record-list" wx:if="{{sessions.length > 0}}">
+      <view class="record-item" wx:for="{{sessions}}" wx:key="id" data-id="{{item.id}}" bindtap="onOpenSession">
+        <view class="record-date">
+          <text class="record-day">{{item.date}}</text>
+          <text class="record-month">{{item.month}}</text>
+        </view>
+        <view class="record-main">
+          <view class="record-name">{{item.name}}</view>
+          <view class="record-meta">{{item.meta}}</view>
+        </view>
+        <text class="record-volume">{{item.volume}}</text>
+      </view>
+    </view>
+    <view wx:else class="empty-state">
+      <text class="empty-glyph">◔</text>
+      <view class="empty-title">还没有训练记录</view>
+      <view class="empty-desc">完成一次训练并提交后,这里会出现时间线</view>
+    </view>
+  </block>
+
+  <!-- 视图二:单动作进步曲线 -->
+  <block wx:else>
+    <view class="trend-picker">
+      <picker mode="selector" range="{{exerciseNames}}" bindchange="onSelectExercise">
+        <view class="picker-box">{{selectedExercise || '选择动作'}} ▾</view>
+      </picker>
+      <button class="metric-btn" bindtap="onOpenMetricSheet">指标:{{metricLabel}}</button>
+    </view>
+
+    <view class="chart-wrap" wx:if="{{!trendEmpty}}">
+      <view class="chart-head">
+        <text class="chart-title">{{selectedExercise}}</text>
+        <text class="chart-sub">{{isBodyWeight ? '纵轴:总次数(自重动作)' : '纵轴:volume(Σ 重量 × 次数)'}}</text>
+      </view>
+      <view class="chart">
+        <view class="chart-bars">
+          <view class="chart-bar {{item.last ? 'last' : ''}}" wx:for="{{bars}}" wx:key="label" style="height: {{item.height}}%">
+            <text class="bar-value">{{item.value}}</text>
+            <text class="bar-label">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view wx:else class="empty-state">
+      <view class="empty-title">这个动作还没有数据</view>
+      <view class="empty-desc">完成包含该动作的训练后,趋势会出现在这里</view>
+    </view>
+
+    <view class="record-footnote">纵轴默认使用总容量(重量 × 次数)。自重动作切换为总次数;top weight 与估算 1RM 预留为后续指标。</view>
+  </block>
+
+  <!-- 指标切换(预留) -->
+  <view class="sheet-mask" wx:if="{{showMetricSheet}}" bindtap="onCloseMetricSheet">
+    <view class="sheet-card" catchtap="noop">
+      <view class="sheet-title">趋势指标</view>
+      <button
+        wx:for="{{metricOptions}}"
+        wx:key="key"
+        class="sheet-option {{metric === item.key ? 'active' : ''}}"
+        data-key="{{item.key}}"
+        data-label="{{item.label}}"
+        bindtap="onPickMetric"
+      >{{item.label}}</button>
+    </view>
+  </view>
+</view>

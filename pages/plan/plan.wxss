@@ -1,0 +1,793 @@
+/* ============================================================
+   计划页 — 循环控制台 (CYCLE DECK)
+   对齐「晴空青黄」：薄荷纸底 + 青色行动 + 琥珀游标
+   签名：循环进度轨道（节点 + 连接线 + 琥珀 current）
+   ============================================================ */
+
+.page {
+  min-height: 100vh;
+  padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+/* ===== 顶栏 ===== */
+.page-header {
+  margin-bottom: 8rpx;
+}
+
+.topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18rpx;
+}
+
+.topline-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.topline-label {
+  font-size: var(--t-kicker);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--ink-faint);
+}
+
+.topline-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--line-strong);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.topline-dot.on {
+  background: var(--signal);
+  box-shadow: 0 0 0 6rpx rgba(22, 191, 174, 0.18);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.page-title {
+  font-size: 48rpx;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+
+.page-subtitle {
+  margin-top: 10rpx;
+  font-size: var(--t-meta);
+  color: var(--ink-dim);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+/* 编辑胶囊：常态线框 / 完成态 signal 实心 */
+.edit-pill {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 12rpx 28rpx !important;
+  line-height: 1 !important;
+  color: var(--ink-dim) !important;
+  background: var(--surface) !important;
+  border: 1rpx solid var(--line-strong) !important;
+  border-radius: 999rpx !important;
+  font-size: var(--t-kicker) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em;
+  box-sizing: border-box !important;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.edit-pill::after {
+  display: none !important;
+  border: none !important;
+}
+
+.edit-pill.done {
+  color: var(--signal-ink) !important;
+  background: var(--signal) !important;
+  border-color: var(--signal) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 0 6rpx rgba(22, 191, 174, 0.16);
+}
+
+.edit-pill-hover {
+  opacity: 0.82;
+}
+
+/* ===== active 计划卡 ===== */
+.plan-card {
+  position: relative;
+  margin-top: 32rpx;
+  padding: 36rpx 32rpx 28rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 28rpx;
+  overflow: hidden;
+  box-shadow: 0 12rpx 36rpx -20rpx rgba(21, 59, 58, 0.14);
+  box-sizing: border-box;
+}
+
+/* 角落青黄氛围光，不抢内容 */
+.plan-card-glow {
+  position: absolute;
+  top: -80rpx;
+  right: -60rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 216, 74, 0.22) 0%,
+    rgba(22, 191, 174, 0.1) 45%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.plan-card-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.plan-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-card-kicker {
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--signal);
+  line-height: 1.2;
+}
+
+.plan-card-title {
+  margin-top: 10rpx;
+  font-size: 42rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.plan-card-sub {
+  margin-top: 8rpx;
+  font-size: var(--t-kicker);
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+.plan-card-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin-top: 4rpx;
+}
+
+/* 琥珀进行中：全站 active 语义 */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 10rpx 20rpx;
+  color: var(--ink);
+  background: var(--amber);
+  border-radius: 999rpx;
+  font-size: var(--t-kicker);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: 0 0 0 6rpx rgba(255, 216, 74, 0.22);
+}
+
+.status-chip-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.55;
+}
+
+.plan-card-delete-btn {
+  box-sizing: border-box !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 12rpx 24rpx !important;
+  line-height: 1 !important;
+  border: 1rpx solid rgba(229, 83, 61, 0.22) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(229, 83, 61, 0.08) !important;
+  color: var(--danger) !important;
+  border-radius: 999rpx !important;
+  font-size: var(--t-kicker) !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.plan-card-delete-btn::after {
+  display: none !important;
+  border: none !important;
+}
+
+/* ===== 循环轨道：本页签名 ===== */
+.cycle-track {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  margin: 40rpx 0 20rpx;
+  padding: 8rpx 0 4rpx;
+}
+
+.cycle-cell {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14rpx;
+  min-width: 0;
+}
+
+.cycle-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--line-strong);
+  background: var(--surface-2);
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cycle-num {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: var(--ink-dim);
+  line-height: 1;
+}
+
+/* 已完成：信号青 */
+.cycle-node.done {
+  background: rgba(22, 191, 174, 0.14);
+  border-color: var(--signal);
+}
+
+.cycle-check {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--signal);
+  line-height: 1;
+}
+
+/* 当前游标：琥珀 + 外环 */
+.cycle-node.current {
+  background: var(--amber);
+  border-color: rgba(217, 180, 40, 0.9);
+  box-shadow: 0 0 0 8rpx rgba(255, 216, 74, 0.28);
+}
+
+.cycle-node.current .cycle-num {
+  color: var(--ink);
+}
+
+.cycle-name {
+  max-width: 100%;
+  padding: 0 4rpx;
+  font-size: 18rpx;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-align: center;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cycle-name.current {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.cycle-name.done {
+  color: var(--signal);
+}
+
+/* 节点间连接线：以节点中心对齐 */
+.cycle-link {
+  position: absolute;
+  top: 36rpx;
+  left: calc(50% + 42rpx);
+  right: calc(-50% + 42rpx);
+  height: 3rpx;
+  background: var(--line);
+  border-radius: 2rpx;
+}
+
+.cycle-link.done {
+  background: linear-gradient(90deg, var(--signal), rgba(22, 191, 174, 0.55));
+}
+
+/* 游标提示条 */
+.plan-card-note {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 4rpx;
+  padding: 16rpx 18rpx;
+  background: rgba(255, 216, 74, 0.12);
+  border: 1rpx dashed rgba(217, 200, 121, 0.75);
+  border-radius: 14rpx;
+  box-sizing: border-box;
+}
+
+.plan-card-note-mark {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--ink);
+  font-size: 20rpx;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.plan-card-note-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-kicker);
+  color: var(--ink-dim);
+  line-height: 1.45;
+}
+
+/* ===== 训练日列表 ===== */
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 22rpx 22rpx 22rpx 18rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 22rpx;
+  box-sizing: border-box;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+.plan-row:active {
+  background: var(--surface-2);
+  transform: scale(0.994);
+}
+
+.plan-row.editing:active {
+  transform: none;
+  background: var(--surface);
+}
+
+/* 序号：结构编码 01 02 03 */
+.plan-row-index {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 16rpx;
+  background: rgba(22, 191, 174, 0.1);
+  border: 1rpx solid rgba(22, 191, 174, 0.22);
+  box-sizing: border-box;
+}
+
+.plan-row-num {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: var(--signal);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.plan-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-row-title {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-row-meta {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--ink-dim);
+  line-height: 1.3;
+}
+
+.plan-row-tools {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+
+/* 强制重置微信 button 默认，避免 184px 挤压 */
+.tool-btn,
+.row-link,
+.plan-card-delete-btn,
+.all-plan-btn-enable,
+.all-plan-btn-delete,
+.edit-pill {
+  max-width: none !important;
+}
+
+.tool-btn,
+.row-link {
+  box-sizing: border-box !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.tool-btn::after,
+.row-link::after {
+  display: none !important;
+  border: none !important;
+}
+
+.tool-btn {
+  width: 60rpx !important;
+  height: 60rpx !important;
+  min-width: 60rpx !important;
+  min-height: 60rpx !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2) !important;
+  color: var(--ink-dim) !important;
+  border: 1rpx solid var(--line-strong) !important;
+  border-radius: 14rpx !important;
+  font-size: 26rpx !important;
+  font-weight: 700 !important;
+}
+
+.tool-btn-hover {
+  opacity: 0.75;
+}
+
+.tool-btn[disabled] {
+  opacity: 0.28 !important;
+  background: var(--surface-2) !important;
+  color: var(--ink-faint) !important;
+  border-color: var(--line) !important;
+}
+
+.tool-btn.danger {
+  background: rgba(229, 83, 61, 0.08) !important;
+  color: var(--danger) !important;
+  border-color: rgba(229, 83, 61, 0.18) !important;
+}
+
+/* 管理入口：青系胶囊 + chevron */
+.row-link {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  padding: 12rpx 18rpx !important;
+  background: rgba(22, 191, 174, 0.1) !important;
+  border: 1rpx solid rgba(22, 191, 174, 0.22) !important;
+  border-radius: 999rpx !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.row-link-text {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--signal);
+  line-height: 1;
+}
+
+.row-link-chevron {
+  width: 10rpx;
+  height: 10rpx;
+  margin-top: -1rpx;
+  border-top: 3rpx solid var(--signal);
+  border-right: 3rpx solid var(--signal);
+  transform: rotate(45deg);
+  box-sizing: border-box;
+}
+
+.row-link-hover {
+  opacity: 0.78;
+}
+
+/* ===== 底部操作区 ===== */
+button.primary-button,
+button.ghost-button {
+  width: 100% !important;
+}
+
+.action-row {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.action-btn {
+  flex: 1 !important;
+  width: auto !important;
+  min-height: 88rpx !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  background: var(--surface) !important;
+}
+
+.block-btn {
+  width: 100% !important;
+  margin-top: 24rpx;
+  min-height: 88rpx !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  background: var(--surface) !important;
+}
+
+.ghost-press {
+  opacity: 0.78;
+}
+
+.primary-press {
+  opacity: 0.85;
+}
+
+.btn-press {
+  opacity: 0.75;
+}
+
+/* ===== 全部计划切换列表 ===== */
+.all-plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.all-plan-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 24rpx 24rpx 22rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 22rpx;
+  box-sizing: border-box;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* active 计划：琥珀左边框语义 + 浅青底 */
+.all-plan-item.active {
+  border-color: rgba(217, 180, 40, 0.55);
+  background: linear-gradient(
+    100deg,
+    rgba(255, 216, 74, 0.14) 0%,
+    rgba(22, 191, 174, 0.05) 55%,
+    var(--surface) 100%
+  );
+  box-shadow: 0 6rpx 20rpx -12rpx rgba(21, 59, 58, 0.12);
+}
+
+.all-plan-status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--line-strong);
+  margin-right: 18rpx;
+  flex-shrink: 0;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.all-plan-status-dot.active {
+  background: var(--amber);
+  box-shadow: 0 0 0 6rpx rgba(255, 216, 74, 0.28);
+}
+
+.all-plan-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.all-plan-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.all-plan-name {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+/* 当前使用：琥珀徽标（active 语义） */
+.all-plan-badge {
+  font-size: 18rpx;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--amber);
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.all-plan-meta {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--ink-dim);
+  line-height: 1.4;
+}
+
+.all-plan-meta .highlight {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.all-plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+.all-plan-btn-enable {
+  box-sizing: border-box !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 14rpx 26rpx !important;
+  line-height: 1 !important;
+  border: 1rpx solid rgba(22, 191, 174, 0.28) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(22, 191, 174, 0.1) !important;
+  color: var(--signal) !important;
+  border-radius: 999rpx !important;
+  font-size: 22rpx !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.all-plan-btn-enable::after {
+  display: none !important;
+  border: none !important;
+}
+
+.all-plan-btn-delete {
+  box-sizing: border-box !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 14rpx 26rpx !important;
+  line-height: 1 !important;
+  border: 1rpx solid rgba(229, 83, 61, 0.2) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(229, 83, 61, 0.08) !important;
+  color: var(--danger) !important;
+  border-radius: 999rpx !important;
+  font-size: 22rpx !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.all-plan-btn-delete::after {
+  display: none !important;
+  border: none !important;
+}
+
+/* ===== 空状态：沿用全局 + 本页微调 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 36rpx 80rpx;
+  text-align: center;
+}
+
+.empty-state .empty-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 148rpx;
+  height: 148rpx;
+  border: 2rpx dashed rgba(22, 191, 174, 0.4);
+  border-radius: 50%;
+  font-size: 56rpx;
+  color: var(--signal);
+  line-height: 1;
+  background: rgba(22, 191, 174, 0.06);
+  box-shadow: 0 0 0 12rpx rgba(22, 191, 174, 0.05);
+}
+
+.empty-state .empty-title {
+  margin-top: 32rpx;
+  font-size: 34rpx;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.empty-state .empty-desc {
+  margin-top: 12rpx;
+  max-width: 480rpx;
+  font-size: var(--t-meta);
+  color: var(--ink-dim);
+  line-height: 1.55;
+}
+
+.empty-btn {
+  margin-top: 44rpx;
+  width: 72% !important;
+  max-width: 420rpx;
+  min-height: 96rpx !important;
+  letter-spacing: 0.1em;
+}

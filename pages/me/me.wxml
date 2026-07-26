@@ -1,0 +1,57 @@
+<view class="page">
+  <!-- 档案区 -->
+  <view class="profile">
+    <view class="avatar">训</view>
+    <view class="profile-info">
+      <view class="profile-name">训练者</view>
+      <view class="profile-sub">只在本机展示,不含社交关系</view>
+    </view>
+    <button class="login-pill" bindtap="onShowLoginInfo">
+      <text class="login-dot"></text>
+      <text>已登录</text>
+    </button>
+  </view>
+
+  <view class="section-kicker">训练偏好</view>
+  <view class="setting-list">
+    <view class="setting-row">
+      <view class="setting-name">训练单位</view>
+      <text class="setting-value mono">{{unit}}</text>
+    </view>
+    <view class="setting-row">
+      <view class="setting-name">默认指标</view>
+      <text class="setting-value mono">volume</text>
+    </view>
+  </view>
+
+  <view class="section-kicker">存储与网络</view>
+  <view class="setting-list">
+    <view class="setting-row">
+      <view class="setting-main">
+        <view class="setting-name">离线训练模式</view>
+        <view class="setting-sub">训练中不依赖网络</view>
+      </view>
+      <switch checked="{{offlineMode}}" color="#16bfae" bindchange="onToggleOffline" />
+    </view>
+    <view class="setting-row" bindtap="onFlushQueue">
+      <view class="setting-main">
+        <view class="setting-name">待提交 session</view>
+        <view class="setting-sub">结束时整体提交,点按手动重试</view>
+      </view>
+      <text class="setting-value accent mono">{{pendingCount}} 条</text>
+    </view>
+  </view>
+  <view class="queue-note">{{networkStatus}}。下一次提交会将本地 session 写入 CloudBase;无网时自动排队重试。</view>
+
+  <view class="section-kicker">关于</view>
+  <view class="setting-list">
+    <view class="setting-row" bindtap="onShowLicense">
+      <view class="setting-name">媒体授权状态</view>
+      <text class="setting-value warn">待处理</text>
+    </view>
+    <view class="setting-row">
+      <view class="setting-name">版本</view>
+      <text class="setting-value mono">MVP 0.1</text>
+    </view>
+  </view>
+</view>

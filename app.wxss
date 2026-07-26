@@ -1,0 +1,175 @@
+/* ============================================================
+   设计系统:训练日志 / 晴空青黄(方向 B)
+   轻快明亮风 —— 薄荷纸为底,青色驱动行动,黄色标记进度与 active
+   签名元素:巨型描边游标数字(DAY 01),全站仅此一件
+   结构编码:字标 01 02 03 = 第 N 天循环的顺序;黄色点 = 游标
+   ============================================================ */
+page {
+  /* color */
+  --bg: #dff0eb;
+  --surface: #ffffff;
+  --surface-2: #e8f2ee;
+  --line: #dcebe5;
+  --line-strong: rgba(21, 59, 58, 0.18);
+  --ink: #153b3a;
+  --ink-dim: #6f8780;
+  --ink-faint: rgba(21, 59, 58, 0.45);
+  --signal: #16bfae;
+  --signal-ink: #ffffff;
+  --amber: #ffd84a;
+  --danger: #e5533d;
+
+  /* type scale(rpx) */
+  --t-hero: 128rpx;
+  --t-title: 64rpx;
+  --t-card: 34rpx;
+  --t-body: 28rpx;
+  --t-meta: 22rpx;
+  --t-kicker: 20rpx;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-size: var(--t-body);
+  line-height: 1.6;
+}
+
+view, text, button, input {
+  box-sizing: border-box;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  line-height: inherit;
+}
+
+button::after {
+  border: 0;
+}
+
+/* ===== 数字/数据统一等宽 ===== */
+.mono {
+  font-family: "SF Mono", "DIN Alternate", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 通用排版 ===== */
+.page-title {
+  font-size: var(--t-title);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+
+.page-subtitle {
+  margin-top: 10rpx;
+  font-size: var(--t-meta);
+  color: var(--ink-dim);
+}
+
+/* 区块标:信号绿短线 + 大写字距 */
+.section-kicker {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin: 52rpx 0 22rpx;
+  font-size: var(--t-kicker);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--ink-faint);
+}
+
+.section-kicker::before {
+  content: '';
+  width: 24rpx;
+  height: 4rpx;
+  background: var(--signal);
+}
+
+/* ===== 通用按钮 ===== */
+.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 104rpx;
+  padding: 18rpx 28rpx;
+  color: var(--signal-ink);
+  background: var(--signal);
+  border-radius: 999rpx;
+  font-size: 32rpx;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  transition: opacity 0.15s ease;
+}
+
+.primary-button:active {
+  opacity: 0.82;
+}
+
+.ghost-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84rpx;
+  padding: 14rpx 24rpx;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1rpx solid var(--line-strong);
+  border-radius: 999rpx;
+  font-size: var(--t-meta);
+}
+
+.ghost-button:active {
+  opacity: 0.7;
+}
+
+/* ===== 空状态:虚线环徽标 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 40rpx;
+  text-align: center;
+}
+
+.empty-state .empty-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140rpx;
+  height: 140rpx;
+  border: 2rpx dashed var(--line-strong);
+  border-radius: 50%;
+  font-size: 52rpx;
+  color: var(--signal);
+  line-height: 1;
+}
+
+.empty-state .empty-title {
+  margin-top: 30rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.empty-state .empty-desc {
+  margin-top: 10rpx;
+  font-size: var(--t-meta);
+  color: var(--ink-dim);
+}
+
+/* ===== 备注提示 ===== */
+.note-card {
+  padding: 24rpx;
+  color: var(--ink-dim);
+  background: rgba(255, 216, 74, 0.16);
+  border: 1rpx dashed rgba(217, 200, 121, 0.9);
+  border-radius: 16rpx;
+  font-size: var(--t-kicker);
+  line-height: 1.6;
+}

@@ -1,0 +1,107 @@
+.page {
+  min-height: 100vh;
+  padding: 30rpx 32rpx 48rpx;
+  background: var(--bg);
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  color: var(--signal);
+  font-size: var(--t-kicker);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  margin-bottom: 14rpx;
+}
+
+.kicker::before {
+  content: '';
+  width: 24rpx;
+  height: 4rpx;
+  background: var(--signal);
+}
+
+.summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+  margin-top: 32rpx;
+}
+
+.metric {
+  padding: 24rpx 18rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-num {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.metric-label {
+  margin-top: 6rpx;
+  font-size: var(--t-kicker);
+  color: var(--ink-faint);
+}
+
+.exercise-card {
+  margin-bottom: 16rpx;
+  padding: 26rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+}
+
+.exercise-card.skipped {
+  opacity: 0.45;
+}
+
+.exercise-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.exercise-name {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.exercise-volume {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: var(--t-meta);
+  font-weight: 700;
+  color: var(--signal);
+}
+
+.set-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.set-chip {
+  padding: 10rpx 18rpx;
+  background: var(--surface-2);
+  border-radius: 10rpx;
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: var(--t-kicker);
+  color: var(--ink-dim);
+}
+
+.skipped-note {
+  margin-top: 12rpx;
+  font-size: var(--t-kicker);
+  color: var(--ink-faint);
+}
+
+.note-card {
+  margin-top: 32rpx;
+}

@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/today/today",
+    "pages/plan/plan",
+    "pages/records/records",
+    "pages/me/me",
+    "pages/training/training",
+    "pages/library/library",
+    "pages/plan-day/plan-day",
+    "pages/session-detail/session-detail"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#dff0eb",
+    "navigationBarTitleText": "训练日志",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#dff0eb",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#6f8780",
+    "selectedColor": "#0b8f82",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/today/today",
+        "text": "今天",
+        "iconPath": "images/tabbar/today.png",
+        "selectedIconPath": "images/tabbar/today-active.png"
+      },
+      {
+        "pagePath": "pages/plan/plan",
+        "text": "计划",
+        "iconPath": "images/tabbar/plan.png",
+        "selectedIconPath": "images/tabbar/plan-active.png"
+      },
+      {
+        "pagePath": "pages/records/records",
+        "text": "记录",
+        "iconPath": "images/tabbar/records.png",
+        "selectedIconPath": "images/tabbar/records-active.png"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的",
+        "iconPath": "images/tabbar/me.png",
+        "selectedIconPath": "images/tabbar/me-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

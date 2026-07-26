@@ -1,0 +1,118 @@
+.page {
+  min-height: 100vh;
+  padding: 30rpx 32rpx 48rpx;
+  background: var(--bg);
+}
+
+/* ===== 档案区:无边框开放式 ===== */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 40rpx 0 10rpx;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 104rpx;
+  height: 104rpx;
+  color: var(--ink);
+  background: var(--amber);
+  border-radius: 50%;
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  font-size: 38rpx;
+  font-weight: 800;
+}
+
+.profile-sub {
+  margin-top: 4rpx;
+  font-size: var(--t-kicker);
+  color: var(--ink-faint);
+}
+
+.login-pill {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 10rpx 22rpx;
+  border: 1rpx solid var(--line);
+  border-radius: 999rpx;
+  color: var(--signal);
+  font-size: var(--t-kicker);
+}
+
+.login-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+/* ===== 设置列表:细线分隔 ===== */
+.setting-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1rpx solid var(--line);
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 104rpx;
+  padding: 18rpx 4rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.setting-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-name {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.setting-sub {
+  margin-top: 2rpx;
+  font-size: var(--t-kicker);
+  color: var(--ink-faint);
+}
+
+.setting-value {
+  font-size: var(--t-meta);
+  color: var(--ink-faint);
+}
+
+.setting-value.accent {
+  color: var(--signal);
+  font-weight: 700;
+}
+
+.setting-value.warn {
+  color: #b0851c;
+  font-weight: 700;
+}
+
+.queue-note {
+  margin-top: 24rpx;
+  padding: 22rpx;
+  background: rgba(255, 216, 74, 0.16);
+  border: 1rpx dashed rgba(217, 200, 121, 0.9);
+  border-radius: 16rpx;
+  font-size: var(--t-kicker);
+  line-height: 1.6;
+  color: var(--ink-dim);
+}

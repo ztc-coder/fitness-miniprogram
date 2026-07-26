@@ -1,0 +1,12 @@
+{
+  "name": "fitness-miniprogram",
+  "version": "0.1.0",
+  "description": "健身训练小程序 MVP - 第 N 天循环力量训练打卡工具",
+  "private": true,
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

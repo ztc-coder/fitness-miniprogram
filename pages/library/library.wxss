@@ -1,0 +1,566 @@
+/* ============================================================
+   动作检索台 — 对齐全站「晴空青黄」
+   薄荷纸底 + 青色行动 + 琥珀 active 游标
+   签名：横向器械索引轨（工具条感）
+   ============================================================ */
+
+.page {
+  min-height: 100vh;
+  padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+/* ===== 检索台头部 ===== */
+.page-header {
+  margin-bottom: 28rpx;
+}
+
+.page-header-top {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.page-title {
+  font-size: 48rpx;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+
+.station-status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  margin-top: 4rpx;
+  background: var(--signal);
+  border-radius: 50%;
+  box-shadow: 0 0 0 8rpx rgba(22, 191, 174, 0.18);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.page-subtitle {
+  margin-top: 10rpx;
+  font-size: var(--t-meta);
+  color: var(--ink-dim);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+/* ===== 搜索栏 ===== */
+.search-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.search-input {
+  width: 100%;
+  height: 88rpx;
+  min-height: 88rpx;
+  padding: 0 28rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+  font-size: var(--t-body);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 6rpx rgba(22, 191, 174, 0.12);
+}
+
+.search-placeholder {
+  color: var(--ink-faint);
+  font-size: var(--t-body);
+}
+
+/* ===== 器械索引轨（sticky 外壳 + 横向 scroll + 内层轨道）=====
+   根因：scroll-view 自身 padding / 末项 margin-right 常不计入可滚动宽度，
+   导致最右 pill 圆角/边框被视口右缘裁切。
+   做法：scroll-view 只做视口；filter-track 作为可滚动内容承载左右安全区。
+*/
+.filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 12rpx -32rpx 24rpx;
+  padding: 14rpx 0 12rpx;
+  background: rgba(223, 240, 235, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10rpx 20rpx -14rpx rgba(21, 59, 58, 0.12);
+  box-sizing: border-box;
+}
+
+/* 顶部分隔线：工具条感 */
+.filter-bar::before {
+  content: '';
+  position: absolute;
+  left: 32rpx;
+  right: 32rpx;
+  top: 0;
+  height: 1rpx;
+  background: var(--line);
+}
+
+/* 视口：不设 enable-flex、不设左右 padding（padding 不进滚动宽） */
+.filter-line {
+  width: 100%;
+  height: auto;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+/* 可滚动内容轨：inline-flex 按子项撑开宽度；左右 padding 计入滚动区 */
+.filter-track {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  /* 上/下：给 active 外环留空；左：页边对齐；右：末项安全区（含 active 外环） */
+  padding: 10rpx 40rpx 12rpx 32rpx;
+  box-sizing: border-box;
+  vertical-align: top;
+}
+
+/* 末项额外安全垫块：滚动极限时仍露出完整圆角与边框 */
+.filter-track-end {
+  flex-shrink: 0;
+  width: 24rpx;
+  height: 64rpx;
+  pointer-events: none;
+}
+
+/* ===== filter pill：彻底覆盖 button 默认 ===== */
+.filter-pill {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* 覆盖微信 button 默认 min-height / line-height / padding */
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 64rpx !important;
+  min-height: 64rpx !important;
+  max-height: 64rpx !important;
+  margin: 0 12rpx 0 0 !important;
+  padding: 0 28rpx !important;
+  line-height: 1 !important;
+  font-size: 24rpx !important;
+  font-weight: 600;
+  color: var(--ink-dim) !important;
+  background: var(--surface) !important;
+  border: 1rpx solid var(--line-strong) !important;
+  border-radius: 999rpx !important;
+  box-sizing: border-box !important;
+  overflow: visible;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filter-pill::after {
+  display: none !important;
+  border: none !important;
+}
+
+/* 末 pill 不再依赖 margin-right 充当滚动尾距（常被裁/忽略） */
+.filter-track .filter-pill:last-of-type {
+  margin-right: 0 !important;
+}
+
+.filter-pill-label {
+  line-height: 1;
+  font-size: 24rpx;
+  font-weight: inherit;
+  color: inherit;
+  pointer-events: none;
+}
+
+/* 激活：琥珀游标（全站 active 语义） */
+.filter-pill.active {
+  color: var(--ink) !important;
+  background: var(--amber) !important;
+  border-color: rgba(217, 180, 40, 0.85) !important;
+  font-weight: 800;
+  box-shadow: 0 0 0 6rpx rgba(255, 216, 74, 0.28);
+}
+
+.filter-pill.active .filter-pill-label {
+  font-weight: 800;
+}
+
+/* 轻点反馈（不用 :active 改尺寸，避免 reflow 裁切） */
+.filter-pill-hover {
+  opacity: 0.82;
+}
+
+/* ===== 动作卡片列表 ===== */
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin-bottom: 28rpx;
+}
+
+.library-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 22rpx 24rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 24rpx;
+  box-sizing: border-box;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+
+.library-item:active {
+  background: var(--surface-2);
+  transform: scale(0.992);
+}
+
+/* 器械首字徽标 */
+.library-art-wrap {
+  flex-shrink: 0;
+}
+
+.library-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  background: rgba(22, 191, 174, 0.12);
+  border: 1rpx solid rgba(22, 191, 174, 0.28);
+  border-radius: 18rpx;
+  color: var(--signal);
+  font-size: 28rpx;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.library-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.library-name-row {
+  display: flex;
+  align-items: center;
+}
+
+.library-name {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 8rpx;
+  min-width: 0;
+}
+
+.library-tag-static {
+  flex-shrink: 0;
+  font-size: 18rpx;
+  font-weight: 700;
+  color: var(--ink-faint);
+  background: var(--surface-2);
+  padding: 4rpx 10rpx;
+  border-radius: 6rpx;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.library-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  color: var(--ink-dim);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 右侧触控操作区 */
+.library-action-col {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 8rpx;
+}
+
+.library-btn-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1rpx solid var(--line-strong);
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.library-item:active .library-btn-circle {
+  border-color: var(--signal);
+  background: rgba(22, 191, 174, 0.12);
+}
+
+.library-btn-text {
+  font-size: 22rpx;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.library-item:active .library-btn-text {
+  color: var(--signal);
+}
+
+.library-chevron {
+  width: 10rpx;
+  height: 10rpx;
+  margin-left: 2rpx;
+  border-top: 3rpx solid var(--ink-dim);
+  border-right: 3rpx solid var(--ink-dim);
+  transform: rotate(45deg);
+  box-sizing: border-box;
+}
+
+.library-item:active .library-chevron {
+  border-color: var(--signal);
+}
+
+/* pick 模式：信号绿加练 */
+.library-btn-circle.pick-active {
+  background: var(--signal);
+  border-color: var(--signal);
+  box-shadow: 0 0 0 6rpx rgba(22, 191, 174, 0.18);
+}
+
+.library-btn-circle.pick-active .library-btn-text {
+  color: var(--signal-ink);
+}
+
+.library-btn-circle.pick-active .library-chevron {
+  border-color: var(--signal-ink);
+}
+
+/* ===== 提示卡片（沿用全局 note 语义，本页略收紧） ===== */
+.note-card {
+  margin-top: 8rpx;
+  padding: 22rpx 24rpx;
+  color: var(--ink-dim);
+  background: rgba(255, 216, 74, 0.16);
+  border: 1rpx dashed rgba(217, 200, 121, 0.9);
+  border-radius: 16rpx;
+  font-size: var(--t-kicker);
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+/* ===== 详情弹层 ===== */
+.detail-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36rpx 32rpx calc(36rpx + env(safe-area-inset-bottom));
+  background: rgba(21, 59, 58, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-sizing: border-box;
+}
+
+.detail-card {
+  width: 100%;
+  max-width: 640rpx;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 36rpx 32rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
+  border-radius: 28rpx;
+  box-shadow: 0 24rpx 64rpx rgba(21, 59, 58, 0.18);
+  box-sizing: border-box;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.detail-head-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-kicker {
+  color: var(--signal);
+  font-size: var(--t-kicker);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+.detail-title {
+  margin-top: 10rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.detail-close {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx !important;
+  height: 72rpx !important;
+  min-width: 72rpx !important;
+  max-width: 72rpx !important;
+  min-height: 72rpx !important;
+  max-height: 72rpx !important;
+  flex-shrink: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--ink-dim) !important;
+  background: var(--surface-2) !important;
+  border: 1rpx solid var(--line-strong) !important;
+  border-radius: 50% !important;
+  font-size: 36rpx !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+.detail-close::after {
+  display: none !important;
+  border: none !important;
+}
+
+.detail-close-hover {
+  opacity: 0.75;
+  background: var(--line) !important;
+}
+
+.detail-art-wrap {
+  margin-top: 28rpx;
+}
+
+.detail-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180rpx;
+  background: linear-gradient(145deg, rgba(22, 191, 174, 0.14), rgba(255, 216, 74, 0.12));
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+  color: var(--ink);
+  font-size: 72rpx;
+  font-weight: 800;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.detail-body {
+  margin-top: 24rpx;
+}
+
+.detail-info-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 18rpx 22rpx;
+  background: var(--surface-2);
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  margin-bottom: 18rpx;
+  box-sizing: border-box;
+}
+
+.detail-info-label {
+  font-size: 22rpx;
+  color: var(--ink-faint);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.detail-info-value {
+  font-size: 26rpx;
+  color: var(--ink);
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.detail-desc {
+  color: var(--ink-dim);
+  font-size: 24rpx;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.detail-actions {
+  margin-top: 32rpx;
+}
+
+/* 覆盖本页 primary，贴近全局 signal 胶囊主按钮 */
+.detail-actions .primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 96rpx;
+  padding: 18rpx 28rpx;
+  color: var(--signal-ink);
+  background: var(--signal);
+  border: none;
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+
+.detail-actions .primary-button::after {
+  display: none;
+  border: none;
+}
+
+.detail-actions .primary-button:active {
+  opacity: 0.82;
+  transform: none;
+  box-shadow: none;
+}
