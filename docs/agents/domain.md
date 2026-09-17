@@ -26,4 +26,6 @@
 ## Notes
 
 - 本项目不是 monorepo，无需 `CONTEXT-MAP.md` 或多个 `CONTEXT.md`
-- `CONTEXT.md` 与 `docs/adr/` 目前尚未创建，后续按需添加
+- `CONTEXT.md` 已创建（根目录），包含领域词汇表、关键规则、架构分层、数据模型、设计系统
+- `docs/adr/` 已创建，索引见 `docs/adr/README.md`，当前收录 ADR-0001 ~ ADR-0006
+- 新增领域概念时更新 `CONTEXT.md`；做出新的架构或流程决策时追加新 ADR 并更新索引表

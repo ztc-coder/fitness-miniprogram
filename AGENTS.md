@@ -15,3 +15,10 @@ Issues 以本地 markdown 文件形式存储在 `.scratch/<feature>/` 目录下�
 ### Domain docs
 
 单一上下文布局：根目录 `CONTEXT.md` + `docs/adr/` 架构决策记录。详见 `docs/agents/domain.md`。
+
+## 项目文档索引
+
+- 领域词汇表与架构概览：`CONTEXT.md`
+- 架构决策记录：`docs/adr/`
+- 需求规格：`docs/spec.md`(grilling 结论)、`docs/spec-mvp.md`(spec 全文)
+- Issue 跟踪：`.scratch/<feature>/issue.md`

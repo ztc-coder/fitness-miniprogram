@@ -35,6 +35,8 @@ created: 2026-07-21
 
 ## Notes
 
-- 本地 markdown tracker 适合个人项目或无远端仓库的场景
+- 本地 markdown tracker 适合个人项目，issue 与代码同仓库演进
 - 不支持 PR 作为 triage 输入(仅限本地 issues)
-- `.scratch/` 目录建议加入 `.gitignore`(若未来项目转为 git 仓库)
+- `.scratch/` 应随代码一起提交到 git，否则 issue 在换机器后丢失（目录已创建，含 `README.md` 说明约定）
+- 本仓库虽有 GitHub remote（`ztc-coder/fitness-miniprogram`），但按约定不使用 GitHub Issues；
+  决策依据见 `docs/adr/0006-local-markdown-issue-tracker.md`。如需切换，重新运行 `setup-matt-pocock-skills`
