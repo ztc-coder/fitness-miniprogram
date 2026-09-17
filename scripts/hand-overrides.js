@@ -1,0 +1,36 @@
+/**
+ * 原 30 条手译覆盖 + 种子计划 slug → 数据集 id。
+ * 一对多时取常规变体（杠铃/哑铃原式，不取史密斯）。
+ */
+module.exports = {
+  'bench-press': { id: '0025', nameZh: '杠铃卧推' },
+  'incline-dumbbell-press': { id: '0314', nameZh: '上斜哑铃推举' },
+  'chest-dip': { id: '0251', nameZh: '双杠臂屈伸' },
+  'cable-fly': { id: '0188', nameZh: '绳索夹胸' },
+  'push-up': { id: '0662', nameZh: '俯卧撑' },
+  'dumbbell-fly': { id: '0308', nameZh: '哑铃飞鸟' },
+  'pull-up': { id: '0652', nameZh: '引体向上' },
+  'seated-cable-row': { id: '0861', nameZh: '坐姿划船' },
+  'barbell-row': { id: '0027', nameZh: '杠铃俯身划船' },
+  'lat-pulldown': { id: '0198', nameZh: '高位下拉' },
+  'face-pull': { id: '0233', nameZh: '绳索面拉' },
+  'deadlift': { id: '0032', nameZh: '杠铃硬拉' },
+  'overhead-press': { id: '1457', nameZh: '杠铃推举' },
+  'dumbbell-shoulder-press': { id: '0405', nameZh: '哑铃推举' },
+  'lateral-raise': { id: '0334', nameZh: '哑铃侧平举' },
+  'rear-delt-fly': { id: '2292', nameZh: '俯身哑铃飞鸟' },
+  'barbell-squat': { id: '0043', nameZh: '杠铃深蹲' },
+  'romanian-deadlift': { id: '0085', nameZh: '罗马尼亚硬拉' },
+  'leg-press': { id: '0739', nameZh: '腿举' },
+  'walking-lunge': { id: '1460', nameZh: '弓步蹲' },
+  'leg-curl': { id: '0586', nameZh: '俯卧腿弯举' },
+  'standing-calf-raise': { id: '0605', nameZh: '站姿提踵' },
+  'bulgarian-split-squat': { id: '2368', nameZh: '保加利亚分腿蹲' },
+  'barbell-curl': { id: '0031', nameZh: '杠铃弯举' },
+  'hammer-curl': { id: '0313', nameZh: '锤式弯举' },
+  'tricep-pushdown': { id: '0201', nameZh: '绳索下压' },
+  'skull-crusher': { id: '0060', nameZh: '仰卧臂屈伸' },
+  'plank': { id: '0464', nameZh: '平板支撑' },
+  'hanging-leg-raise': { id: '0472', nameZh: '悬垂举腿' },
+  'cable-crunch': { id: '0175', nameZh: '绳索卷腹' },
+};

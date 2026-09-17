@@ -7,46 +7,10 @@
  * 图片与 GIF 走 CloudBase 云存储按需加载,不进主包。
  * ⚠️ 媒体版权归 Gym visual,上线前须取得书面授权并保留署名。
  */
-const EXERCISES = [
-  // ===== 胸部 =====
-  { id: 'bench-press', nameZh: '杠铃卧推', equipment: 'barbell', bodyPart: '胸部', target: '胸大肌 · 三头肌', imagePath: 'exercises/bench-press.png' },
-  { id: 'incline-dumbbell-press', nameZh: '上斜哑铃推举', equipment: 'dumbbell', bodyPart: '胸部', target: '胸大肌上束', imagePath: 'exercises/incline-dumbbell-press.png' },
-  { id: 'chest-dip', nameZh: '双杠臂屈伸', equipment: 'body weight', bodyPart: '胸部', target: '胸大肌 · 三头肌', imagePath: 'exercises/chest-dip.png' },
-  { id: 'cable-fly', nameZh: '绳索夹胸', equipment: 'cable', bodyPart: '胸部', target: '胸大肌', imagePath: 'exercises/cable-fly.png' },
-  { id: 'push-up', nameZh: '俯卧撑', equipment: 'body weight', bodyPart: '胸部', target: '胸大肌 · 三头肌', imagePath: 'exercises/push-up.png' },
-  { id: 'dumbbell-fly', nameZh: '哑铃飞鸟', equipment: 'dumbbell', bodyPart: '胸部', target: '胸大肌', imagePath: 'exercises/dumbbell-fly.png' },
-  // ===== 背部 =====
-  { id: 'pull-up', nameZh: '引体向上', equipment: 'body weight', bodyPart: '背部', target: '背阔肌 · 肱二头肌', imagePath: 'exercises/pull-up.png' },
-  { id: 'seated-cable-row', nameZh: '坐姿划船', equipment: 'cable', bodyPart: '背部', target: '背阔肌 · 菱形肌', imagePath: 'exercises/seated-cable-row.png' },
-  { id: 'barbell-row', nameZh: '杠铃俯身划船', equipment: 'barbell', bodyPart: '背部', target: '背阔肌 · 斜方肌', imagePath: 'exercises/barbell-row.png' },
-  { id: 'lat-pulldown', nameZh: '高位下拉', equipment: 'cable', bodyPart: '背部', target: '背阔肌', imagePath: 'exercises/lat-pulldown.png' },
-  { id: 'face-pull', nameZh: '绳索面拉', equipment: 'cable', bodyPart: '背部', target: '三角肌后束 · 斜方肌', imagePath: 'exercises/face-pull.png' },
-  { id: 'deadlift', nameZh: '杠铃硬拉', equipment: 'barbell', bodyPart: '背部', target: '竖脊肌 · 臀肌 · 腘绳肌', imagePath: 'exercises/deadlift.png' },
-  // ===== 肩部 =====
-  { id: 'overhead-press', nameZh: '杠铃推举', equipment: 'barbell', bodyPart: '肩部', target: '三角肌 · 三头肌', imagePath: 'exercises/overhead-press.png' },
-  { id: 'dumbbell-shoulder-press', nameZh: '哑铃推举', equipment: 'dumbbell', bodyPart: '肩部', target: '三角肌', imagePath: 'exercises/dumbbell-shoulder-press.png' },
-  { id: 'lateral-raise', nameZh: '哑铃侧平举', equipment: 'dumbbell', bodyPart: '肩部', target: '三角肌中束', imagePath: 'exercises/lateral-raise.png' },
-  { id: 'rear-delt-fly', nameZh: '俯身哑铃飞鸟', equipment: 'dumbbell', bodyPart: '肩部', target: '三角肌后束', imagePath: 'exercises/rear-delt-fly.png' },
-  // ===== 腿部 =====
-  { id: 'barbell-squat', nameZh: '杠铃深蹲', equipment: 'barbell', bodyPart: '腿部', target: '股四头肌 · 臀肌', imagePath: 'exercises/barbell-squat.png' },
-  { id: 'romanian-deadlift', nameZh: '罗马尼亚硬拉', equipment: 'barbell', bodyPart: '腿部', target: '腘绳肌 · 臀肌', imagePath: 'exercises/romanian-deadlift.png' },
-  { id: 'leg-press', nameZh: '腿举', equipment: 'machine', bodyPart: '腿部', target: '股四头肌', imagePath: 'exercises/leg-press.png' },
-  { id: 'walking-lunge', nameZh: '弓步蹲', equipment: 'dumbbell', bodyPart: '腿部', target: '股四头肌 · 臀肌', imagePath: 'exercises/walking-lunge.png' },
-  { id: 'leg-curl', nameZh: '俯卧腿弯举', equipment: 'machine', bodyPart: '腿部', target: '腘绳肌', imagePath: 'exercises/leg-curl.png' },
-  { id: 'standing-calf-raise', nameZh: '站姿提踵', equipment: 'machine', bodyPart: '腿部', target: '小腿三头肌', imagePath: 'exercises/standing-calf-raise.png' },
-  { id: 'bulgarian-split-squat', nameZh: '保加利亚分腿蹲', equipment: 'body weight', bodyPart: '腿部', target: '股四头肌 · 臀肌', imagePath: 'exercises/bulgarian-split-squat.png' },
-  // ===== 手臂 =====
-  { id: 'barbell-curl', nameZh: '杠铃弯举', equipment: 'barbell', bodyPart: '手臂', target: '肱二头肌', imagePath: 'exercises/barbell-curl.png' },
-  { id: 'hammer-curl', nameZh: '锤式弯举', equipment: 'dumbbell', bodyPart: '手臂', target: '肱二头肌 · 肱肌', imagePath: 'exercises/hammer-curl.png' },
-  { id: 'tricep-pushdown', nameZh: '绳索下压', equipment: 'cable', bodyPart: '手臂', target: '肱三头肌', imagePath: 'exercises/tricep-pushdown.png' },
-  { id: 'skull-crusher', nameZh: '仰卧臂屈伸', equipment: 'barbell', bodyPart: '手臂', target: '肱三头肌', imagePath: 'exercises/skull-crusher.png' },
-  // ===== 核心 =====
-  { id: 'plank', nameZh: '平板支撑', equipment: 'body weight', bodyPart: '核心', target: '腹直肌 · 核心稳定', imagePath: 'exercises/plank.png' },
-  { id: 'hanging-leg-raise', nameZh: '悬垂举腿', equipment: 'body weight', bodyPart: '核心', target: '腹直肌下部', imagePath: 'exercises/hanging-leg-raise.png' },
-  { id: 'cable-crunch', nameZh: '绳索卷腹', equipment: 'cable', bodyPart: '核心', target: '腹直肌', imagePath: 'exercises/cable-crunch.png' },
-];
+const EXERCISES = require('./exercises.json');
+const SLUG_MAP = require('./slug-map.json');
 
-const EQUIPMENT_FILTERS = ['全部', 'barbell', 'dumbbell', 'cable', 'machine', 'body weight'];
+const EQUIPMENT_FILTERS = ['全部', 'barbell', 'dumbbell', 'cable', 'machine', 'body weight', 'other'];
 
 const EQUIPMENT_LABELS = {
   barbell: '杠铃',
@@ -54,39 +18,122 @@ const EQUIPMENT_LABELS = {
   cable: '绳索',
   machine: '器械',
   'body weight': '自重',
-  band: '弹力带',
-  kettlebell: '壶铃',
+  other: '其他',
 };
 
-function equipmentLabel(equipment) {
-  return EQUIPMENT_LABELS[equipment] || equipment || '其他';
+const BODY_PART_LABELS = {
+  back: '背',
+  chest: '胸',
+  'lower arms': '前臂',
+  'lower legs': '小腿',
+  neck: '颈',
+  shoulders: '肩',
+  'upper arms': '上臂',
+  'upper legs': '大腿',
+  waist: '腰腹',
+};
+
+const BODY_PART_FILTERS = ['全部'].concat(Object.keys(BODY_PART_LABELS));
+
+/** 非 cardio 的 18 个目标肌群枚举,固定中文表 */
+const TARGET_LABELS = {
+  abs: '腹部',
+  abductors: '外展肌',
+  adductors: '内收肌',
+  biceps: '肱二头肌',
+  calves: '小腿肌',
+  delts: '三角肌',
+  forearms: '前臂肌群',
+  glutes: '臀肌',
+  hamstrings: '腘绳肌',
+  'levator scapulae': '肩胛提肌',
+  lats: '背阔肌',
+  pectorals: '胸大肌',
+  quads: '股四头肌',
+  'serratus anterior': '前锯肌',
+  spine: '竖脊肌',
+  traps: '斜方肌',
+  triceps: '肱三头肌',
+  'upper back': '上背',
+};
+
+function bodyPartLabel(bodyPart) {
+  return BODY_PART_LABELS[bodyPart] || bodyPart || '';
 }
 
-function findById(id) {
-  return EXERCISES.find((item) => item.id === id) || null;
+function targetLabel(target) {
+  return TARGET_LABELS[target] || target || '';
 }
 
 /**
- * 搜索 + 器械筛选,离线本地执行。
+ * 器械筛选桶语义归并:曲杠/奥杠/六角杠→杠铃,史密斯/杠杆/腿举→器械,
+ * 绳→绳索,assisted→自重桶,其余(壶铃/弹力带/药球等)→其他。
+ * 只影响筛选,不改变 equipment 原值、不影响 volume 口径(body weight 原值判定)。
  */
-function search(query, equipment) {
-  const q = (query || '').trim();
+function equipmentBucket(equipment) {
+  switch (equipment) {
+    case 'barbell':
+    case 'ez barbell':
+    case 'olympic barbell':
+    case 'trap bar':
+      return 'barbell';
+    case 'dumbbell':
+      return 'dumbbell';
+    case 'cable':
+    case 'rope':
+      return 'cable';
+    case 'leverage machine':
+    case 'smith machine':
+    case 'sled machine':
+      return 'machine';
+    case 'body weight':
+    case 'assisted':
+      return 'body weight';
+    default:
+      return 'other';
+  }
+}
+
+function equipmentLabel(equipment) {
+  return EQUIPMENT_LABELS[equipment] || EQUIPMENT_LABELS[equipmentBucket(equipment)] || '其他';
+}
+
+function findById(id) {
+  if (!id) return null;
+  const numericId = Object.prototype.hasOwnProperty.call(SLUG_MAP, id) ? SLUG_MAP[id] : id;
+  return EXERCISES.find((item) => item.id === numericId) || null;
+}
+
+/**
+ * 搜索 + 器械桶 + 部位筛选,离线本地执行,三维 AND。
+ * 关键词命中中文名、英文名、目标肌群中文、部位中文、器械中文。
+ */
+function search(query, equipment, bodyPart) {
+  const q = (query || '').trim().toLowerCase();
   return EXERCISES.filter((item) => {
     const matchQuery =
       !q ||
       item.nameZh.indexOf(q) !== -1 ||
-      item.target.indexOf(q) !== -1 ||
-      item.bodyPart.indexOf(q) !== -1 ||
+      item.name.toLowerCase().indexOf(q) !== -1 ||
+      targetLabel(item.target).indexOf(q) !== -1 ||
+      bodyPartLabel(item.bodyPart).indexOf(q) !== -1 ||
       equipmentLabel(item.equipment).indexOf(q) !== -1;
-    const matchEquipment = !equipment || equipment === '全部' || item.equipment === equipment;
-    return matchQuery && matchEquipment;
+    const matchEquipment =
+      !equipment || equipment === '全部' || equipmentBucket(item.equipment) === equipment;
+    const matchBodyPart = !bodyPart || bodyPart === '全部' || item.bodyPart === bodyPart;
+    return matchQuery && matchEquipment && matchBodyPart;
   });
 }
 
 module.exports = {
   EXERCISES,
   EQUIPMENT_FILTERS,
+  BODY_PART_FILTERS,
+  BODY_PART_LABELS,
+  equipmentBucket,
   equipmentLabel,
+  bodyPartLabel,
+  targetLabel,
   findById,
   search,
 };

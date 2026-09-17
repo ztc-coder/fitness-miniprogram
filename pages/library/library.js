@@ -1,5 +1,5 @@
 /**
- * 动作库:离线浏览(文本在包内)、搜索、器械筛选
+ * 动作库:离线浏览(全量目录在包内)、搜索、器械桶 + 部位两维筛选
  * 三种打开方式:
  *  - 普通浏览(从计划 tab 入口进入,可加动作到当前训练日)
  *  - pick=1(训练中临时加练,选中后返回训练页)
@@ -14,8 +14,10 @@ const DRAFT_KEY = 'fitness:trainingDraft';
 Page({
   data: {
     query: '',
-    filter: '全部',
-    filters: [],
+    equipFilter: '全部',
+    equipFilters: [],
+    partFilter: '全部',
+    partFilters: [],
     items: [],
     pickMode: false,
     planId: '',
@@ -25,7 +27,8 @@ Page({
 
   onLoad(options) {
     this.setData({
-      filters: lib.EQUIPMENT_FILTERS.map((f) => ({ key: f, label: f === '全部' ? '全部' : lib.equipmentLabel(f) })),
+      equipFilters: lib.EQUIPMENT_FILTERS.map((key) => ({ key, label: key === '全部' ? '全部' : lib.equipmentLabel(key) })),
+      partFilters: lib.BODY_PART_FILTERS.map((key) => ({ key, label: key === '全部' ? '全部' : lib.bodyPartLabel(key) })),
       pickMode: options.pick === '1',
       planId: options.planId || '',
       dayId: options.dayId || '',
@@ -34,10 +37,10 @@ Page({
   },
 
   applySearch() {
-    const items = lib.search(this.data.query, this.data.filter).map((item) => ({
+    const items = lib.search(this.data.query, this.data.equipFilter, this.data.partFilter).map((item) => ({
       id: item.id,
       name: item.nameZh,
-      meta: `${item.target} · ${lib.equipmentLabel(item.equipment)}`,
+      meta: `${lib.targetLabel(item.target)} · ${lib.equipmentLabel(item.equipment)}`,
       glyph: item.nameZh.slice(0, 1),
       isBodyWeight: item.equipment === 'body weight',
     }));
@@ -48,8 +51,12 @@ Page({
     this.setData({ query: e.detail.value }, () => this.applySearch());
   },
 
-  onFilterTap(e) {
-    this.setData({ filter: e.currentTarget.dataset.key }, () => this.applySearch());
+  onEquipFilterTap(e) {
+    this.setData({ equipFilter: e.currentTarget.dataset.key }, () => this.applySearch());
+  },
+
+  onPartFilterTap(e) {
+    this.setData({ partFilter: e.currentTarget.dataset.key }, () => this.applySearch());
   },
 
   onItemTap(e) {
@@ -58,12 +65,14 @@ Page({
     this.setData({
       detail: {
         id: item.id,
-        name: item.nameZh,
-        equipment: lib.equipmentLabel(item.equipment),
-        rawEquipment: item.equipment,
-        bodyPart: item.bodyPart,
-        target: item.target,
+        nameZh: item.nameZh,
+        nameEn: item.name,
+        equipmentZh: lib.equipmentLabel(item.equipment),
+        targetZh: lib.targetLabel(item.target),
+        bodyPartZh: lib.bodyPartLabel(item.bodyPart),
+        steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
+        mediaSrc: '',
         isBodyWeight: item.equipment === 'body weight',
       },
     });
@@ -72,8 +81,6 @@ Page({
   onCloseDetail() {
     this.setData({ detail: null });
   },
-
-  noop() {},
 
   /** 选中动作:训练中加练 → 写入草稿;否则加入指定训练日 */
   onPickExercise() {
@@ -85,8 +92,8 @@ Page({
       if (draft) {
         const next = domain.addSessionExercise(draft, {
           exerciseId: detail.id,
-          name: detail.name,
-          equipment: detail.rawEquipment,
+          name: detail.nameZh,
+          equipment: this.rawEquipmentOf(detail.id),
         });
         wx.setStorageSync(DRAFT_KEY, next);
       }
@@ -101,17 +108,18 @@ Page({
           wx.showToast({ title: '计划不存在', icon: 'none' });
           return;
         }
+        const equipment = this.rawEquipmentOf(detail.id);
         const cycleDays = plan.cycleDays.map((day) => {
           if (day.dayId !== dayId) return day;
           return Object.assign({}, day, {
             exercises: day.exercises.concat([
               {
                 exerciseId: detail.id,
-                name: detail.name,
-                equipment: detail.rawEquipment,
+                name: detail.nameZh,
+                equipment,
                 sets: 3,
                 targetReps: 10,
-                targetWeight: detail.isBodyWeight ? 0 : 20,
+                targetWeight: equipment === 'body weight' ? 0 : 20,
               },
             ]),
           });
@@ -127,5 +135,11 @@ Page({
     }
 
     wx.showToast({ title: '请从计划页进入以加入训练日', icon: 'none' });
+  },
+
+  /** 按数据集 id 取器械原值;assisted 走自重筛选桶但不是自重动作 */
+  rawEquipmentOf(id) {
+    const item = lib.findById(id);
+    return item ? item.equipment : '';
   },
 });

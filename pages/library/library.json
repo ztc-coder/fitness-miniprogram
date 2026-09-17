@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "动作库"
+  "navigationBarTitleText": "动作库",
+  "usingComponents": {
+    "exercise-detail": "/components/exercise-detail/exercise-detail"
+  }
 }

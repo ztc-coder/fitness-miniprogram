@@ -12,7 +12,7 @@
     <input
       class="search-input"
       value="{{query}}"
-      placeholder="输入动作名称、部位或器械检索..."
+      placeholder="输入动作名称、肌群或器械检索..."
       placeholder-class="search-placeholder"
       bindinput="onSearchInput"
     />
@@ -23,17 +23,33 @@
     <scroll-view class="filter-line" scroll-x show-scrollbar="{{false}}">
       <view class="filter-track">
         <button
-          wx:for="{{filters}}"
+          wx:for="{{equipFilters}}"
           wx:key="key"
-          class="filter-pill {{filter === item.key ? 'active' : ''}}"
+          class="filter-pill {{equipFilter === item.key ? 'active' : ''}}"
           data-key="{{item.key}}"
-          bindtap="onFilterTap"
+          bindtap="onEquipFilterTap"
           hover-class="filter-pill-hover"
           hover-stay-time="80"
         >
           <text class="filter-pill-label">{{item.label}}</text>
         </button>
         <!-- 末项右侧安全垫块：保证圆角/边框/active 外环可完整滚入视口 -->
+        <view class="filter-track-end" aria-hidden="true"></view>
+      </view>
+    </scroll-view>
+    <scroll-view class="filter-line" scroll-x show-scrollbar="{{false}}">
+      <view class="filter-track">
+        <button
+          wx:for="{{partFilters}}"
+          wx:key="key"
+          class="filter-pill {{partFilter === item.key ? 'active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onPartFilterTap"
+          hover-class="filter-pill-hover"
+          hover-stay-time="80"
+        >
+          <text class="filter-pill-label">{{item.label}}</text>
+        </button>
         <view class="filter-track-end" aria-hidden="true"></view>
       </view>
     </scroll-view>
@@ -71,31 +87,12 @@
 
   <view class="note-card">动作示意图由 Gym visual 提供。正式上线前需完成书面授权并保留 © Gym visual 署名。</view>
 
-  <!-- 动作详情弹层 -->
-  <view class="detail-mask" wx:if="{{detail}}" bindtap="onCloseDetail">
-    <view class="detail-card" catchtap="noop">
-      <view class="detail-head">
-        <view class="detail-head-main">
-          <view class="detail-kicker">EXERCISE DOSSIER · {{detail.equipment}}</view>
-          <view class="detail-title">{{detail.name}}</view>
-        </view>
-        <button class="detail-close" bindtap="onCloseDetail" aria-label="关闭" hover-class="detail-close-hover">×</button>
-      </view>
-      <view class="detail-art-wrap">
-        <view class="detail-art">{{detail.glyph}}</view>
-      </view>
-      <view class="detail-body">
-        <view class="detail-info-row">
-          <text class="detail-info-label">目标肌群</text>
-          <text class="detail-info-value">{{detail.target}}</text>
-        </view>
-        <view class="detail-desc">
-          {{detail.isBodyWeight ? '自重动作，容量按总次数统计，weight 记额外负重。' : ''}}媒体位将在获得 Gym visual 授权后接入云存储。
-        </view>
-      </view>
-      <view class="detail-actions">
-        <button class="primary-button" bindtap="onPickExercise">{{pickMode ? '确认加入本次训练' : '确认加入当前训练日'}}</button>
-      </view>
-    </view>
-  </view>
+  <!-- 动作详情弹层(组件,打卡页复用) -->
+  <exercise-detail
+    detail="{{detail}}"
+    show-pick="{{true}}"
+    pick-text="{{pickMode ? '确认加入本次训练' : '确认加入当前训练日'}}"
+    bind:close="onCloseDetail"
+    bind:pick="onPickExercise"
+  />
 </view>

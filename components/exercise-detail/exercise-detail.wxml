@@ -1,0 +1,49 @@
+<view class="detail-mask" wx:if="{{detail}}" bindtap="onClose">
+  <view class="detail-card" catchtap="noop">
+    <view class="detail-head">
+      <view class="detail-head-main">
+        <view class="detail-kicker">EXERCISE DOSSIER · {{detail.equipmentZh}}</view>
+        <view class="detail-title">{{detail.nameZh}}</view>
+        <view class="detail-subtitle">{{detail.nameEn}}</view>
+      </view>
+      <button class="detail-close" bindtap="onClose" aria-label="关闭" hover-class="detail-close-hover">×</button>
+    </view>
+
+    <scroll-view class="detail-scroll" scroll-y>
+      <!-- 媒体未接入(CloudBase 前缀未配置)时用首字 glyph -->
+      <view class="detail-art-wrap">
+        <image wx:if="{{detail.mediaSrc}}" class="detail-media" src="{{detail.mediaSrc}}" mode="aspectFit" />
+        <view wx:else class="detail-art">{{detail.glyph}}</view>
+      </view>
+
+      <view class="detail-body">
+        <view class="detail-info-row">
+          <text class="detail-info-label">目标肌群</text>
+          <text class="detail-info-value">{{detail.targetZh}}</text>
+        </view>
+        <view class="detail-info-row">
+          <text class="detail-info-label">部位</text>
+          <text class="detail-info-value">{{detail.bodyPartZh}}</text>
+        </view>
+
+        <view wx:if="{{detail.steps.length}}" class="detail-steps">
+          <view class="detail-steps-title">动作要领</view>
+          <view class="detail-step" wx:for="{{detail.steps}}" wx:key="*this">
+            <text class="detail-step-index">{{index + 1}}</text>
+            <text class="detail-step-text">{{item}}</text>
+          </view>
+        </view>
+
+        <view wx:if="{{detail.isBodyWeight}}" class="detail-note">
+          自重动作,容量按总次数统计,weight 记额外负重。
+        </view>
+      </view>
+
+      <view class="detail-attribution">© Gym visual — https://gymvisual.com/</view>
+    </scroll-view>
+
+    <view class="detail-actions" wx:if="{{showPick}}">
+      <button class="detail-primary" bindtap="onPick" hover-class="detail-primary-hover">{{pickText}}</button>
+    </view>
+  </view>
+</view>
