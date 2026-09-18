@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "训练中",
   "navigationBarBackgroundColor": "#dcece7",
-  "navigationBarTextStyle": "black"
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "exercise-detail": "/components/exercise-detail/exercise-detail"
+  }
 }

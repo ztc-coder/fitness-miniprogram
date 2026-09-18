@@ -201,6 +201,45 @@ button {
   flex: 1;
 }
 
+/* 动作要领缩略图:预谊媒体位,媒体未接入时显示首字 glyph,点开只读详情弹层 */
+.ex-thumb {
+  width: 80rpx;
+  height: 80rpx;
+  min-width: 80rpx;
+  max-width: 80rpx;
+  min-height: 80rpx;
+  max-height: 80rpx;
+  flex: 0 0 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border-radius: 20rpx;
+  color: var(--amber);
+  font-size: 36rpx;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.ex-thumb::after {
+  border: 0;
+}
+
+.ex-thumb-hover {
+  background: rgba(255, 216, 74, 0.35);
+  opacity: 0.85;
+}
+
+.ex-thumb-disabled {
+  opacity: 0.4;
+}
+
 .ex-name {
   font-size: 32rpx;
   font-weight: 800;

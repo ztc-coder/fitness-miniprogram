@@ -37,6 +37,16 @@
       <view class="ex-header">
         <view class="ex-info">
           <view class="ex-index-mark mono">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</view>
+          <button
+            class="ex-thumb"
+            wx:if="{{!ex.skipped}}"
+            catchtap="onExerciseTap"
+            data-ex="{{ex.exIndex}}"
+            aria-label="查看{{ex.name}}动作要领"
+            hover-class="ex-thumb-hover"
+            hover-stay-time="80"
+          >{{ex.glyph}}</button>
+          <view class="ex-thumb ex-thumb-disabled" wx:else aria-hidden="true">{{ex.glyph}}</view>
           <view class="ex-name-wrap">
             <view class="ex-name">{{ex.name}}</view>
             <view class="ex-sub">{{ex.isBodyWeight ? '自重 · 容量按总次数计' : '容量 ' + ex.volume + ' kg'}}</view>
@@ -161,5 +171,7 @@
       </view>
     </view>
   </view>
+  <!-- 动作详情弹层(与动作库同一套组件,打卡页只读) -->
+  <exercise-detail detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />
 
 </view>

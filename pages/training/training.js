@@ -6,6 +6,7 @@ const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 const queue = require('../../utils/queue');
 const fmt = require('../../utils/format');
+const lib = require('../../data/exercises');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
 
@@ -18,6 +19,7 @@ Page({
     showSummary: false,
     summary: null,
     submitting: false,
+    detail: null,
   },
 
   onLoad() {
@@ -52,6 +54,7 @@ Page({
     const exercises = session.exercises.map((ex, exIndex) => ({
       exIndex,
       name: ex.name,
+      glyph: (ex.name || '').slice(0, 1),
       isBodyWeight: domain.isBodyWeight(ex),
       skipped: !!ex.skipped,
       volume: domain.computeVolume(ex),
@@ -121,6 +124,34 @@ Page({
         }
       },
     });
+  },
+
+  /** 点动作行缩略图:用 exerciseId 反查动作库,打开同一套详情弹层(只读) */
+  onExerciseTap(e) {
+    const { ex } = e.currentTarget.dataset;
+    const sessionExercise = this.data.session.exercises[ex];
+    if (!sessionExercise || sessionExercise.skipped) return;
+    const item = lib.findById(sessionExercise.exerciseId);
+    // 查不到目录(旧 slug 等)时安静降级:行内仍显示 session.name + glyph,不弹层不提示
+    if (!item) return;
+    this.setData({
+      detail: {
+        id: item.id,
+        nameZh: item.nameZh,
+        nameEn: item.name,
+        equipmentZh: lib.equipmentLabel(item.equipment),
+        targetZh: lib.targetLabel(item.target),
+        bodyPartZh: lib.bodyPartLabel(item.bodyPart),
+        steps: item.instructionSteps || [],
+        glyph: item.nameZh.slice(0, 1),
+        mediaSrc: '',
+        isBodyWeight: item.equipment === 'body weight',
+      },
+    });
+  },
+
+  onCloseDetail() {
+    this.setData({ detail: null });
   },
 
   /** 临时加练:从动作库选 */
