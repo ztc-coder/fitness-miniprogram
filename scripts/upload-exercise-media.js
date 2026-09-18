@@ -20,8 +20,8 @@
  * 用法:
  *   node scripts/upload-exercise-media.js [--src /path/to/exercises-dataset]
  *
- * 上传成功后,把 fileID 前缀(形如
- * cloud://<env-id>.<bucket-suffix>/exercises)写入 data/media-root.js 的 MEDIA_ROOT。
+ * 上传成功后,把桶根(形如 cloud://<env-id>.<bucket-suffix>,不要再加 /exercises)
+ * 写入 data/media-root.js 的 MEDIA_ROOT。
  *
  * ⚠️ 媒体版权归 Gym visual(https://gymvisual.com/),仅个人自用;
  * 禁止热链 GitHub / jsDelivr 公开再分发。
@@ -97,8 +97,8 @@ async function main() {
     await storage.uploadDirectory({ localPath: localDir, cloudPath: pair.cloud });
   }
 
-  console.log('上传完成。请把 fileID 前缀(形如 cloud://' + ENV_ID + '.<bucket-suffix>/exercises)');
-  console.log('写入 data/media-root.js 的 MEDIA_ROOT,小程序端即可按需加载媒体。');
+  console.log('上传完成。请把桶根(形如 cloud://' + ENV_ID + '.<bucket-suffix>,不要 /exercises)');
+  console.log('写入 data/media-root.js 的 MEDIA_ROOT。');
 }
 
 main().catch((err) => {

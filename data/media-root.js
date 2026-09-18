@@ -5,11 +5,11 @@
  * `exercises/images/`、`exercises/videos/` 前缀下;目录里的 imagePath / gifPath
  * (如 `exercises/images/0025-EIeI8Vf.jpg`)拼上 MEDIA_ROOT 即为可加载地址。
  *
- * MEDIA_ROOT 支持两种形态(取其一):
- *  - cloud:// fileID 前缀(推荐,image 组件原生支持,走微信通道):
- *      'cloud://<env-id>.<bucket-suffix>/exercises'
- *  - 已配置自定义域名 / CDN 的 HTTPS 前缀:
- *      'https://<your-domain>/exercises'
+ * MEDIA_ROOT 是云存储桶根,不要再带 /exercises(目录路径里已经有):
+ *  - cloud:// fileID 前缀(推荐):
+ *      'cloud://<env-id>.<bucket-suffix>'
+ *  - HTTPS:
+ *      'https://<your-domain>'
  *
  * 留空(默认)表示尚未上传或未配置:resolveMedia 返回空串,
  * 详情弹层与打卡缩略图全部走 glyph 降级,功能不崩。

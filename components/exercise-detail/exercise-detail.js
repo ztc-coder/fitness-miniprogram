@@ -39,11 +39,9 @@ Component({
       this.triggerEvent('pick');
     },
 
-    /** 当前媒体加载失败:退到级联下一级(示意图),级联尽头回落 glyph */
+    /** 当前媒体加载失败:退到下一级;越过级联尽头后模板改显示 glyph */
     onMediaError() {
-      if (this.data.stageIndex < this.data.mediaStages.length - 1) {
-        this.setData({ stageIndex: this.data.stageIndex + 1 });
-      }
+      this.setData({ stageIndex: this.data.stageIndex + 1 });
     },
 
     noop() {},

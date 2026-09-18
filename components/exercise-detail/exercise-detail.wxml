@@ -13,7 +13,7 @@
       <!-- 媒体降级链:GIF → 示意图 → glyph;前缀未配置时级联为空,直接 glyph -->
       <view class="detail-art-wrap">
         <image
-          wx:if="{{mediaStages.length}}"
+          wx:if="{{stageIndex < mediaStages.length}}"
           class="detail-media"
           src="{{mediaStages[stageIndex]}}"
           mode="aspectFit"
