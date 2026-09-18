@@ -191,6 +191,13 @@ describe('volume 计算 computeVolume', () => {
     expect(domain.computeVolume(ex)).toBe(18);
   });
 
+  test('非 body weight 原值(assisted / sled machine)仍按重量×次数,不算自重', () => {
+    const assisted = { equipment: 'assisted', sets: [{ weight: 20, reps: 8 }] };
+    expect(domain.computeVolume(assisted)).toBe(160);
+    const sled = { equipment: 'sled machine', sets: [{ weight: 60, reps: 10 }] };
+    expect(domain.computeVolume(sled)).toBe(600);
+  });
+
   test('空 set 列表返回 0', () => {
     expect(domain.computeVolume({ equipment: 'barbell', sets: [] })).toBe(0);
     expect(domain.computeVolume(null)).toBe(0);

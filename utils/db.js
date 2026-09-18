@@ -3,6 +3,7 @@
  * UI 与 domain logic 之上的薄封装,统一处理云数据库读写与本地存储降级。
  */
 const domain = require('./domain');
+const catalog = require('../data/exercises');
 
 const COLLECTIONS = {
   PLANS: 'plans',
@@ -14,7 +15,7 @@ const LOCAL_KEYS = {
   SEED_VERSION: 'fitness:seedVersion',
 };
 
-const SEED_VERSION = 1;
+const SEED_VERSION = 2;
 
 // ===== 数据库句柄 =====
 
@@ -43,8 +44,24 @@ function fetchPlans() {
     })
     .catch((err) => {
       console.warn('云端计划读取失败,使用本地缓存', err);
-      return wx.getStorageSync(LOCAL_KEYS.PLANS) || [];
+      return (wx.getStorageSync(LOCAL_KEYS.PLANS) || []).map(normalizePlan);
     });
+}
+
+/**
+ * 旧 slug 计划迁移:slug → 数据集数字 id,并用 findById 回填 name/equipment 与目录对齐。
+ * 解析不到目录的 exerciseId 原样保留;sets/targetReps/targetWeight 不动。
+ */
+function migrateExercise(rawExercise) {
+  const found = catalog.findById(rawExercise.exerciseId);
+  if (!found) {
+    return rawExercise;
+  }
+  return Object.assign({}, rawExercise, {
+    exerciseId: found.id,
+    name: found.nameZh,
+    equipment: found.equipment,
+  });
 }
 
 function normalizePlan(raw) {
@@ -53,7 +70,11 @@ function normalizePlan(raw) {
     name: raw.name,
     cursor: raw.cursor || 0,
     active: !!raw.active,
-    cycleDays: raw.cycleDays || [],
+    cycleDays: (raw.cycleDays || []).map((day) =>
+      Object.assign({}, day, {
+        exercises: (day.exercises || []).map(migrateExercise),
+      })
+    ),
     createdAt: raw.createdAt || Date.now(),
   };
 }
@@ -236,30 +257,30 @@ function buildSeedPlan() {
         dayId: 'push',
         name: '推',
         exercises: [
-          { exerciseId: 'bench-press', name: '杠铃卧推', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 60 },
-          { exerciseId: 'incline-dumbbell-press', name: '上斜哑铃推举', equipment: 'dumbbell', sets: 3, targetReps: 10, targetWeight: 22 },
-          { exerciseId: 'chest-dip', name: '双杠臂屈伸', equipment: 'body weight', sets: 3, targetReps: 8, targetWeight: 0 },
-          { exerciseId: 'cable-fly', name: '绳索夹胸', equipment: 'cable', sets: 3, targetReps: 12, targetWeight: 18 },
+          { exerciseId: '0025', name: '杠铃卧推', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 60 },
+          { exerciseId: '0314', name: '上斜哑铃推举', equipment: 'dumbbell', sets: 3, targetReps: 10, targetWeight: 22 },
+          { exerciseId: '0251', name: '双杠臂屈伸', equipment: 'body weight', sets: 3, targetReps: 8, targetWeight: 0 },
+          { exerciseId: '0188', name: '绳索夹胸', equipment: 'cable', sets: 3, targetReps: 12, targetWeight: 18 },
         ],
       },
       {
         dayId: 'pull',
         name: '拉',
         exercises: [
-          { exerciseId: 'seated-cable-row', name: '坐姿划船', equipment: 'cable', sets: 4, targetReps: 10, targetWeight: 52 },
-          { exerciseId: 'pull-up', name: '引体向上', equipment: 'body weight', sets: 4, targetReps: 6, targetWeight: 0 },
-          { exerciseId: 'barbell-row', name: '杠铃俯身划船', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 50 },
-          { exerciseId: 'face-pull', name: '绳索面拉', equipment: 'cable', sets: 3, targetReps: 15, targetWeight: 15 },
+          { exerciseId: '0861', name: '坐姿划船', equipment: 'cable', sets: 4, targetReps: 10, targetWeight: 52 },
+          { exerciseId: '0652', name: '引体向上', equipment: 'body weight', sets: 4, targetReps: 6, targetWeight: 0 },
+          { exerciseId: '0027', name: '杠铃俯身划船', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 50 },
+          { exerciseId: '0233', name: '绳索面拉', equipment: 'cable', sets: 3, targetReps: 15, targetWeight: 15 },
         ],
       },
       {
         dayId: 'legs',
         name: '腿',
         exercises: [
-          { exerciseId: 'barbell-squat', name: '杠铃深蹲', equipment: 'barbell', sets: 4, targetReps: 6, targetWeight: 80 },
-          { exerciseId: 'romanian-deadlift', name: '罗马尼亚硬拉', equipment: 'barbell', sets: 3, targetReps: 8, targetWeight: 70 },
-          { exerciseId: 'leg-press', name: '腿举', equipment: 'machine', sets: 3, targetReps: 10, targetWeight: 120 },
-          { exerciseId: 'standing-calf-raise', name: '站姿提踵', equipment: 'machine', sets: 4, targetReps: 12, targetWeight: 40 },
+          { exerciseId: '0043', name: '杠铃深蹲', equipment: 'barbell', sets: 4, targetReps: 6, targetWeight: 80 },
+          { exerciseId: '0085', name: '罗马尼亚硬拉', equipment: 'barbell', sets: 3, targetReps: 8, targetWeight: 70 },
+          { exerciseId: '0739', name: '腿举', equipment: 'sled machine', sets: 3, targetReps: 10, targetWeight: 120 },
+          { exerciseId: '0605', name: '站姿提踵', equipment: 'leverage machine', sets: 4, targetReps: 12, targetWeight: 40 },
         ],
       },
     ],
