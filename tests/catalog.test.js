@@ -1,6 +1,17 @@
 const catalog = require('../data/exercises');
 
 describe('动作目录', () => {
+  test('分片文件低于微信单 JS 约 500KB 上限', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.join(__dirname, '../data');
+    const chunks = fs.readdirSync(dir).filter((name) => /^exercises-data-\d+\.js$/.test(name));
+    expect(chunks.length).toBeGreaterThan(1);
+    chunks.forEach((name) => {
+      expect(fs.statSync(path.join(dir, name)).size).toBeLessThan(500 * 1024);
+    });
+  });
+
   test('排除 cardio 后可离线列出全部力量动作', () => {
     expect(catalog.EXERCISES.length).toBe(1295);
     expect(catalog.EXERCISES.every((item) => item.bodyPart !== 'cardio')).toBe(true);

@@ -7,8 +7,13 @@
  * 图片与 GIF 走 CloudBase 云存储按需加载,不进主包。
  * ⚠️ 媒体版权归 Gym visual,上线前须取得书面授权并保留署名。
  */
+// 分片加载:微信单 JS 上限约 500KB,整包 exercises-data.js 超限会导致 require 失败、列表为空
 const EXERCISES = require('./exercises-data');
 const SLUG_MAP = require('./slug-map');
+
+if (!Array.isArray(EXERCISES)) {
+  console.error('动作目录加载失败');
+}
 
 const EQUIPMENT_FILTERS = ['全部', 'barbell', 'dumbbell', 'cable', 'machine', 'body weight', 'other'];
 
@@ -109,6 +114,7 @@ function findById(id) {
  * 关键词命中中文名、英文名、目标肌群中文、部位中文、器械中文。
  */
 function search(query, equipment, bodyPart) {
+  if (!Array.isArray(EXERCISES)) return [];
   const q = (query || '').trim().toLowerCase();
   return EXERCISES.filter((item) => {
     const matchQuery =

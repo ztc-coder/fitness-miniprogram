@@ -13,8 +13,9 @@ const ROOT = path.join(__dirname, '..');
 const SRC_DIR = process.env.DATASET_DIR || '/tmp/exercises-dataset';
 const SRC_JSON = path.join(SRC_DIR, 'exercises.json');
 const SRC_ZH = path.join(SRC_DIR, 'name_zh.json');
-const OUT_DATA = path.join(ROOT, 'data/exercises-data.js');
-const OUT_SLUG = path.join(ROOT, 'data/slug-map.js');
+const OUT_DIR = path.join(ROOT, 'data');
+const OUT_SLUG = path.join(OUT_DIR, 'slug-map.js');
+const CHUNK_SIZE = 450;
 
 function tidyZh(raw) {
   if (!raw) return '';
@@ -78,13 +79,30 @@ function main() {
     process.exit(1);
   }
 
-  fs.mkdirSync(path.dirname(OUT_DATA), { recursive: true });
-  fs.writeFileSync(OUT_DATA, `module.exports = ${JSON.stringify(catalog)};\n`);
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  writeCatalogChunks(catalog);
   fs.writeFileSync(OUT_SLUG, `module.exports = ${JSON.stringify(slugMap)};\n`);
-
-  const bytes = fs.statSync(OUT_DATA).size;
-  console.log(`exercises: ${catalog.length} 条, ${(bytes / 1024).toFixed(1)} KB → ${path.relative(ROOT, OUT_DATA)}`);
   console.log(`slug-map: ${Object.keys(slugMap).length} → ${path.relative(ROOT, OUT_SLUG)}`);
+}
+
+function writeCatalogChunks(catalog) {
+  const existing = fs.readdirSync(OUT_DIR).filter((name) => /^exercises-data(-\d+)?\.js$/.test(name));
+  existing.forEach((name) => fs.unlinkSync(path.join(OUT_DIR, name)));
+
+  const chunkCount = Math.max(1, Math.ceil(catalog.length / CHUNK_SIZE));
+  const requires = [];
+  for (let i = 0; i < chunkCount; i += 1) {
+    const slice = catalog.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+    const file = `exercises-data-${i + 1}.js`;
+    const full = path.join(OUT_DIR, file);
+    fs.writeFileSync(full, `module.exports = ${JSON.stringify(slice)};\n`);
+    requires.push(`require('./exercises-data-${i + 1}')`);
+    console.log(`chunk ${i + 1}: ${slice.length} 条, ${(fs.statSync(full).size / 1024).toFixed(1)} KB → data/${file}`);
+  }
+
+  const loader = path.join(OUT_DIR, 'exercises-data.js');
+  fs.writeFileSync(loader, `module.exports = [].concat(${requires.join(', ')});\n`);
+  console.log(`exercises: ${catalog.length} 条 → ${path.relative(ROOT, loader)}`);
 }
 
 main();
