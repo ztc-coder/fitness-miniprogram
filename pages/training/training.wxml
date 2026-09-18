@@ -176,6 +176,6 @@
     </view>
   </view>
   <!-- 动作详情弹层(与动作库同一套组件,打卡页只读) -->
-  <exercise-detail detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />
+  <exercise-detail wx:if="{{detail}}" detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />
 
 </view>

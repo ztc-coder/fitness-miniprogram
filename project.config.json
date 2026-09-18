@@ -7,7 +7,11 @@
     "enhance": true,
     "packNpmRelationList": [],
     "babelSetting": {
-      "ignore": [],
+      "ignore": [
+        "data/exercises-data-1.js",
+        "data/exercises-data-2.js",
+        "data/exercises-data-3.js"
+      ],
       "disablePlugins": [],
       "outputPath": ""
     },

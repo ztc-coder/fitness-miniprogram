@@ -7,11 +7,14 @@
  * 图片与 GIF 走 CloudBase 云存储按需加载,不进主包。
  * ⚠️ 媒体版权归 Gym visual,上线前须取得书面授权并保留署名。
  */
-// 分片加载:微信单 JS 上限约 500KB,整包 exercises-data.js 超限会导致 require 失败、列表为空
-const EXERCISES = require('./exercises-data');
+// 顶层 require 分片(微信依赖分析扫不到 concat(require()) 参数,会导致分片未打包)
+const EXERCISES_PART_1 = require('./exercises-data-1');
+const EXERCISES_PART_2 = require('./exercises-data-2');
+const EXERCISES_PART_3 = require('./exercises-data-3');
+const EXERCISES = [].concat(EXERCISES_PART_1, EXERCISES_PART_2, EXERCISES_PART_3);
 const SLUG_MAP = require('./slug-map');
 
-if (!Array.isArray(EXERCISES)) {
+if (!Array.isArray(EXERCISES) || EXERCISES.length === 0) {
   console.error('动作目录加载失败');
 }
 

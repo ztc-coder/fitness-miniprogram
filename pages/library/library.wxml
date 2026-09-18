@@ -5,7 +5,7 @@
       <view class="page-title">动作检索台</view>
       <view class="station-status-dot"></view>
     </view>
-    <view class="page-subtitle">力量训练主库 · CARDIO已过滤 · 快速加练</view>
+    <view class="page-subtitle">力量训练主库 · {{resultCount}} 条 · CARDIO已过滤</view>
   </view>
 
   <view class="search-row">
@@ -22,34 +22,34 @@
   <view class="filter-bar">
     <scroll-view class="filter-line" scroll-x show-scrollbar="{{false}}">
       <view class="filter-track">
-        <button
+        <view
           wx:for="{{equipFilters}}"
-          wx:key="key"
+          wx:key="label"
           class="filter-pill {{equipFilter === item.key ? 'active' : ''}}"
-          data-key="{{item.key}}"
+          data-bucket="{{item.key}}"
           bindtap="onEquipFilterTap"
           hover-class="filter-pill-hover"
           hover-stay-time="80"
         >
           <text class="filter-pill-label">{{item.label}}</text>
-        </button>
+        </view>
         <!-- 末项右侧安全垫块：保证圆角/边框/active 外环可完整滚入视口 -->
         <view class="filter-track-end" aria-hidden="true"></view>
       </view>
     </scroll-view>
     <scroll-view class="filter-line" scroll-x show-scrollbar="{{false}}">
       <view class="filter-track">
-        <button
+        <view
           wx:for="{{partFilters}}"
-          wx:key="key"
+          wx:key="label"
           class="filter-pill {{partFilter === item.key ? 'active' : ''}}"
-          data-key="{{item.key}}"
+          data-bucket="{{item.key}}"
           bindtap="onPartFilterTap"
           hover-class="filter-pill-hover"
           hover-stay-time="80"
         >
           <text class="filter-pill-label">{{item.label}}</text>
-        </button>
+        </view>
         <view class="filter-track-end" aria-hidden="true"></view>
       </view>
     </scroll-view>
@@ -89,6 +89,7 @@
 
   <!-- 动作详情弹层(组件,打卡页复用) -->
   <exercise-detail
+    wx:if="{{detail}}"
     detail="{{detail}}"
     show-pick="{{true}}"
     pick-text="{{pickMode ? '确认加入本次训练' : '确认加入当前训练日'}}"

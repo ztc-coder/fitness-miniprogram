@@ -101,7 +101,9 @@ function writeCatalogChunks(catalog) {
   }
 
   const loader = path.join(OUT_DIR, 'exercises-data.js');
-  fs.writeFileSync(loader, `module.exports = [].concat(${requires.join(', ')});\n`);
+  const decls = requires.map((req, i) => `const c${i + 1} = ${req};`);
+  const names = requires.map((_, i) => `c${i + 1}`).join(', ');
+  fs.writeFileSync(loader, `${decls.join('\n')}\nmodule.exports = [].concat(${names});\n`);
   console.log(`exercises: ${catalog.length} 条 → ${path.relative(ROOT, loader)}`);
 }
 

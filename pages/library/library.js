@@ -20,6 +20,7 @@ Page({
     partFilter: '全部',
     partFilters: [],
     items: [],
+    resultCount: 0,
     pickMode: false,
     planId: '',
     dayId: '',
@@ -38,14 +39,22 @@ Page({
   },
 
   applySearch() {
-    const items = lib.search(this.data.query, this.data.equipFilter, this.data.partFilter).map((item) => ({
-      id: item.id,
-      name: item.nameZh,
-      meta: `${lib.targetLabel(item.target)} · ${lib.equipmentLabel(item.equipment)}`,
-      glyph: item.nameZh.slice(0, 1),
-      isBodyWeight: item.equipment === 'body weight',
-    }));
-    this.setData({ items });
+    try {
+      const items = lib.search(this.data.query, this.data.equipFilter, this.data.partFilter).map((item) => {
+        const nameZh = item && item.nameZh ? String(item.nameZh) : '';
+        return {
+          id: item.id,
+          name: nameZh,
+          meta: `${lib.targetLabel(item.target)} · ${lib.equipmentLabel(item.equipment)}`,
+          glyph: nameZh.slice(0, 1) || '?',
+          isBodyWeight: item.equipment === 'body weight',
+        };
+      });
+      this.setData({ items, resultCount: items.length });
+    } catch (err) {
+      console.error('动作库检索失败', err);
+      this.setData({ items: [], resultCount: 0 });
+    }
   },
 
   onSearchInput(e) {
@@ -53,11 +62,15 @@ Page({
   },
 
   onEquipFilterTap(e) {
-    this.setData({ equipFilter: e.currentTarget.dataset.key }, () => this.applySearch());
+    const key = e.currentTarget.dataset.bucket;
+    if (!key) return;
+    this.setData({ equipFilter: key }, () => this.applySearch());
   },
 
   onPartFilterTap(e) {
-    this.setData({ partFilter: e.currentTarget.dataset.key }, () => this.applySearch());
+    const key = e.currentTarget.dataset.bucket;
+    if (!key) return;
+    this.setData({ partFilter: key }, () => this.applySearch());
   },
 
   onItemTap(e) {
