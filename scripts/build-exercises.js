@@ -13,8 +13,8 @@ const ROOT = path.join(__dirname, '..');
 const SRC_DIR = process.env.DATASET_DIR || '/tmp/exercises-dataset';
 const SRC_JSON = path.join(SRC_DIR, 'exercises.json');
 const SRC_ZH = path.join(SRC_DIR, 'name_zh.json');
-const OUT_JSON = path.join(ROOT, 'data/exercises.json');
-const OUT_SLUG = path.join(ROOT, 'data/slug-map.json');
+const OUT_DATA = path.join(ROOT, 'data/exercises-data.js');
+const OUT_SLUG = path.join(ROOT, 'data/slug-map.js');
 
 function tidyZh(raw) {
   if (!raw) return '';
@@ -78,12 +78,12 @@ function main() {
     process.exit(1);
   }
 
-  fs.mkdirSync(path.dirname(OUT_JSON), { recursive: true });
-  fs.writeFileSync(OUT_JSON, `${JSON.stringify(catalog)}\n`);
-  fs.writeFileSync(OUT_SLUG, `${JSON.stringify(slugMap, null, 2)}\n`);
+  fs.mkdirSync(path.dirname(OUT_DATA), { recursive: true });
+  fs.writeFileSync(OUT_DATA, `module.exports = ${JSON.stringify(catalog)};\n`);
+  fs.writeFileSync(OUT_SLUG, `module.exports = ${JSON.stringify(slugMap)};\n`);
 
-  const bytes = fs.statSync(OUT_JSON).size;
-  console.log(`exercises: ${catalog.length} 条, ${(bytes / 1024).toFixed(1)} KB → ${path.relative(ROOT, OUT_JSON)}`);
+  const bytes = fs.statSync(OUT_DATA).size;
+  console.log(`exercises: ${catalog.length} 条, ${(bytes / 1024).toFixed(1)} KB → ${path.relative(ROOT, OUT_DATA)}`);
   console.log(`slug-map: ${Object.keys(slugMap).length} → ${path.relative(ROOT, OUT_SLUG)}`);
 }
 

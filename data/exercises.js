@@ -7,8 +7,8 @@
  * 图片与 GIF 走 CloudBase 云存储按需加载,不进主包。
  * ⚠️ 媒体版权归 Gym visual,上线前须取得书面授权并保留署名。
  */
-const EXERCISES = require('./exercises.json');
-const SLUG_MAP = require('./slug-map.json');
+const EXERCISES = require('./exercises-data');
+const SLUG_MAP = require('./slug-map');
 
 const EQUIPMENT_FILTERS = ['全部', 'barbell', 'dumbbell', 'cable', 'machine', 'body weight', 'other'];
 
