@@ -6,6 +6,7 @@
  *  - planId + dayId(指定加入某训练日)
  */
 const lib = require('../../data/exercises');
+const media = require('../../data/media-root');
 const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 
@@ -72,7 +73,8 @@ Page({
         bodyPartZh: lib.bodyPartLabel(item.bodyPart),
         steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
-        mediaSrc: '',
+        gifSrc: media.resolveMedia(item.gifPath),
+        imageSrc: media.resolveMedia(item.imagePath),
         isBodyWeight: item.equipment === 'body weight',
       },
     });

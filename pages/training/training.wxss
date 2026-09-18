@@ -231,6 +231,13 @@ button {
   border: 0;
 }
 
+/* 缩略图示意图(CloudBase JPEG):铺满 thumb 位;加载失败降回 glyph */
+.ex-thumb-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .ex-thumb-hover {
   background: rgba(255, 216, 74, 0.35);
   opacity: 0.85;

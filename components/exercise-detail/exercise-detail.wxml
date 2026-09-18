@@ -10,9 +10,15 @@
     </view>
 
     <scroll-view class="detail-scroll" scroll-y>
-      <!-- 媒体未接入(CloudBase 前缀未配置)时用首字 glyph -->
+      <!-- 媒体降级链:GIF → 示意图 → glyph;前缀未配置时级联为空,直接 glyph -->
       <view class="detail-art-wrap">
-        <image wx:if="{{detail.mediaSrc}}" class="detail-media" src="{{detail.mediaSrc}}" mode="aspectFit" />
+        <image
+          wx:if="{{mediaStages.length}}"
+          class="detail-media"
+          src="{{mediaStages[stageIndex]}}"
+          mode="aspectFit"
+          binderror="onMediaError"
+        />
         <view wx:else class="detail-art">{{detail.glyph}}</view>
       </view>
 

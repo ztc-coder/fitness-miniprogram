@@ -45,7 +45,11 @@
             aria-label="查看{{ex.name}}动作要领"
             hover-class="ex-thumb-hover"
             hover-stay-time="80"
-          >{{ex.glyph}}</button>
+          >
+            <!-- 行内缩略图只用示意图,不用 GIF:避免一行多个 GIF 同播 -->
+            <image wx:if="{{ex.thumbSrc}}" class="ex-thumb-img" src="{{ex.thumbSrc}}" mode="aspectFill" binderror="onThumbError" data-ex="{{ex.exIndex}}" />
+            <block wx:else>{{ex.glyph}}</block>
+          </button>
           <view class="ex-thumb ex-thumb-disabled" wx:else aria-hidden="true">{{ex.glyph}}</view>
           <view class="ex-name-wrap">
             <view class="ex-name">{{ex.name}}</view>

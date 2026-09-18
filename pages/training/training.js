@@ -7,6 +7,7 @@ const domain = require('../../utils/domain');
 const queue = require('../../utils/queue');
 const fmt = require('../../utils/format');
 const lib = require('../../data/exercises');
+const media = require('../../data/media-root');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
 
@@ -51,21 +52,27 @@ Page({
   /** 渲染动作列表(含每组输入值) */
   renderExercises() {
     const { session } = this.data;
-    const exercises = session.exercises.map((ex, exIndex) => ({
-      exIndex,
-      name: ex.name,
-      glyph: (ex.name || '').slice(0, 1),
-      isBodyWeight: domain.isBodyWeight(ex),
-      skipped: !!ex.skipped,
-      volume: domain.computeVolume(ex),
-      sets: ex.sets.map((set, setIndex) => ({
-        setIndex,
-        num: setIndex + 1,
-        weight: set.weight === null || set.weight === undefined ? '' : set.weight,
-        reps: set.reps === null || set.reps === undefined ? '' : set.reps,
-        canRemove: setIndex === ex.sets.length - 1 && ex.sets.length > 1,
-      })),
-    }));
+    const exercises = session.exercises.map((ex, exIndex) => {
+      const item = lib.findById(ex.exerciseId);
+      // 行内缩略图只用 JPEG 示意图,不自动播 GIF(避免一行多 GIF 同播)
+      const thumbSrc = media.resolveMedia(item && item.imagePath);
+      return {
+        exIndex,
+        name: ex.name,
+        glyph: (ex.name || '').slice(0, 1),
+        thumbSrc,
+        isBodyWeight: domain.isBodyWeight(ex),
+        skipped: !!ex.skipped,
+        volume: domain.computeVolume(ex),
+        sets: ex.sets.map((set, setIndex) => ({
+          setIndex,
+          num: setIndex + 1,
+          weight: set.weight === null || set.weight === undefined ? '' : set.weight,
+          reps: set.reps === null || set.reps === undefined ? '' : set.reps,
+          canRemove: setIndex === ex.sets.length - 1 && ex.sets.length > 1,
+        })),
+      };
+    });
     // 完成进度:已填全 weight+reps 的组数 / 总组数
     let filled = 0;
     let total = 0;
@@ -98,6 +105,12 @@ Page({
     const { ex, set } = e.currentTarget.dataset;
     const next = domain.updateSessionSet(this.data.session, ex, set, 'reps', e.detail.value);
     this.persistDraft(next);
+  },
+
+  /** 行内示意图加载失败:清空该行 thumbSrc,降回 glyph(不写回草稿) */
+  onThumbError(e) {
+    const { ex } = e.currentTarget.dataset;
+    this.setData({ [`exercises[${ex}].thumbSrc`]: '' });
   },
 
   onAddSet(e) {
@@ -144,7 +157,8 @@ Page({
         bodyPartZh: lib.bodyPartLabel(item.bodyPart),
         steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
-        mediaSrc: '',
+        gifSrc: media.resolveMedia(item.gifPath),
+        imageSrc: media.resolveMedia(item.imagePath),
         isBodyWeight: item.equipment === 'body weight',
       },
     });
