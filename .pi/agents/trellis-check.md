@@ -1,7 +1,6 @@
 ---
 name: trellis-check
-description: |
-  Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
+description: Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
 tools: read, write, edit, bash, find, grep
 auto-exit: true
 interactive: false
@@ -17,7 +16,7 @@ This platform does NOT auto-inject task context via hook. Before doing anything 
 
 Try in order — stop at the first one that yields a task path:
 
-1. **Look at the dispatch prompt** you received from the main agent. If its first line is `Active task: <path>` (e.g. `Active task: .trellis/tasks/04-17-foo`), use that path. The main agent is required to include this line on class-2 platforms.
+1. **Look at the dispatch prompt** you received from the main agent. Find the first line matching `^Active task: ` (e.g. `Active task: .trellis/tasks/04-17-foo`) and use that path. Do NOT require it to be the literal first line: the global extension prepends a two-line preamble (`Complete your task autonomously. ...`) and delivers the dispatch body through a context artifact file. The main agent is required to include this line on class-2 platforms.
 2. **Run** `python3 ./.trellis/scripts/task.py current --source` and read the `Current task:` line.
 3. **If both fail** (no `Active task:` line in the prompt and `task.py current` returns no task), ask the user which task to work on; do NOT guess.
 
