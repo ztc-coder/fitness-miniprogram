@@ -22,11 +22,22 @@ subagent({
 })
 ```
 
-The first line of `task` is mandatory:
+`task` must begin with the `Active task:` line:
 
 ```text
 Active task: .trellis/tasks/<task-directory>
 ```
+
+This is the first line of the **dispatch body**, not of the prompt the child actually receives. The global extension prepends a two-line preamble and delivers the body through a context artifact file, so the child sees:
+
+```text
+Complete your task autonomously. When you are finished, simply stop — your session ends automatically.
+
+Active task: .trellis/tasks/<task-directory>
+...
+```
+
+An Agent therefore must **scan** for the `Active task:` line (e.g. the first line matching `^Active task:`) instead of requiring the literal first line of the prompt. A strict line-1 match fails on every dispatch.
 
 The local Trellis extension has an opt-in compatibility tool:
 
@@ -50,7 +61,7 @@ The local Trellis extension must continue to register `session_start`, `tool_cal
 
 ### Agent lifecycle
 
-Both project Trellis Agent definitions must declare:
+All project Trellis Agent definitions (`trellis-implement`, `trellis-check`, `trellis-research`) must declare:
 
 ```yaml
 auto-exit: true
@@ -59,7 +70,32 @@ session-mode: standalone
 system-prompt: append
 ```
 
-This allows the global extension to close autonomous workers and deliver `subagent_result` to the parent session.
+This allows the global extension to close autonomous workers and deliver `subagent_result` to the parent session. An Agent without `auto-exit: true` keeps its pane and session open after the task finishes.
+
+### Model resolution
+
+Project Agent models are declared in `<project>/.pi/settings.json` under `subagents.agentOverrides`, not in Agent frontmatter:
+
+```json
+{
+  "subagents": {
+    "agentOverrides": {
+      "trellis-implement": { "model": "pc-deepseek/deepseek-flash", "thinking": "high", "fallbackModels": [] },
+      "trellis-check": { "model": "pc-grok/grok-4.6", "thinking": "medium", "fallbackModels": [] },
+      "trellis-research": { "model": "pc-deepseek/deepseek-flash", "thinking": "low", "fallbackModels": [] }
+    }
+  }
+}
+```
+
+The global extension merges `~/.pi/agent/settings.json` with `<project>/.pi/settings.json` as `{ ...userSettings.agentOverrides, ...projectSettings.agentOverrides }` — a **shallow spread keyed by Agent name**, not a field-level deep merge. Consequences:
+
+- Project entries for Agent names the global file does not define (`trellis-implement` / `trellis-check` / `trellis-research`) are added and leave the global `scout` / `researcher` / `worker` / `reviewer` / `visual-tester` / `claude-code` entries intact.
+- A project entry that reuses an existing global name replaces that whole entry. Declaring only `{ "model": "..." }` for `scout` drops the global `scout.thinking` and `scout.fallbackModels`; restate every field the Agent needs.
+
+Resolution order for the effective model is `agentOverrides.<name>.model` → Agent frontmatter `model` → `subagents.defaultModel`; for thinking it is `agentOverrides.<name>.thinking` → frontmatter → `subagents.defaultThinking`; for fallbacks it is `agentOverrides.<name>.fallbackModels` → frontmatter. All of these are independent of the parent session model.
+
+When `subagents.defaultModel` / `defaultThinking` happen to equal a project override's values, the resolved model string cannot distinguish "override applied" from "fell back to default". Verify with a field unique to the project entry — `fallbackModels` is the reliable discriminator, and it appears in the child's session `*.loadout.json` and in the child's `PI_SUBAGENT_FALLBACK_MODELS`.
 
 ### Fallback
 
@@ -71,10 +107,14 @@ This allows the global extension to close autonomous workers and deliver `subage
 | --- | --- |
 | Environment variable is unset or not exactly `1` | No local `trellis_subagent` tool and no local `Alt+O` shortcut; global `subagent` remains available. |
 | `TRELLIS_NATIVE_SUBAGENT=1` | Native fallback tool and `Alt+O` are registered. |
-| Dispatch task does not start with `Active task:` | Agent falls back to `task.py current --source`; callers should still treat the dispatch as invalid and correct it. |
+| Dispatch body does not start with `Active task:` | Agent falls back to `task.py current --source`; callers should still treat the dispatch as invalid and correct it. |
+| Agent requires `Active task:` on the literal first line of the prompt | Always fails: the extension prepends a two-line preamble. Match with a `^Active task:` scan. |
+| Project `agentOverrides` entry reuses a global Agent name with only some fields | The global entry is replaced wholesale, silently dropping its other fields. |
 | Agent definition is missing | Global extension cannot discover the role; do not silently substitute a different Agent. |
 | Global extension or tmux is unavailable | Native fallback may be enabled for the current Pi process; record the limitation rather than changing global extension code. |
 | Context handler is changed while adding the switch | Reject the change; dispatch gating must not wrap Trellis context injection. |
+| Agent frontmatter uses a `description: |` block scalar | The global extension's line-based frontmatter parser reads `description` as `|`, so the Agent picker shows an empty description. Use a single-line value. |
+| Project `subagents.agentOverrides` omits a Trellis Agent | That Agent silently runs on `subagents.defaultModel` + `subagents.defaultThinking` instead of the intended role model. Indistinguishable from a working override when the default equals the intended values; check `fallbackModels` instead. |
 
 ## 5. Good / Base / Bad Cases
 
@@ -88,7 +128,11 @@ This allows the global extension to close autonomous workers and deliver `subage
 
 - Static contract check: default registration path excludes `trellis_subagent` and `Alt+O`; the exact opt-in value restores both.
 - Context regression check: `session_start`, `tool_call`, `before_agent_start`, and `TRELLIS_CONTEXT_ID` remain registered outside the dispatch condition.
-- Agent manifest check: project `trellis-implement` and `trellis-check` resolve with the four lifecycle frontmatter values above.
+- Agent manifest check: project `trellis-implement`, `trellis-check`, and `trellis-research` resolve with the four lifecycle frontmatter values above, and each `description` parses to a non-empty single-line string.
+- Model override check: merged `subagents.agentOverrides` contains project `trellis-implement` / `trellis-check` / `trellis-research` entries alongside the global `scout` / `researcher` / `worker` / `reviewer` / `visual-tester` / `claude-code` entries.
+- Dispatch smoke check: a real `subagent({ agent: "trellis-implement", task: "Active task: <dir>\n\n..." })` resolves `<dir>`, reads its `prd.md` and the specs listed in its `implement.jsonl`, and writes a probe artifact; a dispatch with no `Active task:` line must degrade without guessing. Verified 2026-09-19 against `3c36184`.
+- Override discrimination check: the child's `*.loadout.json` and `PI_SUBAGENT_FALLBACK_MODELS` carry the project `fallbackModels`, which is the only field that separates an applied override from `defaultModel` when their values coincide.
+- Lifecycle check: both children exit on their own, deliver `subagent_result`, and leave no tmux pane behind.
 - Pi startup check: default mode discovers the global `subagent` tool and no native `trellis_subagent`; fallback mode loads the native tool.
 - Project regression check: `npm test -- --runInBand` passes.
 
@@ -112,4 +156,4 @@ if (nativeSubagentEnabled) {
 }
 ```
 
-Context handlers remain outside this condition, and the main workflow calls the global tool with `task` and the `Active task:` preamble.
+Context handlers remain outside this condition, and the main workflow calls the global tool with `task` and the `Active task:` dispatch line.
