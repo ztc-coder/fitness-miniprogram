@@ -21,8 +21,26 @@ the rest conversationally.
 
 ## Status (update the checkboxes as you complete each item)
 
-- [ ] Fill frontend guidelines
-- [ ] Add code examples
+- [x] Fill frontend guidelines
+- [x] Add code examples
+
+## 完成记录（2026-09-19）
+
+已按仓库真实做法（微信原生小程序，无 TS / 无构建）重写 `.trellis/spec/frontend/` 下 6 个规范文件与索引，全部中文，
+并带真实文件路径与代码片段：
+
+- `index.md`：索引 + 阅读顺序 + 三条最易违反的约束
+- `directory-structure.md`：pages / components / utils / data / scripts / tests 实际布局
+- `component-guidelines.md`：`Page` / `Component` 写法、事件命名、setData 原子提交、媒体降级链、WXSS token
+- `hook-guidelines.md`：无 Hooks，改为生命周期用法 + 纯函数模块拆分 + 副作用注册
+- `state-management.md`：四层状态、`fitness:` 存储 key、`utils/db.js` 仓库模式、提交队列
+- `type-safety.md`：无 TS，JSDoc + `CONTEXT.md` 契约 + 运行时归一
+- `quality-guidelines.md`：测试与覆盖率门槛、10 条禁止模式、ADR / issue / 提交约定、已知技术债
+
+验证：`npm test` → 8 suites / 139 tests 全通过，覆盖率 domain 95.95% / exercises 90.19%（均高于 80% 阈值）。
+
+发现的文档漂移（已记录在 `quality-guidelines.md` 技术债，未在本任务修）：`CONTEXT.md` §7 仍写深色 FORGE 设计系统，
+而 `app.wxss` 实际是浅色「晴空青黄」。
 
 ---
 
