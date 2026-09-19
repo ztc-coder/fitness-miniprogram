@@ -248,6 +248,27 @@
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.library-art-image {
+  display: block;
+}
+
+/* 预热图不占布局,只负责让当前页与下一页 JPEG 提前进入缓存。 */
+.library-preheat {
+  position: absolute;
+  width: 1rpx;
+  height: 1rpx;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.library-preheat-image {
+  width: 1rpx;
+  height: 1rpx;
 }
 
 .library-main {

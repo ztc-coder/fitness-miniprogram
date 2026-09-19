@@ -1,4 +1,5 @@
-<view class="detail-mask" wx:if="{{detail}}" bindtap="onClose">
+<!-- catchtouchmove:阻断触摸移动冒泡到页面,锁住遮罩下滚动;scroll-view 原生滚动不受影响 -->
+<view class="detail-mask" wx:if="{{detail}}" bindtap="onClose" catchtouchmove="noop">
   <view class="detail-card" catchtap="noop">
     <view class="detail-head">
       <view class="detail-head-main">

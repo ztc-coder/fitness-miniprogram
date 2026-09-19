@@ -1,5 +1,7 @@
 # 健身训练小程序 MVP — Spec
 
+> 当前实现状态：精选动作库（136 条，10 个部位标签含「热身」）、v3 计划迁移、分页 JPEG 缩略图及媒体同步脚本已落库；真实微信开发者工具与 CloudBase 媒体集合验收仍由 `.scratch/catalog-expansion/issues/05-integration-acceptance-and-docs.md` 追踪。
+
 ## Problem Statement
 
 用户(个人自用)想要一个不依赖社交、不含多角色、不含支付/通知的力量训练打卡工具。现有健身 App 大多为多人社交场景设计,信息噪音大;用户需要的核心诉求是:按自定义的第 N 天循环(如推-拉-腿)推进训练,在健身房网络不稳定的环境下也能顺畑打卡,并且历史记录必须忠实于当时实际训练情况,不受后续计划调整影响。
@@ -10,7 +12,7 @@
 
 - 训练计划以「第 N 天循环」建模,游标随打卡完成推进,漏练不打乱顺序。
 - 打卡时把当天计划快照复制为独立 session,本地缓存整场训练,仅在结束提交时联网,无网自动排队重试。
-- 动作库离线可读(文本精简打包进小程序,图片/GIF 走云存储按需加载),覆盖全部非 cardio 动作。
+- 动作库离线可读(文本精简打包进小程序,图片/GIF 走云存储按需加载),为三/四/五分化提供 136 条精选常用动作（规格区间约 100–140 条）；不是上游全量目录。
 - 记录 tab 提供按 session 时间线回看,以及后续单动作 volume/总次数趋势曲线。
 - 静默 openid 登录,后端使用微信云开发 CloudBase(云数据库 + 云存储 + 云函数),前端为原生 WXML/WXSS/JS,无 TypeScript/跨端框架。
 
@@ -35,9 +37,9 @@
 17. 作为训练者,我想 MVP 阶段不做组间休息计时器,这样功能范围保持精简(后期再评估)。
 18. 作为训练者,我想训练结束后看到轻量完成小结(动作数/总容量/时长),这样能立刻知道这次训练的强度。
 19. 作为训练者,我想完成小结里能看到与上次同类型训练的对比,这样能感知自己的进步或退步。
-20. 作为训练者,我想动作库数据源排除 cardio 类动作,这样列表里只有和我训练相关的力量动作。
-21. 作为训练者,我想动作库的文本字段(中文名/器材/部位/目标肌群/图片路径)精简后打进小程序包体,这样离线也能浏览动作库。
-22. 作为训练者,我想动作的图片和 GIF 按需从云存储加载,这样不会让小程序包体过大。
+20. 作为训练者,我想动作库从候选数据集中排除 cardio、冷门和重复变式,这样列表里只有和我训练相关的精选力量动作。
+21. 作为训练者,我想精选动作库的文本字段(中英文名/器材/部位/目标肌群/媒体路径/中文要领)精简后打进小程序包体,这样离线也能浏览动作库。
+22. 作为训练者,我想动作的 JPEG 缩略图和 GIF 按需从云存储加载,这样不会让小程序包体过大。
 23. 作为训练者,我想记录 tab 提供按训练场次时间线倒序回看的视图,这样能快速找到最近的训练记录。
 24. 作为训练者,我想记录 tab 后续提供单动作的进步曲线视图,这样能追踪某个具体动作的长期变化。
 25. 作为训练者,我想进步曲线默认按 volume(Σ重量×次数)展示,这样能综合衡量训练强度的变化。
@@ -65,9 +67,9 @@
 - **数据模型**:
   - Plan:`{id, name, cycleDays: [{dayId, name, exercises: [{exerciseId, sets, targetReps, targetWeight}]}], cursor, active}`。
   - Session(打卡快照):`{id, planId, dayId, startedAt, submittedAt, exercises: [{exerciseId, sets: [{weight, reps}]}]}`,一旦生成即与 plan 解耦,不因后续 plan 编辑而改变。
-  - Exercise(动作库条目,只读离线数据):`{id, nameZh, equipment, bodyPart, target, imagePath}`,`equipment == "body weight"` 是判断自重动作、切换 volume/总次数口径的唯一依据。
+  - Exercise(动作库条目,只读离线数据):`{id, name, nameZh, equipment, bodyPart, target, imagePath, gifPath, instructionSteps, aliases}`。目录由精确精选白名单维护（当前 136 条）,`id` 为数据集 4 位数字字符串；`aliases` 承载中文俗称/旧译名并参与关键词搜索；`equipment == "body weight"` 是判断自重动作、切换 volume/总次数口径的唯一依据（筛选桶归并不改变该判据）。
 - **架构分层**:UI 页面(WXML/WXSS/JS)与云函数入口都是 domain logic 模块之上的薄封装,不重复实现游标推进、快照复制、volume 计算、队列判定这几类核心规则,避免逻辑分散到多处。
-- **动作库交付形式**:文本字段(中文名/equipment/body_part/target/muscle_group/image 路径)精简后随小程序主包发布,本地离线可读;图片与 GIF 走 CloudBase 云存储按需加载,不进主包。
+- **动作库交付形式**:文本字段(`id/name/nameZh/equipment/bodyPart/target/imagePath/gifPath/instructionSteps/aliases`)精简后随小程序主包发布,本地离线可读;示意图与动作演示走 CloudBase 云存储按需加载,不进主包。筛选行 11 项（全部/胸/背/肩/二头肌/三头肌/腿/腰腹/臀/热身/复合动作），列表显示 JPEG 缩略图并按 24 条递增分页,详情继续 GIF → JPEG → glyph；详见 ADR-0007。
 - **打卡提交时机**:训练全程使用本地缓存(小程序本地存储),只有点击"完成训练并提交"时才触发一次网络请求写入 CloudBase;网络不可用时交由提交队列逻辑排队重试,不阻塞本地记录的生成。
 - **身份**:使用微信静默 openid 登录,不做登录墙、不做账号体系之外的身份校验。
 
@@ -79,7 +81,7 @@
   - 打卡快照:验证快照与原 plan 无共享引用(修改快照不影响 plan,反之亦然)、快照允许增删动作。
   - volume 计算:验证常规动作 `Σ(weight×reps)`、自重动作 `Σreps`、空 set 列表返回 0。
   - 提交队列:验证有网络时立即提交、无网络时进入队列、重试后成功从队列移除。
-- 由于项目目前没有既有测试基建(纯原型 + 需求文档阶段),没有可参考的项目内 prior art;建议采用小程序原生开发常见的 Jest(配合 `miniprogram-simulate` 或纯函数直接 import 测试,因为 domain logic 模块本身不依赖小程序运行时 API,可直接用标准 Jest 单测)。
+- Jest 是仓库内确定性验证工具：domain、目录、页面级 Page harness、数据库迁移和媒体同步纯函数均可在 Node 中运行；真实 WXML 渲染、微信开发者工具滚动和 CloudBase 远端集合不由 Jest mock 代替。
 
 ## Out of Scope
 
@@ -92,6 +94,6 @@
 
 ## Further Notes
 
-- 项目目前不是 git 仓库,也没有配置 issue tracker 与 triage 标签词表(`/setup-matt-pocock-skills` 未运行),因此本 spec 暂以本地文件形式落地在 `docs/spec-mvp.md`,未推送到 issue tracker、未打 `ready-for-agent` 标签。若需要真正进入 tracker 驱动的 agent 工作流,需要先完成 tracker 配置。
+- Issue tracker 使用仓库内 `.scratch/` Markdown；当前动作库 spec/验收记录在 `.scratch/catalog-expansion/`（历史轮次：`.scratch/common-exercise-catalog/`、`.scratch/exercise-catalog/`），真实微信开发者工具与 CloudBase 媒体验收保持 `ready-for-human`，不以本地 mock 宣称完成。
 - 现有交互原型 `fitness-prototype.html` 与设计稿 `canvas/` 已经覆盖了 6 个主屏的交互状态(今天/计划/动作库/训练中/记录/我的),可作为 UI 层实现的直接参照,本 spec 未重复描述界面细节。
 - domain logic 模块的具体函数签名、文件位置留给实现阶段决定,不在本 spec 中固化,避免文档与代码脱节。

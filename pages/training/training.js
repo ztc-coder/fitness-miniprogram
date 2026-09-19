@@ -154,7 +154,7 @@ Page({
         nameEn: item.name,
         equipmentZh: lib.equipmentLabel(item.equipment),
         targetZh: lib.targetLabel(item.target),
-        bodyPartZh: lib.bodyPartLabel(item.bodyPart),
+        bodyPartZh: lib.partTagsLabel(item.id),
         steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
         gifSrc: media.resolveMedia(item.gifPath),

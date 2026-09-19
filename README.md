@@ -25,7 +25,7 @@
 
 - 前端:微信原生小程序(WXML / WXSS / JS),无 TypeScript / 跨端框架
 - 后端:微信云开发 CloudBase(云数据库 + 云存储 + 云函数)
-- 测试:Jest(只测 domain logic 纯函数模块)
+- 测试:Jest(domain、目录、页面级 Page harness、迁移和媒体同步纯函数)
 
 ## 目录结构
 
@@ -35,7 +35,7 @@ pages/
   today/         今天:当前训练日卡片 + 开始训练
   plan/          计划:循环计划管理(增删训练日、排序、切换 active)
   plan-day/      训练日详情:动作列表与统一目标编辑
-  library/       动作库:离线浏览、搜索、器械筛选、加练/加入训练日
+  library/       动作库:136 条精选目录、关键词(含俗称别名)/器械/10 个部位标签(含热身)筛选、24 条分页 JPEG 缩略图、加练/加入训练日
   training/      训练中:set 录入、增删组、跳过、加练、完成提交
   records/       记录:场次时间线 + 单动作趋势曲线(volume/总次数)
   session-detail/ 训练快照详情(不可变副本)
@@ -45,11 +45,11 @@ utils/
   db.js          CloudBase 数据访问层(仓库模式,失败降级本地缓存)
   queue.js       提交队列执行器(注入真实网络,断网重试)
   format.js      展示格式化
-data/exercises.js  动作库离线数据(已排除 cardio,文本随主包)
+data/               精选白名单、离线动作目录、媒体根与生成分片
 images/tabbar/     tabBar 图标(imgGen 生成字形,纯色重着色为双态 81px)
 images/tabbar/gen/ 图标原始生成图(1024px,供二次编辑参考)
 cloudfunctions/login/  静默 openid 登录
-tests/domain.test.js   domain 外部行为测试(34 用例,覆盖率 80%+)
+tests/              Jest 外部行为测试（domain、目录、页面分页、迁移、媒体同步）
 ```
 
 ## 本地开发
@@ -58,7 +58,7 @@ tests/domain.test.js   domain 外部行为测试(34 用例,覆盖率 80%+)
 2. 开通云开发,把 `app.js` 顶部 `ENV_ID` 替换为真实环境 ID。
 3. 右键 `cloudfunctions/login` → 上传并部署(云端安装依赖)。
 4. 云数据库建集合 `plans`、`sessions`(权限:仅创建者可读写)。
-5. 首次进入自动种入「推 / 拉 / 腿」演示计划,打开即用。
+5. 首次进入自动种入「胸三 / 背二 / 肩腿」演示计划,打开即用。
 
 ## 测试
 
@@ -70,4 +70,5 @@ npm test
 ## 发布前置阻塞项
 
 - ⚠️ 动作示意图/GIF 版权归 Gym visual,上线前必须取得书面授权、保留 `© Gym visual — https://gymvisual.com/` 署名并遵守 180×180 分辨率限制。图片/GIF 走 CloudBase 云存储按需加载,不进主包。
-- 动作库 JSON 体积实测:当前为精选子集;接入全量数据集后确认是否落进 2MB 主包,超出则走分包。
+- 动作库 JSON 体积实测:当前为 136 条精选子集（规格区间约 100–140 条）,需确认是否落进 2MB 主包,超出则走分包。
+- ⚠️ `.scratch/catalog-expansion/issues/05-integration-acceptance-and-docs.md` 的真实微信开发者工具端到端行为、CloudBase 最终媒体集合（136 条 × JPEG/GIF = 272 个受管对象）和旧媒体清理仍待人工验收；Node mock、媒体同步 dry-run 和 Jest 不能替代该验收。

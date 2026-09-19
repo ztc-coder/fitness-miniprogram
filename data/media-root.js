@@ -11,13 +11,13 @@
  *  - HTTPS:
  *      'https://<your-domain>'
  *
- * 留空(默认)表示尚未上传或未配置:resolveMedia 返回空串,
- * 详情弹层与打卡缩略图全部走 glyph 降级,功能不崩。
+ * 已配置为实际 CloudBase 环境(Region ap-shanghai)的 fileID 桶根,
+ * 目录相对路径拼上即得 cloud:// fileID(小程序端直接用 <image>/<video> 加载)。
  *
  * ⚠️ 媒体版权归 Gym visual(https://gymvisual.com/),个人自用,
  * 禁止热链 GitHub / jsDelivr 公开再分发。
  */
-const MEDIA_ROOT = '';
+const MEDIA_ROOT = 'cloud://cloud1-d2ga0mned4bbf9b29.636c-cloud1-d2ga0mned4bbf9b29-1456520720';
 
 /**
  * 拼接媒体地址;前缀未配置或路径为空时返回空串(调用方据此降级 glyph)。

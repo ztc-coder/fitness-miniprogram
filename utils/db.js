@@ -13,9 +13,18 @@ const COLLECTIONS = {
 const LOCAL_KEYS = {
   PLANS: 'fitness:plans',
   SEED_VERSION: 'fitness:seedVersion',
+  PLAN_MIGRATION: 'fitness:planMigrationVersion',
+  PLAN_MIGRATION_CLOUD: 'fitness:planMigrationCloudSynced',
 };
 
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
+
+/**
+ * 目录裁剪的一次性计划迁移版本:目录变更时 +1。
+ * 1 = 三分化 target 白名单裁剪;2 = 精选常用动作目录(data/curated-catalog.js)裁剪;
+ * 3 = 最终 136 条目录可用性裁剪(0200/0673 等非最终白名单动作直接移除,无 replacement)。
+ */
+const PLAN_MIGRATION_VERSION = 3;
 
 // ===== 数据库句柄 =====
 
@@ -27,25 +36,38 @@ function isCloudError(err) {
   return !!err;
 }
 
+/** local_ 前缀是本地未上云的临时 id,其余视为云端正式 _id */
+function isCloudPlanId(id) {
+  return !!id && id.indexOf('local_') !== 0;
+}
+
 // ===== 计划读写 =====
+
+/** 只读取云端计划;不写本地缓存,供迁移在合并 local_ 计划前安全使用。 */
+function readCloudPlans() {
+  return db()
+    .collection(COLLECTIONS.PLANS)
+    .orderBy('createdAt', 'asc')
+    .get()
+    .then((res) => (res.data || []).map(normalizePlan));
+}
+
+/** 拉取云端计划并写穿本地缓存;云失败时抛出,由调用方决定降级。 */
+function fetchCloudPlans() {
+  return readCloudPlans().then((plans) => {
+    wx.setStorageSync(LOCAL_KEYS.PLANS, plans);
+    return plans;
+  });
+}
 
 /**
  * 读取当前用户全部计划;云失败降级到本地缓存。
  */
 function fetchPlans() {
-  return db()
-    .collection(COLLECTIONS.PLANS)
-    .orderBy('createdAt', 'asc')
-    .get()
-    .then((res) => {
-      const plans = (res.data || []).map(normalizePlan);
-      wx.setStorageSync(LOCAL_KEYS.PLANS, plans);
-      return plans;
-    })
-    .catch((err) => {
-      console.warn('云端计划读取失败,使用本地缓存', err);
-      return (wx.getStorageSync(LOCAL_KEYS.PLANS) || []).map(normalizePlan);
-    });
+  return fetchCloudPlans().catch((err) => {
+    console.warn('云端计划读取失败,使用本地缓存', err);
+    return (wx.getStorageSync(LOCAL_KEYS.PLANS) || []).map(normalizePlan);
+  });
 }
 
 /**
@@ -126,7 +148,7 @@ function syncPlanToCloud(plan) {
     createdAt: plan.createdAt,
     updatedAt: Date.now(),
   };
-  if (plan.id && plan.id.indexOf('local_') !== 0) {
+  if (isCloudPlanId(plan.id)) {
     return db()
       .collection(COLLECTIONS.PLANS)
       .doc(plan.id)
@@ -145,19 +167,22 @@ function syncPlanToCloud(plan) {
     });
 }
 
+function removePlanFromCloud(planId) {
+  return db()
+    .collection(COLLECTIONS.PLANS)
+    .doc(planId)
+    .remove();
+}
+
 /**
  * 删除计划:本地立即删除,云端 best-effort 删除(local_ 计划从未上云,跳过)。
  */
 function deletePlan(planId) {
   removeLocalPlan(planId);
-  if (planId && planId.indexOf('local_') !== 0) {
-    return db()
-      .collection(COLLECTIONS.PLANS)
-      .doc(planId)
-      .remove()
-      .catch((err) => {
-        console.warn('计划云端删除失败,已本地删除', err);
-      });
+  if (isCloudPlanId(planId)) {
+    return removePlanFromCloud(planId).catch((err) => {
+      console.warn('计划云端删除失败,已本地删除', err);
+    });
   }
   return Promise.resolve();
 }
@@ -225,15 +250,155 @@ function fetchSessions(limit = 50) {
     });
 }
 
+// ===== 目录裁剪迁移(版本化、幂等,一次性) =====
+
+/**
+ * 删除计划中不在当前目录的动作,再删掉因此变空的训练日。
+ * 返回 { plan 是否被修改, 裁剪后的 cycleDays }。
+ */
+function prunePlanCycleDays(plan) {
+  let changed = false;
+  const originalDays = plan.cycleDays || [];
+  const rawCursor = Number(plan.cursor);
+  const originalCursor = originalDays.length > 0 && Number.isFinite(rawCursor)
+    ? ((Math.floor(rawCursor) % originalDays.length) + originalDays.length) % originalDays.length
+    : 0;
+  const retained = originalDays
+    .map((day, originalIndex) => {
+      const exercises = (day.exercises || []).filter((ex) => !!catalog.findById(ex.exerciseId));
+      if (exercises.length !== (day.exercises || []).length) {
+        changed = true;
+      }
+      return { day: Object.assign({}, day, { exercises }), originalIndex };
+    })
+    .filter((entry) => {
+      if (entry.day.exercises.length === 0) {
+        changed = true;
+        return false;
+      }
+      return true;
+    });
+
+  let cursor = 0;
+  if (retained.length > 0) {
+    const currentIndex = retained.findIndex((entry) => entry.originalIndex === originalCursor);
+    if (currentIndex >= 0) {
+      cursor = currentIndex;
+    } else {
+      // 当前日被删除时,沿原循环选择下一个仍保留的训练日;末尾会自然环回。
+      for (let offset = 1; offset <= originalDays.length; offset += 1) {
+        const nextOriginalIndex = (originalCursor + offset) % originalDays.length;
+        const nextIndex = retained.findIndex((entry) => entry.originalIndex === nextOriginalIndex);
+        if (nextIndex >= 0) {
+          cursor = nextIndex;
+          break;
+        }
+      }
+    }
+  }
+  if (cursor !== plan.cursor) {
+    changed = true;
+  }
+  return { changed, cycleDays: retained.map((entry) => entry.day), cursor };
+}
+
+/**
+ * 目录裁剪后的一次性计划迁移:删除不可用动作 → 删空训练日 → 无训练日删除整份计划。
+ * 只按最终目录可查性裁剪,不建立旧 id → 新 id 的 replacement 映射,新增动作也不注入既有计划。
+ * 历史 session 不动。本地迁移与云端同步分开记版本:
+ * - PLAN_MIGRATION:本地写穿必然成功,完成后立即落定;
+ * - PLAN_MIGRATION_CLOUD:仅在确认云端可达且本轮云端写全部成功后落定;
+ *   云端写失败(含离线)不落定,联网后重试直至云端计划全部裁剪,成功后不再重复写。
+ */
+function migratePlansForCatalog() {
+  const localMigrated =
+    wx.getStorageSync(LOCAL_KEYS.PLAN_MIGRATION) === PLAN_MIGRATION_VERSION;
+  const cloudMigrated =
+    wx.getStorageSync(LOCAL_KEYS.PLAN_MIGRATION_CLOUD) === PLAN_MIGRATION_VERSION;
+  if (localMigrated && cloudMigrated) {
+    return fetchPlans();
+  }
+  const localPlans = readLocalPlans().map(normalizePlan);
+  let cloudReachable = true;
+  return readCloudPlans()
+    .catch((err) => {
+      cloudReachable = false;
+      console.warn('云端计划读取失败,迁移仅本地生效', err);
+      return [];
+    })
+    .then((cloudPlans) => {
+      // 云端正式 id 以云端为真相;尚未上云的 local_ 计划必须合并保留,不能被云列表覆盖。
+      const cloudIds = new Set(cloudPlans.map((plan) => plan.id));
+      const pendingLocalPlans = localPlans.filter(
+        (plan) => !isCloudPlanId(plan.id) && !cloudIds.has(plan.id)
+      );
+      const plans = cloudReachable ? cloudPlans.concat(pendingLocalPlans) : localPlans;
+      let cloudFailed = false;
+      let kept = [];
+      const writes = [];
+
+      plans.forEach((plan) => {
+        const { changed, cycleDays, cursor } = prunePlanCycleDays(plan);
+        if (cycleDays.length === 0) {
+          if (cloudReachable && isCloudPlanId(plan.id)) {
+            writes.push(() =>
+              removePlanFromCloud(plan.id).catch((err) => {
+                cloudFailed = true;
+                console.warn('迁移云端计划删除失败,联网后重试', err);
+              })
+            );
+          }
+          return;
+        }
+
+        const pruned = changed ? Object.assign({}, plan, { cycleDays, cursor }) : plan;
+        kept.push(pruned);
+        // 在线时:已改变的云计划需更新;local_ 计划无论是否改变都需补上云。
+        if (cloudReachable && (changed || !isCloudPlanId(plan.id))) {
+          writes.push(() =>
+            syncPlanToCloud(pruned)
+              .then((saved) => {
+                if (saved.id !== pruned.id) {
+                  kept = kept.map((item) => (item.id === pruned.id ? saved : item));
+                }
+              })
+              .catch((err) => {
+                cloudFailed = true;
+                console.warn('迁移云端计划保存失败,联网后重试', err);
+              })
+          );
+        }
+      });
+
+      // 本地裁剪先落定。在线同步 local_ 时 syncPlanToCloud 会把临时 id 替换成正式 id。
+      wx.setStorageSync(LOCAL_KEYS.PLANS, kept);
+      return writes
+        .reduce((chain, run) => chain.then(run), Promise.resolve())
+        .then(() => {
+          wx.setStorageSync(LOCAL_KEYS.PLANS, kept);
+          if (!localMigrated) {
+            wx.setStorageSync(LOCAL_KEYS.PLAN_MIGRATION, PLAN_MIGRATION_VERSION);
+          }
+          if (cloudReachable && !cloudFailed) {
+            wx.setStorageSync(
+              LOCAL_KEYS.PLAN_MIGRATION_CLOUD,
+              PLAN_MIGRATION_VERSION
+            );
+          }
+          return kept;
+        });
+    });
+}
+
 // ===== 种子数据(首次使用兜底) =====
 
 /**
- * 首次进入若无任何计划,种入一份「推 / 拉 / 腿」演示计划,保证打开即用。
- * 数据写入本地缓存;有网时同步到云端。
+ * 首次进入若无任何计划,种入「胸三 / 背二 / 肩腿」演示计划,保证打开即用。
+ * 先执行目录裁剪迁移(版本化、幂等),再判断是否需要种子。
  */
 function ensureSeedPlans() {
-  const seeded = wx.getStorageSync(LOCAL_KEYS.SEED_VERSION);
-  return fetchPlans().then((plans) => {
+  return migratePlansForCatalog().then((plans) => {
+    const seeded = wx.getStorageSync(LOCAL_KEYS.SEED_VERSION);
     if (plans.length > 0 || seeded === SEED_VERSION) {
       return plans;
     }
@@ -254,29 +419,31 @@ function buildSeedPlan() {
     createdAt: Date.now(),
     cycleDays: [
       {
-        dayId: 'push',
-        name: '推',
+        dayId: 'chest',
+        name: '胸三',
         exercises: [
           { exerciseId: '0025', name: '杠铃卧推', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 60 },
-          { exerciseId: '0314', name: '上斜哑铃推举', equipment: 'dumbbell', sets: 3, targetReps: 10, targetWeight: 22 },
+          { exerciseId: '0314', name: '上斜哑铃卧推', equipment: 'dumbbell', sets: 3, targetReps: 10, targetWeight: 22 },
           { exerciseId: '0251', name: '双杠臂屈伸', equipment: 'body weight', sets: 3, targetReps: 8, targetWeight: 0 },
           { exerciseId: '0188', name: '绳索夹胸', equipment: 'cable', sets: 3, targetReps: 12, targetWeight: 18 },
         ],
       },
       {
-        dayId: 'pull',
-        name: '拉',
+        dayId: 'back',
+        name: '背二',
         exercises: [
-          { exerciseId: '0861', name: '坐姿划船', equipment: 'cable', sets: 4, targetReps: 10, targetWeight: 52 },
           { exerciseId: '0652', name: '引体向上', equipment: 'body weight', sets: 4, targetReps: 6, targetWeight: 0 },
           { exerciseId: '0027', name: '杠铃俯身划船', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 50 },
-          { exerciseId: '0233', name: '绳索面拉', equipment: 'cable', sets: 3, targetReps: 15, targetWeight: 15 },
+          { exerciseId: '0861', name: '坐姿划船', equipment: 'cable', sets: 4, targetReps: 10, targetWeight: 52 },
+          { exerciseId: '0031', name: '杠铃弯举', equipment: 'barbell', sets: 3, targetReps: 10, targetWeight: 20 },
         ],
       },
       {
         dayId: 'legs',
-        name: '腿',
+        name: '肩腿',
         exercises: [
+          { exerciseId: '0091', name: '杠铃坐姿过头推举', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 40 },
+          { exerciseId: '0233', name: '绳索面拉', equipment: 'cable', sets: 3, targetReps: 15, targetWeight: 15 },
           { exerciseId: '0043', name: '杠铃深蹲', equipment: 'barbell', sets: 4, targetReps: 6, targetWeight: 80 },
           { exerciseId: '0085', name: '罗马尼亚硬拉', equipment: 'barbell', sets: 3, targetReps: 8, targetWeight: 70 },
           { exerciseId: '0739', name: '腿举', equipment: 'sled machine', sets: 3, targetReps: 10, targetWeight: 120 },
@@ -296,5 +463,6 @@ module.exports = {
   submitSession,
   fetchSessions,
   ensureSeedPlans,
+  migratePlansForCatalog,
   isCloudError,
 };

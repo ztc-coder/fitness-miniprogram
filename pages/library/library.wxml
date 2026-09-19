@@ -5,7 +5,7 @@
       <view class="page-title">动作检索台</view>
       <view class="station-status-dot"></view>
     </view>
-    <view class="page-subtitle">力量训练主库 · {{resultCount}} 条 · CARDIO已过滤</view>
+    <view class="page-subtitle">精选动作目录 · {{resultCount}} 条 · JPEG 缩略图</view>
   </view>
 
   <view class="search-row">
@@ -59,7 +59,16 @@
   <view class="library-list">
     <view class="library-item" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="onItemTap">
       <view class="library-art-wrap">
-        <view class="library-art">{{item.glyph}}</view>
+        <image
+          wx:if="{{item.thumbSrc}}"
+          class="library-art library-art-image"
+          src="{{item.thumbSrc}}"
+          mode="aspectFill"
+          lazy-load="{{true}}"
+          binderror="onThumbError"
+          data-id="{{item.id}}"
+        />
+        <view wx:else class="library-art">{{item.glyph}}</view>
       </view>
       <view class="library-main">
         <view class="library-name-row">
@@ -76,6 +85,20 @@
           <view class="library-chevron"></view>
         </view>
       </view>
+    </view>
+
+    <!-- 隐藏但仍可加载的有界预热:当前页 + 下一页,最多 48 张 JPEG,不含 GIF -->
+    <view class="library-preheat" aria-hidden="true">
+      <image
+        wx:for="{{preheatItems}}"
+        wx:if="{{item.thumbSrc}}"
+        wx:key="id"
+        class="library-preheat-image"
+        src="{{item.thumbSrc}}"
+        mode="aspectFill"
+        binderror="onThumbError"
+        data-id="{{item.id}}"
+      />
     </view>
 
     <view wx:if="{{items.length === 0}}" class="empty-state">
