@@ -3,6 +3,10 @@ name: trellis-check
 description: |
   Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
 tools: read, write, edit, bash, find, grep
+auto-exit: true
+interactive: false
+session-mode: standalone
+system-prompt: append
 ---
 
 ## Required: Load Trellis Context First

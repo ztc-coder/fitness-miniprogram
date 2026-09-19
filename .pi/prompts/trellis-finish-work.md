@@ -2,6 +2,20 @@
 
 Wrap up the current session: archive the active task (and any other completed-but-unarchived tasks the user wants to clean up) and record the session journal. Code commits are NOT done here — those happen in workflow Phase 3.4 before you invoke this command.
 
+## Pi dispatch contract
+
+Finish-work runs in the main session and dispatches no sub-agents. If verification is still needed before archiving, dispatch `trellis-check` with the global `subagent` tool:
+
+```ts
+subagent({
+  agent: "trellis-check",
+  name: "trellis-check",
+  task: "Active task: .trellis/tasks/<task>\n\n<role-specific instructions>",
+})
+```
+
+The `task` string's first line MUST be `Active task: <task path from task.py current>`. Do not use the legacy `trellis_subagent` tool or a `prompt` parameter on the default path.
+
 ## Step 1: Survey current state
 
 ```bash

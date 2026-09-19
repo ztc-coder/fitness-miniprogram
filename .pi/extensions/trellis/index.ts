@@ -1688,6 +1688,11 @@ export default function trellisExtension(pi: {
   getThinkingLevel?: () => string;
 }): void {
   if (process.env.TRELLIS_SUBAGENT_CHILD === "1") return;
+  // Native in-process subagent dispatch is off by default so the global
+  // pi-interactive-subagents `subagent` tool stays the single dispatch entry
+  // point. Set TRELLIS_NATIVE_SUBAGENT=1 to re-register `trellis_subagent`
+  // (and its Alt+O card) as an emergency fallback.
+  const nativeSubagentEnabled = process.env.TRELLIS_NATIVE_SUBAGENT === "1";
   // Process-level fallback; call sites with a session context re-resolve via
   // resolveRoot(ctx) so the active project (session cwd) is used instead.
   const root = resolveRoot();
@@ -1763,13 +1768,15 @@ export default function trellisExtension(pi: {
     card.invalidate();
   };
 
-  pi.registerShortcut?.("alt+o", {
-    description: "Toggle latest subagent card details",
-    handler: async (ctx: PiExtensionContext) => toggleDetail(ctx),
-  });
+  if (nativeSubagentEnabled) {
+    pi.registerShortcut?.("alt+o", {
+      description: "Toggle latest subagent card details",
+      handler: async (ctx: PiExtensionContext) => toggleDetail(ctx),
+    });
+  }
 
-  // Tool registration
-  pi.registerTool?.({
+  // Native fallback tool registration (TRELLIS_NATIVE_SUBAGENT=1 only).
+  const trellisSubagentTool: JsonObject = {
     name: "trellis_subagent",
     label: "Trellis Subagent",
     description: "Run a Trellis project sub-agent with active task context.",
@@ -1925,7 +1932,9 @@ export default function trellisExtension(pi: {
         invalidate() {},
       };
     },
-  });
+  };
+
+  if (nativeSubagentEnabled) pi.registerTool?.(trellisSubagentTool);
 
   // Events
   pi.on?.("session_start", (event, ctx) => {

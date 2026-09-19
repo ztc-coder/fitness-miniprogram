@@ -46,6 +46,22 @@ From Step 1 you know the current task and status. Check the task directory:
 
 ---
 
+## Pi dispatch contract
+
+When a phase step says to spawn a Trellis sub-agent, call the global `subagent` tool and pass the dispatch text through its `task` parameter:
+
+```ts
+subagent({
+  agent: "trellis-implement", // or "trellis-check" / "trellis-research"
+  name: "trellis-implement",
+  task: "Active task: .trellis/tasks/<task>\n\n<role-specific instructions>",
+})
+```
+
+The `task` string's first line MUST be `Active task: <task path from task.py current>`. Do not use the legacy `trellis_subagent` tool or a `prompt` parameter on the default path; the project agent definition keeps `task.py current --source` as its fallback. Canonical contract: `.trellis/workflow.md` Phase 2 steps 2.1 / 2.2.
+
+---
+
 ## Skill routing (quick reference)
 
 | User intent | Skill |

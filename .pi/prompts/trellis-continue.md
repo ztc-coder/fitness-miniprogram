@@ -51,6 +51,22 @@ Follow the loaded instructions. After each `[required]` step completes, move to 
 
 ---
 
+## Pi dispatch contract
+
+When resuming into a dispatch step, call the global `subagent` tool and pass the dispatch text through its `task` parameter:
+
+```ts
+subagent({
+  agent: "trellis-implement", // or "trellis-check"
+  name: "trellis-implement",
+  task: "Active task: .trellis/tasks/<task>\n\n<role-specific instructions>",
+})
+```
+
+The `task` string's first line MUST be `Active task: <task path from task.py current>`. Do not use the legacy `trellis_subagent` tool or a `prompt` parameter on the default path; the project agent definition keeps `task.py current --source` as its fallback.
+
+---
+
 ## Reference
 
 Full workflow and detailed phase steps live in `.trellis/workflow.md`. This command is only an entry point — the canonical guidance is there.

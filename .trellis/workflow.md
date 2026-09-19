@@ -231,7 +231,7 @@ Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-bef
      therefore must cover every required step from implementation through
      commit, including Phase 3.3 spec update and Phase 3.4 commit. -->
 
-Sub-agent dispatch protocol applies to all platforms and all sub-agents, including native Codex `SubagentStart` context injection with child-side pull fallback, class-2 Gemini/Qoder/Copilot/Reasonix/Trae/Grok/Kimi Code, hook-backed ZCode/Snow, and `trellis-research`: every dispatch prompt starts with `Active task: <task path from task.py current>` before role-specific instructions. On Grok Build, use `spawn_subagent` with `subagent_type` set to the Trellis agent name (e.g. `trellis-implement`). On Kimi Code, dispatch the built-in `coder` / `explore` sub-agent with the matching `.kimi-code/skills/trellis-<role>/SKILL.md` instructions.
+Sub-agent dispatch protocol applies to all platforms and all sub-agents, including native Codex `SubagentStart` context injection with child-side pull fallback, class-2 Gemini/Qoder/Copilot/Reasonix/Trae/Grok/Kimi Code, hook-backed ZCode/Snow, and `trellis-research`: every dispatch prompt starts with `Active task: <task path from task.py current>` before role-specific instructions. On Grok Build, use `spawn_subagent` with `subagent_type` set to the Trellis agent name (e.g. `trellis-implement`). On Kimi Code, dispatch the built-in `coder` / `explore` sub-agent with the matching `.kimi-code/skills/trellis-<role>/SKILL.md` instructions. On Pi, dispatch with the global `subagent` tool and pass the dispatch text through its `task` parameter — `subagent({ agent: "trellis-implement", task: "Active task: <task path>\n\n..." })`; the legacy `trellis_subagent` tool and a `prompt` parameter are not the default Pi interface.
 
 [workflow-state:in_progress]
 Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
@@ -483,7 +483,7 @@ Goal: turn reviewed planning artifacts into code that passes quality checks.
 
 #### 2.1 Implement `[required · repeatable]`
 
-[Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]
+[Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, ZCode, Snow, Oh My Pi]
 
 Spawn the implement sub-agent:
 
@@ -496,7 +496,25 @@ The platform hook/plugin auto-handles:
 - Injects `prd.md`, `design.md` if present, and `implement.md` if present
 - For Codex, `SubagentStart` supplies native context injection; the agent profile keeps child-side loading as the fallback
 
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]
+[/Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, ZCode, Snow, Oh My Pi]
+
+[Pi]
+
+Dispatch through the global `subagent` tool and pass the dispatch text in its `task` parameter:
+
+```ts
+subagent({
+  agent: "trellis-implement",
+  name: "trellis-implement",
+  task: "Active task: .trellis/tasks/<task>\n\nYou are already the trellis-implement sub-agent. Implement the reviewed artifacts directly; do not spawn another trellis-implement or trellis-check.",
+})
+```
+
+- Use `task`, not the legacy `trellis_subagent` tool or a `prompt` parameter.
+- The dispatch text's first line MUST be `Active task: <task path from task.py current>`.
+- The project agent definition pulls its own context: `implement.jsonl` -> `prd.md` -> `design.md` if present -> `implement.md` if present, with `task.py current --source` as the fallback when the first line is missing.
+
+[/Pi]
 
 [Gemini, Qoder, Copilot, Reasonix, Trae, Grok, Kimi Code]
 
@@ -538,7 +556,7 @@ The platform prelude auto-handles the context load requirement:
 
 #### 2.2 Quality check `[required · repeatable]`
 
-[Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
 
 Spawn the check sub-agent:
 
@@ -552,7 +570,25 @@ The check agent's job:
 - Auto-fix issues it finds
 - Run lint and typecheck to verify
 
-[/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+[/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
+
+[Pi]
+
+Dispatch through the global `subagent` tool and pass the dispatch text in its `task` parameter:
+
+```ts
+subagent({
+  agent: "trellis-check",
+  name: "trellis-check",
+  task: "Active task: .trellis/tasks/<task>\n\nYou are already the trellis-check sub-agent. Review and fix directly; do not spawn another trellis-check or trellis-implement.",
+})
+```
+
+- Use `task`, not the legacy `trellis_subagent` tool or a `prompt` parameter.
+- The dispatch text's first line MUST be `Active task: <task path from task.py current>`.
+- The project agent definition pulls its own context: `check.jsonl` -> `prd.md` -> `design.md` if present -> `implement.md` if present, with `task.py current --source` as the fallback when the first line is missing.
+
+[/Pi]
 
 [codex-inline, Kilo, Antigravity, Devin, DeepSeek Harness]
 

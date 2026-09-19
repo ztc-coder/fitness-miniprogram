@@ -3,6 +3,10 @@ name: trellis-implement
 description: |
   Code implementation expert. Understands Trellis specs and requirements, then implements features. No git commit allowed.
 tools: read, write, edit, bash, find, grep
+auto-exit: true
+interactive: false
+session-mode: standalone
+system-prompt: append
 ---
 
 ## Required: Load Trellis Context First

@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Keep the dispatch configuration and agent contract single-sourced."}
+{"file": ".trellis/tasks/09-19-pi-subagent-dispatch-migration/research/pi-dispatch-architecture.md", "reason": "Local investigation of current and target Pi dispatch paths."}

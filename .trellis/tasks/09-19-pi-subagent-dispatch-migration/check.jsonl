@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check duplicate dispatch contracts and configuration drift."}
+{"file": ".trellis/tasks/09-19-pi-subagent-dispatch-migration/research/pi-dispatch-architecture.md", "reason": "Check migration against discovered dispatch boundaries."}
