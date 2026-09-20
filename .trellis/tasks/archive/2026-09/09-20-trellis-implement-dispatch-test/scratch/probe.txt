@@ -1,4 +1,0 @@
-task_dir=.trellis/tasks/09-20-trellis-implement-dispatch-test
-head=27c86df
-spec_rule=覆盖率只统计 `utils/domain.js` 与 `data/exercises.js`，阈值 **branches/functions/lines/statements 均为 80%**。
-trellis-implement ok
