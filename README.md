@@ -2,8 +2,7 @@
 
 个人自用的力量训练打卡工具:「第 N 天循环」计划 + 完成驱动游标推进 + 离线打卡 + 快照式历史记录。
 
-- 需求规格:`docs/spec.md` / `docs/spec-mvp.md`
-- UI 原型:`fitness-prototype.html`(早期浅色方向,已被深色重设计取代)
+- 需求规格:`docs/spec.md`
 
 ## 设计系统:FORGE
 

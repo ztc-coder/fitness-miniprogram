@@ -10,5 +10,5 @@ Agent skills 的配置请参考 `AGENTS.md`。
 
 - 领域词汇表与架构概览：`CONTEXT.md`（改代码前先读）
 - 架构决策记录：`docs/adr/`（索引见 `docs/adr/README.md`）
-- 需求规格：`docs/spec.md`、`docs/spec-mvp.md`
+- 需求规格：`docs/spec.md`
 - Issue 跟踪：`.scratch/<feature>/issue.md`

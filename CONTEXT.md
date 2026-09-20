@@ -167,9 +167,8 @@ npm test        # jest --coverage
 
 ## 10. 相关文档
 
-- 需求规格：`docs/spec.md`（grilling 结论）、`docs/spec-mvp.md`（spec 全文）
+- 需求规格：`docs/spec.md`（定位、数据模型、动作库与验收边界）
 - 动作库实现：`data/curated-catalog.js`（白名单与标签）、`data/exercises.js`（离线目录）、`data/media-root.js`（CloudBase 媒体根）、`pages/library/library-paging.js`（分页预热）、`scripts/build-exercises.js` 与 `scripts/upload-exercise-media.js`
-- 动作库当前 spec/验收：`.scratch/catalog-expansion/issue.md`（136 条扩容、热身标签、v3 迁移与媒体同步）；历史规格：`.scratch/common-exercise-catalog/issue.md`、`.scratch/exercise-catalog/issue.md`
+- 动作库当前 spec/验收：`.scratch/catalog-expansion/issue.md`（136 条扩容、热身标签、v3 迁移与媒体同步）
 - 架构决策：`docs/adr/`（动作库接入见 ADR-0007）
 - Issue 跟踪：`.scratch/<feature>/issue.md`
-- UI 原型：`fitness-prototype.html`（早期浅色方向，已被深色 FORGE 重设计取代）

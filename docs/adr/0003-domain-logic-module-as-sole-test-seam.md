@@ -2,7 +2,7 @@
 
 - 状态：已采纳
 - 日期：2026-09-17
-- 相关文档：`docs/spec-mvp.md`（Implementation Decisions / Testing Decisions）
+- 相关文档：`docs/spec.md`（Implementation Decisions / Testing Decisions）
 
 ## Context（背景）
 

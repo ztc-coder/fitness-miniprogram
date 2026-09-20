@@ -20,6 +20,6 @@ Issues 以本地 markdown 文件形式存储在 `.scratch/<feature>/` 目录下�
 
 - 领域词汇表与架构概览：`CONTEXT.md`
 - 架构决策记录：`docs/adr/`
-- 需求规格：`docs/spec.md`(grilling 结论)、`docs/spec-mvp.md`(spec 全文)
-- 动作库当前 spec/验收：`.scratch/catalog-expansion/issue.md`、`.scratch/catalog-expansion/issues/05-integration-acceptance-and-docs.md`（历史规格：`.scratch/common-exercise-catalog/issue.md`、`.scratch/exercise-catalog/issue.md`）
+- 需求规格：`docs/spec.md`
+- 动作库当前 spec/验收：`.scratch/catalog-expansion/issue.md`、`.scratch/catalog-expansion/issues/05-integration-acceptance-and-docs.md`
 - Issue 跟踪：`.scratch/<feature>/issue.md`

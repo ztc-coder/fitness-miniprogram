@@ -15,20 +15,19 @@ created: 2026-09-19
 
 **Status:** ready-for-human —— 仓库内自动化与文档一致性已通过；真实微信开发者工具渲染与真实 CloudBase 媒体验收仍未完成。
 
-**Spec 来源**：提案 G 节（数量与分布）、I 节（迁移与契约）、K 节（权威清单）。
+**Spec 来源**：`.scratch/catalog-expansion/issue.md`（数量与分布、迁移与契约、人工验收边界）。
 
 ## 文件范围（只改这些）
 
 | 文件 | 改动 |
 |---|---|
 | `CONTEXT.md` | 目录规模改 136；`aliases` 定义为已实现并参与搜索；部位标签含「热身」共 10 个（筛选 11 项）；`mode` 词表与 `TARGET_WHITELIST` 口径一致。 |
-| `docs/spec.md` | 精选目录规模、10 个标签（含热身）、别名可检索、v3 迁移与人工验收项同步。 |
-| `docs/spec-mvp.md` | 目录规模与筛选描述同步。 |
+| `docs/spec.md` | 精选目录规模、10 个标签（含热身）、别名可检索、v3 迁移与人工验收项同步（`docs/spec-mvp.md` 已于 2026-09-21 合并入本文件）。 |
 | `docs/adr/0007-exercises-dataset-as-catalog.md` | 目录规模与白名单口径同步（不改变个人自用/署名约束）。 |
 | `README.md` | 动作库体积与规模描述同步。 |
 | `data/exercises.js` | 头注释里的目录规模描述同步。 |
 | `AGENTS.md` | 项目文档索引把“动作库当前 spec/验收”指向 `.scratch/catalog-expansion/issue.md`。 |
-| `.scratch/common-exercise-catalog/issue.md`、`issues/*.md` | 旧一轮 ticket 状态与最终 136 条口径对齐（不重写历史结论）。 |
+| `.scratch/common-exercise-catalog/issue.md`、`issues/*.md` | 旧一轮 ticket 状态与最终 136 条口径对齐（不重写历史结论）；该目录已于 2026-09-21 整体删除（见本票验收记录）。 |
 | `.scratch/catalog-expansion/issue.md`、`issues/*.md` | 本票完成后回写状态与验收记录。 |
 
 **不在本票范围**：白名单/元数据（票 01）、筛选实现（票 02）、迁移实现（票 03）、媒体脚本（票 04）；
@@ -50,7 +49,7 @@ created: 2026-09-19
 - [x] `node --check` 覆盖改动的 JS 文件；`git diff --check` 无空白错误。
 - [x] 全仓 grep 无残留：`104`（指目录规模处）、`九个部位标签`、`PART_FILTERS).toHaveLength(10)`。
 - [x] `CONTEXT.md` 目录规模 = 136，部位标签含「热身」，`aliases` 描述与实现一致。
-- [x] `docs/spec.md`、`docs/spec-mvp.md`、`docs/adr/0007`、`README.md` 的目录规模与筛选描述一致。
+- [x] `docs/spec.md`（已含原 `docs/spec-mvp.md` 全文）、`docs/adr/0007`、`README.md` 的目录规模与筛选描述一致。
 - [x] `AGENTS.md` 的项目文档索引指向本轮 spec，不再把旧一轮 issue 当作当前验收依据。
 - [x] `.scratch/catalog-expansion/` 下 01–05 的状态与验收记录回写完成。
 - [x] 验收记录明确列出未完成的人工项：微信开发者工具真实筛选/滚动/图片降级；真实 CloudBase 最终集合与陈旧媒体清理。
@@ -98,11 +97,22 @@ npx jest --runInBand                  # 同上，无失败
 - `git diff --check`：无空白错误（退出码 0）。
 - `PART_FILTERS).toHaveLength(10)`：0 处（现为 `toHaveLength(11)`）。
 - 旧契约 grep（排除 node_modules）：
-  - **契约文档已清空**：`CONTEXT.md`、`docs/spec.md`、`docs/spec-mvp.md`、`docs/adr/0007`、`README.md`、`AGENTS.md`、`data/exercises.js` 头注释中 `104` 与「九个部位」均为 0 处。
-  - `104` 剩余处均不是目录规模口径：冻结提案与 `data/curated-catalog.js` 头注释的基线公式 `104 − 2 + 34`、`.scratch/catalog-expansion/issue.md` 与 ticket 01 的同一公式、`tests/upload-exercise-media.test.js` 的「旧 104 条目录」注释、`xiaohongshu-research.md` 的历史调研基线、已标注「已被取代」的历史票。
-  - 「九个部位」剩余处：`tests/contract-docs.test.js` 的过时短语常量与测试名（断言其不存在）、`.scratch/common-exercise-catalog/issues/05-integration-acceptance.md` 的历史检查项（已标注被取代，未篡改当时结论）、本票自身需求原文。
-- 本轮改动文档：`CONTEXT.md`、`docs/spec.md`、`docs/spec-mvp.md`、`docs/adr/0007-exercises-dataset-as-catalog.md`、`README.md`、`data/exercises.js`（头注释）、`AGENTS.md`。
-- 旧一轮 `.scratch/common-exercise-catalog/` 的 `issue.md` 与 5 张 ticket 已加「已被取代」横幅并把筛选口径对齐到 10 标签 / 11 项；历史检查项与状态保持原样，未篡改当时的验收结论。
+  - **契约文档已清空**：`CONTEXT.md`、`docs/spec.md`、`docs/adr/0007`、`README.md`、`AGENTS.md`、`data/exercises.js` 头注释中 `104` 与「九个部位」均为 0 处。
+  - `104` 剩余处均不是目录规模口径：`data/curated-catalog.js` 头注释的基线公式 `104 − 2 + 34`、`.scratch/catalog-expansion/issue.md` 与 ticket 01 的同一公式、`tests/upload-exercise-media.test.js` 的「旧 104 条目录」注释。
+  - 「九个部位」剩余处：`tests/contract-docs.test.js` 的过时短语常量与测试名（断言其不存在）、本票自身需求原文。
+- 本轮改动文档：`CONTEXT.md`、`docs/spec.md`、`docs/adr/0007-exercises-dataset-as-catalog.md`、`README.md`、`data/exercises.js`（头注释）、`AGENTS.md`。
+- 旧一轮 `.scratch/common-exercise-catalog/` 的 `issue.md` 与 5 张 ticket 当时已加「已被取代」横幅并把筛选口径对齐到 10 标签 / 11 项；历史检查项与状态保持原样，未篡改当时的验收结论。
+
+**后续文档清理（2026-09-21）**
+
+已删除（文件本体可从 git 历史取回）：
+
+- `.scratch/exercise-catalog/`、`.scratch/common-exercise-catalog/`（issue + 5 票）、`.scratch/ppl-catalog-prune/`、`.scratch/ppl-media-upload/`、`.scratch/exercise-detail-modal-scroll/` —— 均已被后续轮次取代或已关闭。
+- `.scratch/common-exercise-catalog/catalog-expansion-proposal.md`（冻结提案）与 `xiaohongshu-research.md`（调研稿）—— 白名单权威改由 `data/curated-catalog.js` 的 `CURATED_EXERCISES` 单独承担。
+- `fitness-prototype.html` —— 早期浅色原型，已被深色 FORGE 设计取代。
+- `docs/spec-mvp.md` —— 全文并入 `docs/spec.md`。
+
+`tests/contract-docs.test.js` 中「被取代的旧一轮 ticket」用例随之删除，其余契约断言（136 条 / 11 项筛选 / 文档索引 / 人工验收口径）保持。
 
 **未完成的人工验收（不由 agent 声称完成）**
 

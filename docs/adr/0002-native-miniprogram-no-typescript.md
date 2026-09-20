@@ -2,7 +2,7 @@
 
 - 状态：已采纳
 - 日期：2026-09-17
-- 相关文档：`docs/spec.md`、`docs/spec-mvp.md`
+- 相关文档：`docs/spec.md`
 
 ## Context（背景）
 

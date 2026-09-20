@@ -13,7 +13,6 @@ const readDoc = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const CONTRACT_DOCS = [
   'CONTEXT.md',
   'docs/spec.md',
-  'docs/spec-mvp.md',
   'docs/adr/0007-exercises-dataset-as-catalog.md',
   'README.md',
 ];
@@ -82,9 +81,9 @@ describe('领域文档与最终目录契约一致', () => {
     });
   });
 
-  test('被取代的旧一轮 ticket 已标注,且不冒充当前验收依据', () => {
-    const oldIssue = readDoc('.scratch/common-exercise-catalog/issue.md');
-    expect(oldIssue).toContain('已被取代');
-    expect(oldIssue).toContain('.scratch/catalog-expansion/issue.md');
+  test('spec 只保留单份需求文档,不残留已合并的历史文件引用', () => {
+    ['CONTEXT.md', 'README.md', 'AGENTS.md', 'CLAUDE.md', 'docs/spec.md'].forEach((rel) => {
+      expect(readDoc(rel)).not.toContain('spec-mvp.md');
+    });
   });
 });

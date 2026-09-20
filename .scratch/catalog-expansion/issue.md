@@ -7,8 +7,8 @@ created: 2026-09-19
 
 # 动作库扩容至 136 条、热身标签、v3 计划迁移与媒体同步
 
-**Spec 来源**：`.scratch/common-exercise-catalog/catalog-expansion-proposal.md`（已冻结，2026-09-19）。
-本 issue 只描述需求与验收；精确白名单与逐条元数据以该提案的 A / B.1 / B.2 / K 节为准。
+**Spec 来源**：`.scratch/catalog-expansion/issues/01-final-catalog-and-generation-chain.md`（execution record）。
+本 issue 只描述需求与验收；精确白名单与逐条元数据以 `data/curated-catalog.js` 的 `CURATED_EXERCISES` 为唯一权威。
 
 ## Problem Statement
 
@@ -61,8 +61,8 @@ created: 2026-09-19
 
 ## Implementation Decisions
 
-- 最终白名单与逐条元数据以 `.scratch/common-exercise-catalog/catalog-expansion-proposal.md` 的 K 节（136 行）为唯一权威；
-  该表与 `data/curated-catalog.js` 的 `CURATED_EXERCISES` 必须一一对应（136 = 136）。
+- 最终白名单与逐条元数据以 `data/curated-catalog.js` 的 `CURATED_EXERCISES` 为唯一权威（136 行）；
+  它与离线目录 `data/exercises.js` 必须一一对应（136 = 136）。
 - 精选元数据继续是筛选与复合标记的唯一来源，不用上游 `bodyPart` 字段。
 - 产品标签新增 `warm-up`（中文「热身」），且必须与至少一个具体部位标签重叠；`compound` 保持重叠标签语义。
 - `aliases` 成为生成链的一等字段：`scripts/hand-overrides.js` 承载 nameZh + aliases，`scripts/build-exercises.js`
@@ -117,7 +117,8 @@ created: 2026-09-19
 - 02：`PART_LABELS` 新增 `warm-up`（「热身」），`PART_FILTERS` 变为 11 项且顺序冻结；动作库页面 `resultCount = 136`，分页/缩略图行为不变。
 - 03：`PLAN_MIGRATION_VERSION` 2 → 3，按最终目录可查性直接裁剪，无 replacement 映射。
 - 04：媒体同步脚本以最终目录为唯一白名单，目标集合 272 个对象；真实上传/删除待人工。
-- 05：领域文档（`CONTEXT.md` / `docs/spec.md` / `docs/spec-mvp.md` / `docs/adr/0007` / `README.md`）、`data/exercises.js` 头注释、`AGENTS.md` 索引同步到 136 条 / 10 个标签 / 11 项筛选 / v3 / 272 对象；旧一轮 `.scratch/common-exercise-catalog/` 已标注被取代。
+- 05：领域文档（`CONTEXT.md` / `docs/spec.md` / `docs/adr/0007` / `README.md`）、`data/exercises.js` 头注释、`AGENTS.md` 索引同步到 136 条 / 10 个标签 / 11 项筛选 / v3 / 272 对象。
+- 后续清理（2026-09-21）：被取代的历史 issue 轮次与冻结提案、调研稿已删除，`docs/spec-mvp.md` 并入 `docs/spec.md`，白名单权威只保留 `data/curated-catalog.js`；文件本体可从 git 历史取回。
 
 **验证**
 

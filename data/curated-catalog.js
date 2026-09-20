@@ -2,8 +2,8 @@
  * 精选常用动作目录:精确 exerciseId 白名单 + 人工策展元数据(可审计)。
  * 不做英文名关键词猜测;调整白名单后需重跑 scripts/build-exercises.js 重新生成 data/exercises-data-*。
  *
- * 最终 136 条(104 − 2 + 34),白名单与逐条元数据严格对应冻结提案 K 节
- * (.scratch/common-exercise-catalog/catalog-expansion-proposal.md),按 ID 升序排列便于逐行比对。
+ * 最终 136 条(104 − 2 + 34),按 ID 升序排列便于逐行比对。
+ * 本文件即白名单与逐条策展元数据的唯一权威;与 data/exercises.js 必须一一对应(136 = 136)。
  *
  * 每条元数据:
  *  - mode     规范动作模式(受控词表,如 horizontal-push / squat / elbow-flexion)

@@ -13,8 +13,9 @@ created: 2026-09-19
 
 **Blocked by:** None (can start immediately).
 
-**Spec 来源**：`.scratch/common-exercise-catalog/catalog-expansion-proposal.md`
-（K 节 = 权威 136 行元数据表；A = 保留项修正；B.1/B.2 = 新增项与媒体路径；D/E = 排除与删除；F = 修正规则；H = 粗筛影响）。
+**Spec 来源**：`.scratch/catalog-expansion/issue.md`
+（最终 136 条白名单、删除/新增/排除 ID 清单、热身标签归属、`TARGET_WHITELIST` 放行项与 v3 迁移口径）。
+逐条元数据的唯一权威是 `data/curated-catalog.js` 的 `CURATED_EXERCISES`。
 
 ## 文件范围（只改这些）
 
