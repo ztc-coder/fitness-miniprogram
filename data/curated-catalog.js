@@ -2,8 +2,9 @@
  * 精选常用动作目录:精确 exerciseId 白名单 + 人工策展元数据(可审计)。
  * 不做英文名关键词猜测;调整白名单后需重跑 scripts/build-exercises.js 重新生成 data/exercises-data-*。
  *
- * 最终 136 条(104 − 2 + 34),按 ID 升序排列便于逐行比对。
- * 本文件即白名单与逐条策展元数据的唯一权威;与 data/exercises.js 必须一一对应(136 = 136)。
+ * 最终 125 条(本轮从 127 条裁剪 2 条:3011/3021 无可用 GIF;
+ * 更早的裁剪轮次见 .scratch 历史 issue),按 ID 升序排列便于逐行比对。
+ * 本文件即白名单与逐条策展元数据的唯一权威;与 data/exercises.js 必须一一对应(125 = 125)。
  *
  * 每条元数据:
  *  - mode     规范动作模式(受控词表,如 horizontal-push / squat / elbow-flexion)
@@ -48,7 +49,7 @@ const CURATED_EXERCISES = {
   '0228': { mode: 'hip-extension', tags: ['glutes', 'legs'], compound: false }, // 绳索后踢腿
   '0233': { mode: 'shoulder-horizontal-abduction', tags: ['shoulders', 'back', 'warm-up'], compound: false }, // 绳索面拉
   '0235': { mode: 'shoulder-external-rotation', tags: ['shoulders', 'warm-up'], compound: false }, // 绳索站姿肩外旋
-  '0238': { mode: 'shoulder-extension', tags: ['back'], compound: false }, // 绳索直臂下拉
+  '0238': { mode: 'shoulder-extension', tags: ['back'], compound: false }, // 绳索直臂下压
   '0243': { mode: 'trunk-rotation', tags: ['waist'], compound: false }, // 绳索转体
   '0246': { mode: 'upright-row', tags: ['shoulders'], compound: true }, // 绳索直立划船
   '0251': { mode: 'dip', tags: ['chest', 'triceps'], compound: true }, // 双杠臂屈伸
@@ -81,9 +82,7 @@ const CURATED_EXERCISES = {
   '0475': { mode: 'hip-flexion', tags: ['waist'], compound: false }, // 悬垂直腿举腿
   '0489': { mode: 'trunk-extension', tags: ['back', 'glutes', 'legs'], compound: false }, // 山羊挺身
   '0493': { mode: 'incline-push', tags: ['chest', 'triceps'], compound: true }, // 上斜俯卧撑
-  '0499': { mode: 'horizontal-pull', tags: ['back'], compound: true }, // 反向划船
   '0507': { mode: 'trunk-flexion', tags: ['waist'], compound: false }, // 折刀式仰卧起坐
-  '0573': { mode: 'trunk-extension', tags: ['back', 'glutes', 'legs'], compound: false }, // 器械山羊挺身
   '0575': { mode: 'elbow-flexion', tags: ['biceps'], compound: false }, // 器械弯举
   '0576': { mode: 'horizontal-push', tags: ['chest'], compound: true }, // 器械推胸
   '0584': { mode: 'shoulder-abduction', tags: ['shoulders'], compound: false }, // 器械侧平举
@@ -95,18 +94,14 @@ const CURATED_EXERCISES = {
   '0598': { mode: 'hip-adduction', tags: ['legs'], compound: false }, // 器械髋内收
   '0599': { mode: 'knee-flexion', tags: ['legs'], compound: false }, // 器械坐姿腿弯举
   '0602': { mode: 'shoulder-horizontal-abduction', tags: ['shoulders'], compound: false }, // 器械反向飞鸟
-  '0603': { mode: 'vertical-push', tags: ['shoulders'], compound: true }, // 器械肩推
   '0605': { mode: 'plantar-flexion', tags: ['legs'], compound: false }, // 站姿提踵
-  '0606': { mode: 'horizontal-pull', tags: ['back'], compound: true }, // T 杆划船
   '0607': { mode: 'elbow-extension', tags: ['triceps'], compound: false }, // 器械臂屈伸
   '0620': { mode: 'hip-flexion', tags: ['waist'], compound: false }, // 仰卧举腿
   '0624': { mode: 'squat', tags: ['legs', 'glutes'], compound: true }, // 靠墙坐姿行军
   '0628': { mode: 'hip-abduction', tags: ['glutes', 'legs', 'warm-up'], compound: false }, // 怪物行走
   '0652': { mode: 'vertical-pull', tags: ['back'], compound: true }, // 引体向上
-  '0659': { mode: 'horizontal-push', tags: ['chest', 'shoulders'], compound: true }, // 靠墙俯卧撑
   '0662': { mode: 'horizontal-push', tags: ['chest', 'triceps'], compound: true }, // 俯卧撑
   '0687': { mode: 'trunk-rotation', tags: ['waist'], compound: false }, // 俄罗斯转体
-  '0688': { mode: 'scapular-retraction', tags: ['back', 'shoulders', 'warm-up'], compound: true }, // 肩胛引体
   '0705': { mode: 'anti-extension', tags: ['waist', 'warm-up'], compound: false }, // 侧平板支撑
   '0710': { mode: 'hip-abduction', tags: ['glutes', 'legs', 'warm-up'], compound: false }, // 站姿髋外展
   '0735': { mode: 'trunk-flexion', tags: ['waist'], compound: false }, // 仰卧起坐
@@ -134,18 +129,13 @@ const CURATED_EXERCISES = {
   '1604': { mode: 'mobility-flow', tags: ['legs', 'glutes', 'warm-up'], compound: false }, // 世界最伟大拉伸
   '1757': { mode: 'hip-hinge', tags: ['legs', 'glutes'], compound: true }, // 单腿硬拉
   '1760': { mode: 'squat', tags: ['legs', 'glutes'], compound: true }, // 哑铃高脚杯深蹲
-  '2133': { mode: 'carry', tags: ['legs', 'back', 'waist', 'glutes'], compound: true }, // 农夫行走
-  '2137': { mode: 'vertical-push', tags: ['shoulders'], compound: true }, // 哑铃阿诺德推举
   '2143': { mode: 'shoulder-circumduction', tags: ['shoulders', 'warm-up'], compound: false }, // 哑铃肩绕环
   '2188': { mode: 'elbow-extension', tags: ['triceps'], compound: false }, // 哑铃颈后臂屈伸
   '2292': { mode: 'shoulder-horizontal-abduction', tags: ['shoulders'], compound: false }, // 俯身哑铃飞鸟
   '2368': { mode: 'lunge', tags: ['legs', 'glutes'], compound: true }, // 保加利亚分腿蹲
   '2616': { mode: 'vertical-pull', tags: ['back'], compound: true }, // V 杆窄距高位下拉
   '3006': { mode: 'hip-abduction', tags: ['glutes', 'legs', 'warm-up'], compound: false }, // 弹力带坐姿髋外展
-  '3011': { mode: 'scapular-protraction', tags: ['chest', 'shoulders', 'warm-up'], compound: false }, // 上斜肩胛俯卧撑
-  '3012': { mode: 'scapular-retraction', tags: ['back', 'shoulders', 'warm-up'], compound: false }, // 站姿肩胛后缩撑起
   '3013': { mode: 'hip-thrust', tags: ['glutes', 'legs'], compound: true }, // 臀桥
-  '3021': { mode: 'scapular-protraction', tags: ['chest', 'shoulders', 'warm-up'], compound: false }, // 肩胛俯卧撑
   '3561': { mode: 'hip-thrust', tags: ['glutes', 'legs', 'warm-up'], compound: true }, // 臀桥行军
   '3699': { mode: 'anti-extension', tags: ['waist'], compound: false }, // 交替触肩
 };

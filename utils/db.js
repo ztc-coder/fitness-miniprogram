@@ -22,9 +22,11 @@ const SEED_VERSION = 3;
 /**
  * 目录裁剪的一次性计划迁移版本:目录变更时 +1。
  * 1 = 三分化 target 白名单裁剪;2 = 精选常用动作目录(data/curated-catalog.js)裁剪;
- * 3 = 最终 136 条目录可用性裁剪(0200/0673 等非最终白名单动作直接移除,无 replacement)。
+ * 3 = 136 条目录可用性裁剪(0200/0673 等非最终白名单动作直接移除,无 replacement);
+ * 4 = 最终 127 条目录可用性裁剪(0499/0573/0603/0606/0659/0688/2133/2137/3012 直接移除,无 replacement);
+ * 5 = 最终 125 条目录可用性裁剪(3011/3021 无可用 GIF,直接移除,无 replacement)。
  */
-const PLAN_MIGRATION_VERSION = 3;
+const PLAN_MIGRATION_VERSION = 5;
 
 // ===== 数据库句柄 =====
 

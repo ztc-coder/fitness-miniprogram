@@ -7,6 +7,7 @@
     "test": "jest --coverage"
   },
   "devDependencies": {
+    "@cloudbase/manager-node": "^5.8.8",
     "jest": "^29.7.0"
   }
 }

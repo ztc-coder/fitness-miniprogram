@@ -23,10 +23,10 @@
     <scroll-view class="filter-line" scroll-x show-scrollbar="{{false}}">
       <view class="filter-track">
         <view
-          wx:for="{{equipFilters}}"
-          wx:key="label"
-          class="filter-pill {{equipFilter === item.key ? 'active' : ''}}"
-          data-bucket="{{item.key}}"
+          wx:for="{{equipmentFilters}}"
+          wx:key="key"
+          class="filter-pill {{item.active ? 'active' : ''}}"
+          data-key="{{item.key}}"
           bindtap="onEquipFilterTap"
           hover-class="filter-pill-hover"
           hover-stay-time="80"
@@ -40,11 +40,11 @@
     <scroll-view class="filter-line" scroll-x show-scrollbar="{{false}}">
       <view class="filter-track">
         <view
-          wx:for="{{partFilters}}"
-          wx:key="label"
-          class="filter-pill {{partFilter === item.key ? 'active' : ''}}"
-          data-bucket="{{item.key}}"
-          bindtap="onPartFilterTap"
+          wx:for="{{bodyPartFilters}}"
+          wx:key="key"
+          class="filter-pill {{item.active ? 'active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onBodyPartFilterTap"
           hover-class="filter-pill-hover"
           hover-stay-time="80"
         >
@@ -104,7 +104,7 @@
     <view wx:if="{{items.length === 0}}" class="empty-state">
       <view class="empty-glyph">?</view>
       <view class="empty-title">无匹配档案</view>
-      <view class="empty-desc">请尝试其他器械标签或调整检索词</view>
+      <view class="empty-desc">请尝试其他器械、部位或检索词</view>
     </view>
   </view>
 

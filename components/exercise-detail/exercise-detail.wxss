@@ -1,6 +1,13 @@
 /* ============================================================
    动作详情弹层 —— 与动作库页同源设计(青色 kicker + 琥珀 glyph)
-   卡片限高,正文 scroll-view 滚动,操作按钮钉底
+   卡片三段式布局,三段边界明确:
+     1. .detail-head    标题区:高度由内容决定,不参与收缩
+     2. .detail-scroll  正文区:吸收剩余高度,内容过长时收缩并可滚动
+     3. .detail-actions 操作区:滚动区的兄弟节点,只在 showPick=true 时渲染
+   两种状态:
+     .has-actions(showPick=true)  卡片取确定高度,正文区吃满剩余高度,
+                                 原生 scroll-view 因此有确定高度可滚(微信竖向滚动要求确定 height)
+     只读态(showPick=false)       卡片按内容自适应,只受 max-height 约束,不留按钮空白
    ============================================================ */
 
 .detail-mask {
@@ -29,6 +36,14 @@
   border-radius: 28rpx;
   box-shadow: 0 24rpx 64rpx rgba(21, 59, 58, 0.18);
   box-sizing: border-box;
+}
+
+/* 有操作区时给卡片一个确定高度:正文区才能用“剩余高度”这个确定值撑开 scroll-view。
+   height 由 82vh 决定;max-height 再按视口减去遮罩上下内边距与底部安全区兜底,
+   保证窄屏或带 home indicator 的机型上卡片仍落在屏内。 */
+.detail-card.has-actions {
+  height: 82vh;
+  max-height: calc(100vh - 72rpx - env(safe-area-inset-bottom));
 }
 
 .detail-head {
@@ -102,10 +117,19 @@
   background: var(--line) !important;
 }
 
+/* 正文区:只读态按内容自适应(flex-basis auto),卡片限高由 .detail-card 负责。
+   这里不另设 max-height —— 否则只读详情会被过早截断。 */
 .detail-scroll {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   margin-top: 28rpx;
+}
+
+/* 有操作区:卡片高度已确定,正文区改成吃满剩余高度 —— flex-basis 0 + height 0
+   让原生 scroll-view 拿到确定高度(而不是靠内容撑高),滚到底能看到末尾要领/备注/署名。 */
+.detail-card.has-actions .detail-scroll {
+  flex: 1 1 0%;
+  height: 0;
 }
 
 .detail-art-wrap {
@@ -223,9 +247,19 @@
   letter-spacing: 0.02em;
 }
 
+/* 正文末尾留白:滚到底时署名与操作区分隔线之间保留可见间隔 */
+.detail-tail-space {
+  height: 16rpx;
+}
+
+/* 操作区:顶部一条分隔线划出边界;不定位、无负边距,与滚动区互为兄弟节点。
+   背景取卡片底色,正文内容不会透到按钮上。
+   showPick=false 时整块不渲染,打卡页只读详情不留按钮空白。 */
 .detail-actions {
-  margin-top: 28rpx;
   flex-shrink: 0;
+  padding-top: 24rpx;
+  border-top: 1rpx solid var(--line);
+  background: var(--surface);
 }
 
 .detail-primary {

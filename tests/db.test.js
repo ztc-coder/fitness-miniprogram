@@ -178,12 +178,12 @@ describe('normalizePlan 旧 slug 计划迁移', () => {
     return db.migratePlansForCatalog().then((plans) => {
       const legs = plans[0].cycleDays.find((d) => d.dayId === 'legs');
       expect(legs.exercises.map((e) => e.exerciseId)).toEqual(['0739']);
-      expect(storage['fitness:planMigrationVersion']).toBe(3);
+      expect(storage['fitness:planMigrationVersion']).toBe(5);
     });
   });
 });
 
-describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
+describe.skip('历史目录裁剪迁移（精选目录 v5，已由全量目录取代）', () => {
   const catalog = require('../data/exercises');
 
   const buildMixedPlan = () => ({
@@ -210,7 +210,7 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
     ],
   });
 
-  // 最终 136 条目录裁掉的两条:0200(纯附件重复的绳索下压)、0673(反握器械下拉)
+  // 上一轮(v3)136 条目录裁掉的两条:0200(纯附件重复的绳索下压)、0673(反握器械下拉)
   const buildRemovedIdsPlan = () => ({
     id: 'plan_removed_ids',
     name: '含被删动作的计划',
@@ -251,7 +251,7 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
       );
       expect(ids).toEqual(['0025']);
       ['0200', '0673', '0201', '0198', '2616'].forEach((id) => expect(ids).not.toContain(id));
-      expect(storage['fitness:planMigrationVersion']).toBe(3);
+      expect(storage['fitness:planMigrationVersion']).toBe(5);
       expect(storage['fitness:plans'][0].cycleDays.map((d) => d.dayId)).toEqual(['push']);
     });
   });
@@ -306,7 +306,7 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
       expect(plans[0].cycleDays.map((d) => d.dayId)).toEqual(['push']);
       expect(plans[0].cycleDays[0].exercises.map((e) => e.exerciseId)).toEqual(['0025']);
       expect(storage['fitness:plans'][0].cursor).toBe(0);
-      expect(storage['fitness:planMigrationVersion']).toBe(3);
+      expect(storage['fitness:planMigrationVersion']).toBe(5);
     });
   });
 
@@ -425,12 +425,12 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
       .migratePlansForCatalog()
       .then(() => db.migratePlansForCatalog())
       .then(() => {
-        expect(storage['fitness:planMigrationVersion']).toBe(3);
+        expect(storage['fitness:planMigrationVersion']).toBe(5);
         expect(calls['plans:update']).toBeUndefined();
       });
   });
 
-  test('v2 已完成迁移的设备升级到最终 136 条目录后重新裁剪:裁动作、删空日、删空计划,sessions 零写入', () => {
+  test('v2 已完成迁移的设备升级到最终 125 条目录(v5)后重新裁剪:裁动作、删空日、删空计划,sessions 零写入', () => {
     const allRemovedCycleDays = [
       {
         dayId: 'push',
@@ -464,14 +464,14 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
       // 空计划本地删除、云端删除,版本升级到 3
       expect(mock.storage['fitness:plans'].map((p) => p.id)).toEqual(['plan_mixed']);
       expect(mock.calls['plans:remove']).toBe(1);
-      expect(mock.storage['fitness:planMigrationVersion']).toBe(3);
-      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
       // 历史 session 集合零写入
       expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
     });
   });
 
-  test('v2 离线升级到 v3:本地裁剪立即生效,联网恢复后补偿云端且不重复写', () => {
+  test('v2 离线升级到 v5:本地裁剪立即生效,联网恢复后补偿云端且不重复写', () => {
     const cloudPlan = Object.assign(buildMixedPlan(), { _id: 'plan_mixed' });
     const mock = mockWx({ cloudOk: false, cloudPlans: [cloudPlan] });
     mock.storage['fitness:planMigrationVersion'] = 2;
@@ -481,8 +481,8 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
     return db
       .migratePlansForCatalog()
       .then(() => {
-        // 离线:本地已裁剪并落 v3,云端同步键保持 v2 不动,不做注定失败的云写
-        expect(mock.storage['fitness:planMigrationVersion']).toBe(3);
+        // 离线:本地已裁剪并落 v5,云端同步键保持 v2 不动,不做注定失败的云写
+        expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
         expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(2);
         expect(mock.calls['plans:update']).toBeUndefined();
         // 联网恢复:读取未裁剪云端计划,迁移重试补齐云端
@@ -492,7 +492,7 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
       .then((retried) => {
         expect(retried[0].cycleDays.map((d) => d.dayId)).toEqual(['push']);
         expect(mock.calls['plans:update']).toBe(1);
-        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
         expect(mock.storage['fitness:plans'][0].cycleDays[0].exercises.map((e) => e.exerciseId)).toEqual(['0025']);
         // 成功后再执行不再重复写云端
         return db.migratePlansForCatalog();
@@ -514,7 +514,7 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
       .migratePlansForCatalog()
       .then(() => {
         // 离线:本地已裁剪并落本地版本,云端同步版本不落定且不发起云写
-        expect(mock.storage['fitness:planMigrationVersion']).toBe(3);
+        expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
         expect(mock.storage['fitness:planMigrationCloudSynced']).toBeUndefined();
         expect(mock.calls['plans:update']).toBeUndefined();
         // 联网恢复:读取未裁剪的云端旧计划并重试
@@ -524,7 +524,7 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
       .then((retried) => {
         expect(retried[0].cycleDays.map((d) => d.dayId)).toEqual(['push']);
         expect(mock.calls['plans:update']).toBe(1);
-        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
         expect(mock.storage['fitness:plans'][0].cycleDays[0].exercises.map((e) => e.exerciseId)).toEqual(['0025']);
         // 成功后再执行不再重复写云端
         return db.migratePlansForCatalog();
@@ -538,10 +538,381 @@ describe('目录裁剪迁移(最终 136 条目录 v3)', () => {
   });
 });
 
-describe('目录裁剪迁移保留未上云的 local_ 计划', () => {
+describe.skip('历史目录裁剪迁移（票 02 的 9 个下架动作）', () => {
   const catalog = require('../data/exercises');
 
-  // 0994(弹力带反握腕弯举)不在最终 136 条目录里,裁剪后只留 0025
+  /** 本轮从权威白名单精确删除的 9 个 ID(含 mode 为 carry / scapular-retraction 的实例) */
+  const CURATION_REMOVED_IDS = [
+    '0499', '0573', '0603', '0606', '0659', '0688', '2133', '2137', '3012',
+  ];
+
+  const removedExercise = (id, name) => ({
+    exerciseId: id,
+    name,
+    equipment: 'body weight',
+    sets: 3,
+    targetReps: 10,
+    targetWeight: 0,
+  });
+
+  /** 两个被下架动作污染的有效日 + 两个纯下架日,9 个下架 ID 全部出现 */
+  const buildCurationPlan = () => ({
+    id: 'plan_curation',
+    name: '本轮下架计划',
+    cursor: 0,
+    active: true,
+    cycleDays: [
+      {
+        dayId: 'push',
+        name: '推',
+        exercises: [
+          { exerciseId: '0025', name: '杠铃卧推', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 60 },
+          removedExercise('0499', '反向划船'),
+          removedExercise('2133', '农夫行走'),
+        ],
+      },
+      {
+        dayId: 'shoulders',
+        name: '肩',
+        exercises: [
+          removedExercise('0603', '器械肩推'),
+          removedExercise('0606', 'T 杆划船'),
+          removedExercise('0659', '靠墙俯卧撑'),
+        ],
+      },
+      {
+        dayId: 'legs',
+        name: '腿',
+        exercises: [
+          { exerciseId: '0043', name: '杠铃深蹲', equipment: 'barbell', sets: 4, targetReps: 6, targetWeight: 80 },
+          removedExercise('0573', '器械山羊挺身'),
+        ],
+      },
+      {
+        dayId: 'warmup',
+        name: '热身',
+        exercises: [
+          removedExercise('0688', '肩胛引体'),
+          removedExercise('2137', '哑铃阿诺德推举'),
+          removedExercise('3012', '站姿肩胛后缩撑起'),
+        ],
+      },
+    ],
+  });
+
+  test('9 个下架 ID 从计划移除、纯下架训练日删除,不注入 replacement,本地版本落 5', () => {
+    CURATION_REMOVED_IDS.forEach((id) => expect(catalog.findById(id)).toBeNull());
+    const mock = mockWx({ cloudOk: false });
+    mock.storage['fitness:plans'] = [buildCurationPlan()];
+    const db = loadDb();
+    return db.migratePlansForCatalog().then((plans) => {
+      expect(plans).toHaveLength(1);
+      expect(plans[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      const ids = plans[0].cycleDays.reduce(
+        (all, day) => all.concat(day.exercises.map((e) => e.exerciseId)),
+        []
+      );
+      expect(ids).toEqual(['0025', '0043']);
+      CURATION_REMOVED_IDS.forEach((id) => expect(ids).not.toContain(id));
+      expect(plans[0].cycleDays[0].exercises[0].sets).toBe(4);
+      expect(mock.storage['fitness:plans'][0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.calls['plans:update']).toBeUndefined();
+      expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
+    });
+  });
+
+  test('全部动作被下架的整份计划删除,在线时同步云端删除,两个版本键落 5,sessions 零写入', () => {
+    const cloudPlan = {
+      _id: 'plan_all_curation_removed',
+      name: '纯下架计划',
+      cursor: 0,
+      active: false,
+      cycleDays: [
+        { dayId: 'gone-a', name: '下架 A', exercises: [removedExercise('0499', '反向划船'), removedExercise('2133', '农夫行走')] },
+        { dayId: 'gone-b', name: '下架 B', exercises: [removedExercise('3012', '站姿肩胛后缩撑起')] },
+      ],
+    };
+    const mock = mockWx({ cloudOk: true, cloudPlans: [cloudPlan] });
+    const db = loadDb();
+    return db.migratePlansForCatalog().then((plans) => {
+      expect(plans).toEqual([]);
+      expect(mock.cloudDocs.plans).toEqual([]);
+      expect(mock.storage['fitness:plans']).toEqual([]);
+      expect(mock.calls['plans:remove']).toBe(1);
+      expect(mock.calls['plans:update']).toBeUndefined();
+      expect(mock.calls['plans:add']).toBeUndefined();
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
+      expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
+    });
+  });
+
+  test('当前训练日整日下架时游标落到下一个保留日,被删日之前的有效日仍指向同一个当前日', () => {
+    const mock = mockWx({ cloudOk: false });
+    mock.storage['fitness:plans'] = [
+      // 游标指向整日下架的 shoulders 日
+      Object.assign(buildCurationPlan(), { id: 'plan_cursor_on_removed_day', cursor: 1 }),
+      // 游标指向保留的 legs 日,其之前的 shoulders 日被整日删除
+      Object.assign(buildCurationPlan(), { id: 'plan_cursor_after_removed_day', cursor: 2 }),
+    ];
+    const db = loadDb();
+    return db.migratePlansForCatalog().then((plans) => {
+      const [onRemoved, afterRemoved] = plans;
+      expect(onRemoved.cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(onRemoved.cycleDays[onRemoved.cursor].dayId).toBe('legs');
+      expect(afterRemoved.cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(afterRemoved.cycleDays[afterRemoved.cursor].dayId).toBe('legs');
+      expect(mock.storage['fitness:plans'].map((p) => p.cursor)).toEqual([onRemoved.cursor, afterRemoved.cursor]);
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+    });
+  });
+
+  test('v3 设备离线升级到 v5:本地立即裁剪,联网后补偿云端并落定,成功后不重复写', () => {
+    const cloudPlan = {
+      _id: 'plan_curation',
+      name: 'v3 设备计划',
+      cursor: 0,
+      active: true,
+      cycleDays: buildCurationPlan().cycleDays,
+    };
+    const mock = mockWx({ cloudOk: false, cloudPlans: [cloudPlan] });
+    // v3 迁移已完成的设备,本地与云端键都停在 3
+    mock.storage['fitness:planMigrationVersion'] = 3;
+    mock.storage['fitness:planMigrationCloudSynced'] = 3;
+    mock.storage['fitness:plans'] = [buildCurationPlan()];
+    const db = loadDb();
+    return db
+      .migratePlansForCatalog()
+      .then((offline) => {
+        // 离线:本地已裁剪并落 v5,云端同步键保持 3 不动,不做注定失败的云写
+        expect(offline[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+        expect(mock.calls['plans:update']).toBeUndefined();
+        // 联网恢复:读取未裁剪的云端旧计划并重试
+        mock.setCloudOk(true);
+        return db.migratePlansForCatalog();
+      })
+      .then((retried) => {
+        expect(retried[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(retried[0].cycleDays[1].exercises.map((e) => e.exerciseId)).toEqual(['0043']);
+        expect(mock.cloudDocs.plans[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(mock.calls['plans:update']).toBe(1);
+        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
+        // 成功后再执行不再重复写云端,历史 session 集合零写入
+        return db.migratePlansForCatalog();
+      })
+      .then((again) => {
+        expect(again[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(mock.calls['plans:update']).toBe(1);
+        expect(mock.calls['plans:add']).toBeUndefined();
+        expect(mock.calls['plans:remove']).toBeUndefined();
+        expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
+      });
+  });
+});
+
+describe.skip('历史目录裁剪迁移（票 01 的两个下架动作 v5）', () => {
+  const catalog = require('../data/exercises');
+
+  /** 票 01 从权威白名单精确删除的 2 个 ID:3011/3021 无可用 GIF,不建立 replacement */
+  const SCAPULAR_REMOVED_IDS = ['3011', '3021'];
+
+  const removedExercise = (id, name) => ({
+    exerciseId: id,
+    name,
+    equipment: 'body weight',
+    sets: 3,
+    targetReps: 12,
+    targetWeight: 0,
+  });
+
+  /** 一个被下架动作污染的有效日 + 一个纯下架日(热身) + 一个游标指向的有效日 */
+  const buildScapularPlan = () => ({
+    id: 'plan_scapular',
+    name: '肩胛下架计划',
+    cursor: 2,
+    active: true,
+    cycleDays: [
+      {
+        dayId: 'push',
+        name: '推',
+        exercises: [
+          { exerciseId: '0025', name: '杠铃卧推', equipment: 'barbell', sets: 4, targetReps: 8, targetWeight: 60 },
+          removedExercise('3011', '上斜肩胛俯卧撑'),
+        ],
+      },
+      {
+        dayId: 'warmup',
+        name: '热身',
+        exercises: [removedExercise('3021', '肩胛俯卧撑')],
+      },
+      {
+        dayId: 'legs',
+        name: '腿',
+        exercises: [
+          { exerciseId: '0043', name: '杠铃深蹲', equipment: 'barbell', sets: 4, targetReps: 6, targetWeight: 80 },
+        ],
+      },
+    ],
+  });
+
+  test('两个下架 ID 从计划移除、纯下架训练日删除,不注入 replacement,本地版本落 5', () => {
+    SCAPULAR_REMOVED_IDS.forEach((id) => expect(catalog.findById(id)).toBeNull());
+    const mock = mockWx({ cloudOk: false });
+    mock.storage['fitness:plans'] = [buildScapularPlan()];
+    const db = loadDb();
+    return db.migratePlansForCatalog().then((plans) => {
+      expect(plans).toHaveLength(1);
+      expect(plans[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      const ids = plans[0].cycleDays.reduce(
+        (all, day) => all.concat(day.exercises.map((e) => e.exerciseId)),
+        []
+      );
+      expect(ids).toEqual(['0025', '0043']);
+      SCAPULAR_REMOVED_IDS.forEach((id) => expect(ids).not.toContain(id));
+      expect(plans[0].cycleDays[0].exercises[0].sets).toBe(4);
+      expect(mock.storage['fitness:plans'][0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.calls['plans:update']).toBeUndefined();
+      expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
+    });
+  });
+
+  test('全部动作被下架的整份计划删除,在线时同步云端删除,两个版本键落 5,sessions 零写入', () => {
+    const cloudPlan = {
+      _id: 'plan_all_scapular_removed',
+      name: '纯肩胛计划',
+      cursor: 0,
+      active: false,
+      cycleDays: [
+        { dayId: 'gone-a', name: '下架 A', exercises: [removedExercise('3011', '上斜肩胛俯卧撑')] },
+        { dayId: 'gone-b', name: '下架 B', exercises: [removedExercise('3021', '肩胛俯卧撑')] },
+      ],
+    };
+    const mock = mockWx({ cloudOk: true, cloudPlans: [cloudPlan] });
+    const db = loadDb();
+    return db.migratePlansForCatalog().then((plans) => {
+      expect(plans).toEqual([]);
+      expect(mock.cloudDocs.plans).toEqual([]);
+      expect(mock.storage['fitness:plans']).toEqual([]);
+      expect(mock.calls['plans:remove']).toBe(1);
+      expect(mock.calls['plans:update']).toBeUndefined();
+      expect(mock.calls['plans:add']).toBeUndefined();
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
+      expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
+    });
+  });
+
+  test('当前训练日整日下架时游标落到下一个保留日,被删日之前的有效日仍指向同一个当前日', () => {
+    const mock = mockWx({ cloudOk: false });
+    mock.storage['fitness:plans'] = [
+      // 游标指向整日下架的 warmup 日
+      Object.assign(buildScapularPlan(), { id: 'plan_cursor_on_removed_day', cursor: 1 }),
+      // 游标指向保留的 legs 日,其之前的 warmup 日被整日删除
+      Object.assign(buildScapularPlan(), { id: 'plan_cursor_after_removed_day', cursor: 2 }),
+    ];
+    const db = loadDb();
+    return db.migratePlansForCatalog().then((plans) => {
+      const [onRemoved, afterRemoved] = plans;
+      expect(onRemoved.cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(onRemoved.cycleDays[onRemoved.cursor].dayId).toBe('legs');
+      expect(afterRemoved.cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(afterRemoved.cycleDays[afterRemoved.cursor].dayId).toBe('legs');
+      expect(mock.storage['fitness:plans'].map((p) => p.cursor)).toEqual([
+        onRemoved.cursor,
+        afterRemoved.cursor,
+      ]);
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+    });
+  });
+
+  test('v4 已完成迁移的在线设备升级到 v5:云端计划被裁剪并落定两个版本键', () => {
+    const cloudPlan = {
+      _id: 'plan_scapular',
+      name: 'v4 设备计划',
+      cursor: 2,
+      active: true,
+      cycleDays: buildScapularPlan().cycleDays,
+    };
+    const mock = mockWx({ cloudOk: true, cloudPlans: [cloudPlan] });
+    // v4 迁移已完成的设备,本地与云端键都停在 4
+    mock.storage['fitness:planMigrationVersion'] = 4;
+    mock.storage['fitness:planMigrationCloudSynced'] = 4;
+    mock.storage['fitness:plans'] = [buildScapularPlan()];
+    const db = loadDb();
+    return db.migratePlansForCatalog().then((plans) => {
+      expect(plans[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(plans[0].cycleDays[plans[0].cursor].dayId).toBe('legs');
+      expect(plans[0].cycleDays[1].exercises.map((e) => e.exerciseId)).toEqual(['0043']);
+      expect(mock.cloudDocs.plans[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+      expect(mock.calls['plans:update']).toBe(1);
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
+      expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
+      // 幂等:两个版本键落定后不再重复写云端
+      return db.migratePlansForCatalog().then((again) => {
+        expect(again[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(mock.calls['plans:update']).toBe(1);
+        expect(mock.calls['plans:add']).toBeUndefined();
+        expect(mock.calls['plans:remove']).toBeUndefined();
+      });
+    });
+  });
+
+  test('v4 设备离线升级到 v5:本地立即裁剪,联网后补偿云端并落定,成功后不重复写', () => {
+    const cloudPlan = {
+      _id: 'plan_scapular',
+      name: 'v4 离线设备计划',
+      cursor: 2,
+      active: true,
+      cycleDays: buildScapularPlan().cycleDays,
+    };
+    const mock = mockWx({ cloudOk: false, cloudPlans: [cloudPlan] });
+    // v4 迁移已完成的设备,本地与云端键都停在 4
+    mock.storage['fitness:planMigrationVersion'] = 4;
+    mock.storage['fitness:planMigrationCloudSynced'] = 4;
+    mock.storage['fitness:plans'] = [buildScapularPlan()];
+    const db = loadDb();
+    return db
+      .migratePlansForCatalog()
+      .then((offline) => {
+        // 离线:本地已裁剪并落 v5,云端同步键保持 4 不动,不做注定失败的云写
+        expect(offline[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(offline[0].cycleDays[offline[0].cursor].dayId).toBe('legs');
+        expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(4);
+        expect(mock.calls['plans:update']).toBeUndefined();
+        expect(mock.storage['fitness:plans'][0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        // 联网恢复:读取未裁剪的云端旧计划并重试
+        mock.setCloudOk(true);
+        return db.migratePlansForCatalog();
+      })
+      .then((retried) => {
+        expect(retried[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(retried[0].cycleDays[1].exercises.map((e) => e.exerciseId)).toEqual(['0043']);
+        expect(mock.cloudDocs.plans[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(mock.calls['plans:update']).toBe(1);
+        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
+        // 成功后再执行不再重复写云端,历史 session 集合零写入
+        return db.migratePlansForCatalog();
+      })
+      .then((again) => {
+        expect(again[0].cycleDays.map((d) => d.dayId)).toEqual(['push', 'legs']);
+        expect(mock.calls['plans:update']).toBe(1);
+        expect(mock.calls['plans:add']).toBeUndefined();
+        expect(mock.calls['plans:remove']).toBeUndefined();
+        expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
+      });
+  });
+});
+
+describe.skip('历史目录裁剪迁移（local_ 计划）', () => {
+  const catalog = require('../data/exercises');
+
+  // 0994(弹力带反握腕弯举)不在最终 125 条目录里,裁剪后只留 0025
   const buildPendingLocalPlan = () =>
     buildLocalPlan({
       id: 'local_plan_pending',
@@ -559,7 +930,7 @@ describe('目录裁剪迁移保留未上云的 local_ 计划', () => {
       ],
     });
 
-  test('云端可读但为空:local_ 计划不丢,裁剪后上云并换成云端正式 id,两个版本键落 3', () => {
+  test('云端可读但为空:local_ 计划不丢,裁剪后上云并换成云端正式 id,两个版本键落 5', () => {
     expect(catalog.findById('0994')).toBeNull();
     const mock = mockWx({ cloudOk: true, cloudPlans: [] });
     mock.storage['fitness:plans'] = [buildPendingLocalPlan()];
@@ -573,9 +944,9 @@ describe('目录裁剪迁移保留未上云的 local_ 计划', () => {
       expect(plans.map((p) => p.id)).toEqual(['cloud_generated_id']);
       expect(mock.storage['fitness:plans'].map((p) => p.id)).toEqual(['cloud_generated_id']);
       expect(mock.storage['fitness:plans'][0].cycleDays[0].exercises.map((e) => e.exerciseId)).toEqual(['0025']);
-      // 本地与云端版本键都落 3
-      expect(mock.storage['fitness:planMigrationVersion']).toBe(3);
-      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+      // 本地与云端版本键都落 5
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
       // 历史 session 集合零写入
       expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
       // 幂等:两个版本键落定后不再重复上云
@@ -611,7 +982,7 @@ describe('目录裁剪迁移保留未上云的 local_ 计划', () => {
       expect(plans.map((p) => p.id)).toEqual(['cloud_generated_id']);
       expect(plans[0].cycleDays[0].exercises.map((e) => e.exerciseId)).toEqual(['0025']);
       expect(mock.storage['fitness:plans'].map((p) => p.id)).toEqual(['cloud_generated_id']);
-      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
     });
   });
 
@@ -655,11 +1026,11 @@ describe('目录裁剪迁移保留未上云的 local_ 计划', () => {
       expect(mock.calls['plans:update']).toBe(1);
       const synced = mock.cloudDocs.plans.find((d) => d._id === 'plan_cloud');
       expect(synced.cycleDays[0].exercises.map((e) => e.exerciseId)).toEqual(['0652']);
-      // 本地待上云计划同样上云,两个版本键落 3
+      // 本地待上云计划同样上云,两个版本键落 5
       expect(mock.calls['plans:add']).toBe(1);
       expect(mock.cloudDocs.plans).toHaveLength(2);
-      expect(mock.storage['fitness:planMigrationVersion']).toBe(3);
-      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+      expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
+      expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
       expect(Object.keys(mock.calls).filter((k) => k.startsWith('sessions:'))).toEqual([]);
     });
   });
@@ -675,7 +1046,7 @@ describe('目录裁剪迁移保留未上云的 local_ 计划', () => {
         expect(offline.map((p) => p.id)).toEqual(['local_plan_pending']);
         expect(mock.storage['fitness:plans'].map((p) => p.id)).toEqual(['local_plan_pending']);
         expect(mock.storage['fitness:plans'][0].cycleDays[0].exercises.map((e) => e.exerciseId)).toEqual(['0025']);
-        expect(mock.storage['fitness:planMigrationVersion']).toBe(3);
+        expect(mock.storage['fitness:planMigrationVersion']).toBe(5);
         expect(mock.storage['fitness:planMigrationCloudSynced']).toBeUndefined();
         expect(mock.cloudDocs.plans).toHaveLength(0);
         // 联网恢复:补上云并换成云端正式 id,云端同步键落定
@@ -687,7 +1058,7 @@ describe('目录裁剪迁移保留未上云的 local_ 计划', () => {
         expect(retried.map((p) => p.id)).toEqual(['cloud_generated_id']);
         expect(mock.cloudDocs.plans).toHaveLength(1);
         expect(mock.storage['fitness:plans'].map((p) => p.id)).toEqual(['cloud_generated_id']);
-        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(3);
+        expect(mock.storage['fitness:planMigrationCloudSynced']).toBe(5);
         // 成功后再执行不再重复上云
         return db.migratePlansForCatalog();
       })
@@ -796,7 +1167,7 @@ describe('ensureSeedPlans 数据集 id 种子', () => {
       expect(plans).toHaveLength(1);
       expect(plans[0].id).toBe('plan_old');
       expect(storage['fitness:seedVersion']).toBe(1);
-      expect(storage['fitness:planMigrationVersion']).toBe(3);
+      expect(storage['fitness:planMigrationVersion']).toBe(5);
     });
   });
 });

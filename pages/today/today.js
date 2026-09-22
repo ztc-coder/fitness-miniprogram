@@ -6,7 +6,7 @@ const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 const queue = require('../../utils/queue');
 const fmt = require('../../utils/format');
-const { equipmentLabel } = require('../../data/exercises');
+const labels = require('../../data/exercise-labels');
 
 const TRAINING_DRAFT_KEY = 'fitness:trainingDraft';
 
@@ -52,7 +52,8 @@ Page({
     const exercises = (day.exercises || []).map((item, index) => ({
       index: String(index + 1).padStart(2, '0'),
       name: item.name,
-      note: item.equipment === 'body weight' ? '自重 · weight 记额外负重' : equipmentLabel(item.equipment),
+      // 器械显示中文译名(缺译名回退原值);自重动作另加 weight 口径提示
+      note: item.equipment === 'body weight' ? '自重 · weight 记额外负重' : labels.equipmentLabel(item.equipment),
       prescription: `${item.sets}×${item.targetReps}${
         item.equipment === 'body weight'
           ? item.targetWeight > 0

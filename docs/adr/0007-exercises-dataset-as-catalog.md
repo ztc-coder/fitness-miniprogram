@@ -1,8 +1,8 @@
 # ADR-0007：动作库接入 hasaneyldrm/exercises-dataset
 
-- 状态：已采纳
+- 状态：已采纳；目录范围与筛选口径已被 ADR-0008 取代
 - 日期：2026-09-17
-- 相关文档：`docs/spec.md`、`CONTEXT.md`、ADR-0001（云存储）、ADR-0004（快照不可变）、ADR-0005（离线优先）
+- 相关文档：`docs/spec.md`、`CONTEXT.md`、ADR-0001（云存储）、ADR-0004（快照不可变）、ADR-0005（离线优先）、ADR-0008（非 cardio 可用全量）
 
 ## Context（背景）
 
@@ -12,7 +12,7 @@
 
 ## Decision（决策）
 
-1. **主键用数据集 4 位数字字符串**（如 `"0025"`）。种子计划里的 slug 一次性迁过去。当前发布目录由 `data/curated-catalog.js` 的精确白名单维护（当前 136 条，规格区间约 100–140 条），不是排除 cardio 后的上游全量目录；记录趋势按动作名聚合，换 id 不拆历史曲线。生成器粗筛（`TARGET_WHITELIST`，16 项）只放行目标肌群，`CURATED_EXERCISES` 才是最终目录的唯一闸门。
+1. **主键用数据集 4 位数字字符串**（如 `"0025"`）。种子计划里的 slug 一次性迁过去。记录趋势按动作名聚合，换 id 不拆历史曲线。发布目录范围与筛选口径见 ADR-0008（非 cardio 可用全量，不再用精选白名单做闸门）。
 2. **`nameZh` 用社区映射打底**（[wangmuerxiao/exercises-dataset-zh](https://github.com/wangmuerxiao/exercises-dataset-zh)），原 30 条手译覆盖。展示中文名，英文 `name` 做副标题和检索别名。
 3. **文本精简后打进主包**（离线可搜、可看要领）。字段只留 `id/name/nameZh/equipment/bodyPart/target/imagePath/gifPath/instructionSteps/aliases`。原文 17.4 MB 的多语言说明丢掉。超 2MB 再分包，不把目录放到云数据库。`aliases` 是目录一等字段，只参与关键词搜索，不参与部位筛选、不改展示名。
 4. **示意图与动作演示上传 CloudBase，按需加载**。不热链 GitHub/jsDelivr。动作库列表和打卡页只加载 JPEG 缩略图，详情按 GIF → JPEG → glyph 降级。个人自用本轮加载真实媒体，页面保留 `© Gym visual — https://gymvisual.com/`；商用上线前必须书面授权，且不得把仓库媒体当可再分发素材镜像出去。
@@ -35,7 +35,7 @@
 
 **代价**
 
-- 必须做一次种子计划 `exerciseId` 迁移；用户云端若已有旧 slug 计划，加练反查会失败，需要同样迁移或兼容表。目录迁移当前版本为 **v3**：按最终目录可查性直接删除动作，不建立旧 ID → 新 ID 的 replacement 映射。
+- 必须做一次种子计划 `exerciseId` 迁移；用户云端若已有旧 slug 计划，加练反查会失败，需要同样迁移或兼容表。目录迁移当前版本仍为 **v5**（当时按可查性裁掉无可用 GIF 的 `3011/3021`，无 replacement 映射）。扩到非 cardio 可用全量不升迁移版本，见 ADR-0008。
 - 社区中文名质量一般，部分条目要后续手修。
 - 个人自用加载未授权媒体：可接受；仓库一旦公开发布/审核上线，授权仍是阻塞项。
 - 一次性上传约 130 MB 到 CloudBase；主包文本裁完后仍需实测体积。

@@ -34,7 +34,7 @@ pages/
   today/         今天:当前训练日卡片 + 开始训练
   plan/          计划:循环计划管理(增删训练日、排序、切换 active)
   plan-day/      训练日详情:动作列表与统一目标编辑
-  library/       动作库:136 条精选目录、关键词(含俗称别名)/器械/10 个部位标签(含热身)筛选、24 条分页 JPEG 缩略图、加练/加入训练日
+  library/       动作库:非 cardio 可用全量、关键词(含俗称别名)/官方部位原值/器械原值多选筛选、24 条分页 JPEG 缩略图、加练/加入训练日
   training/      训练中:set 录入、增删组、跳过、加练、完成提交
   records/       记录:场次时间线 + 单动作趋势曲线(volume/总次数)
   session-detail/ 训练快照详情(不可变副本)
@@ -69,5 +69,5 @@ npm test
 ## 发布前置阻塞项
 
 - ⚠️ 动作示意图/GIF 版权归 Gym visual,上线前必须取得书面授权、保留 `© Gym visual — https://gymvisual.com/` 署名并遵守 180×180 分辨率限制。图片/GIF 走 CloudBase 云存储按需加载,不进主包。
-- 动作库 JSON 体积实测:当前为 136 条精选子集（规格区间约 100–140 条）,需确认是否落进 2MB 主包,超出则走分包。
-- ⚠️ `.scratch/catalog-expansion/issues/05-integration-acceptance-and-docs.md` 的真实微信开发者工具端到端行为、CloudBase 最终媒体集合（136 条 × JPEG/GIF = 272 个受管对象）和旧媒体清理仍待人工验收；Node mock、媒体同步 dry-run 和 Jest 不能替代该验收。
+- 动作库 JSON 体积实测:发布目录为非 cardio 可用全量本地分片,需确认是否落进 2MB 主包,超出则走分包。
+- ⚠️ `.scratch/full-catalog/issue.md` 的真实微信开发者工具端到端行为、CloudBase 最终媒体集合（最终目录 × JPEG/GIF）和旧媒体清理仍待人工验收；Node mock、媒体同步 dry-run 和 Jest 不能替代该验收。

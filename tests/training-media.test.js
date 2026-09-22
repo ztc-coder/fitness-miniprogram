@@ -21,7 +21,7 @@ describe('训练页动作详情媒体反查', () => {
     delete global.wx;
   });
 
-  test('详情展示精选部位标签而不是上游粗粒度 bodyPart', () => {
+  test('详情展示中文器械与部位译名,缺译名回退原值', () => {
     page.data.session = {
       exercises: [
         { exerciseId: '0025', name: '杠铃卧推', equipment: 'barbell', skipped: false },
@@ -30,7 +30,9 @@ describe('训练页动作详情媒体反查', () => {
 
     page.onExerciseTap({ currentTarget: { dataset: { ex: 0 } } });
 
-    expect(page.data.detail.bodyPartZh).toBe('胸 · 复合动作');
+    expect(page.data.detail.bodyPartZh).toBe('胸');
+    expect(page.data.detail.equipmentZh).toBe('杠铃');
+    expect(page.data.detail.targetZh).toBe('胸大肌');
     expect(page.data.detail.gifSrc).toMatch(/\.gif$/);
     expect(page.data.detail.imageSrc).toMatch(/\.jpg$/);
   });

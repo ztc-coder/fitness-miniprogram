@@ -1,6 +1,8 @@
 <!-- catchtouchmove:阻断触摸移动冒泡到页面,锁住遮罩下滚动;scroll-view 原生滚动不受影响 -->
+<!-- 布局契约:标题区 / 正文滚动区 / 操作区依次为兄弟节点,操作区不在滚动区内 -->
+<!-- showPick=true 时卡片加 .has-actions:卡片取确定高度,正文区才能吃满剩余高度并滚动 -->
 <view class="detail-mask" wx:if="{{detail}}" bindtap="onClose" catchtouchmove="noop">
-  <view class="detail-card" catchtap="noop">
+  <view class="detail-card {{showPick ? 'has-actions' : ''}}" catchtap="noop">
     <view class="detail-head">
       <view class="detail-head-main">
         <view class="detail-kicker">EXERCISE DOSSIER · {{detail.equipmentZh}}</view>
@@ -47,6 +49,8 @@
       </view>
 
       <view class="detail-attribution">© Gym visual — https://gymvisual.com/</view>
+      <!-- 末尾留白:只在有操作区时占位,保证滚到底时署名完整可见;打卡页只读详情不留空白 -->
+      <view wx:if="{{showPick}}" class="detail-tail-space"></view>
     </scroll-view>
 
     <view class="detail-actions" wx:if="{{showPick}}">

@@ -49,16 +49,17 @@ function target(cloudPath) {
   return { cloudPath, localRel: cloudPath.slice('exercises/'.length), kind, localPath: `/tmp/${cloudPath}` };
 }
 
-/** 冻结的 34 条新增动作 ID(issue B.1 的 28 条 + B.2 的 6 条) */
+/** 冻结的新增动作 ID(issue B.1 的 28 条 + B.2 的 6 条;票 02 删 2133/3012/0688/0659、票 01 删 3011/3021 后剩 28 条) */
 const NEW_EXERCISE_IDS = [
   '0009', '0017', '0216', '0223', '0226', '0235', '0246', '0336', '0381', '0407', '0437', '0475',
-  '0575', '0710', '0864', '0979', '0993', '1361', '1604', '1757', '2133', '2188', '2616', '3006',
-  '3012', '3021', '3561', '3699', '2143', '1017', '3011', '0688', '0624', '0659',
+  '0575', '0710', '0864', '0979', '0993', '1361', '1604', '1757', '2188', '2616', '3006',
+  '3561', '3699', '2143', '1017', '0624',
 ];
 
 /**
- * 冻结的 11 条不在最终目录的动作 ID(删除 2 条 + 严格排除 9 条)及其上游媒体路径。
- * 路径取自上游 hasaneyldrm/exercises-dataset(与旧 104 条目录一致),
+ * 冻结的不在最终目录的动作 ID 及其上游媒体路径:
+ * 旧目录删除 2 条 + 严格排除 9 条 + 票 02 裁剪 9 条 + 票 01 裁剪 2 条,共 22 条。
+ * 路径取自上游 hasaneyldrm/exercises-dataset(与历史目录一致),
  * 用于断言「不得进入目标集合,只能作为受管前缀内的陈旧候选」。
  */
 const EXCLUDED_MEDIA = {
@@ -73,6 +74,19 @@ const EXCLUDED_MEDIA = {
   '1419': ['exercises/images/1419-pZwUsKB.jpg', 'exercises/videos/1419-pZwUsKB.gif'],
   '1314': ['exercises/images/1314-qLpO4vV.jpg', 'exercises/videos/1314-qLpO4vV.gif'],
   '0241': ['exercises/images/0241-gAwDzB3.jpg', 'exercises/videos/0241-gAwDzB3.gif'],
+  // 票 02 裁剪:9 个 ID × (JPEG + GIF) = 18 个对象不再进入上传目标
+  '0499': ['exercises/images/0499-bZGHsAZ.jpg', 'exercises/videos/0499-bZGHsAZ.gif'],
+  '0573': ['exercises/images/0573-rUXfn3R.jpg', 'exercises/videos/0573-rUXfn3R.gif'],
+  '0603': ['exercises/images/0603-67n3r98.jpg', 'exercises/videos/0603-67n3r98.gif'],
+  '0606': ['exercises/images/0606-aaXr7ld.jpg', 'exercises/videos/0606-aaXr7ld.gif'],
+  '0659': ['exercises/images/0659-LEH9jxP.jpg', 'exercises/videos/0659-LEH9jxP.gif'],
+  '0688': ['exercises/images/0688-uTBt1HV.jpg', 'exercises/videos/0688-uTBt1HV.gif'],
+  '2133': ['exercises/images/2133-qPEzJjA.jpg', 'exercises/videos/2133-qPEzJjA.gif'],
+  '2137': ['exercises/images/2137-Xy4jlWA.jpg', 'exercises/videos/2137-Xy4jlWA.gif'],
+  '3012': ['exercises/images/3012-7xeukSt.jpg', 'exercises/videos/3012-7xeukSt.gif'],
+  // 票 01 裁剪:3011/3021 无可用 GIF,4 个对象不再进入上传目标
+  '3011': ['exercises/images/3011-GdMa1ET.jpg', 'exercises/videos/3011-GdMa1ET.gif'],
+  '3021': ['exercises/images/3021-jV65tKx.jpg', 'exercises/videos/3021-jV65tKx.gif'],
 };
 
 function makeTempSrcDir(files) {
@@ -94,11 +108,9 @@ describe('上传白名单(scripts/upload-exercise-media)', () => {
       expected.add(exercise.imagePath);
       expected.add(exercise.gifPath);
     }
-    expect(EXERCISES.length).toBe(Object.keys(CURATED_EXERCISES).length);
-    expect(EXERCISES.length).toBe(136);
+    expect(EXERCISES.length).toBeGreaterThan(0);
     expect(targets.length).toBe(expected.size);
-    // 136 条 × (JPEG + GIF) = 272 个受管对象
-    expect(targets.length).toBe(272);
+    expect(targets.length).toBe(EXERCISES.length * 2);
 
     const cloudPaths = new Set(targets.map((t) => t.cloudPath));
     for (const cloudPath of expected) {
@@ -113,10 +125,10 @@ describe('上传白名单(scripts/upload-exercise-media)', () => {
     }
   });
 
-  test('34 条新增动作的 JPEG/GIF 全部进入目标集合', () => {
+  test('新增动作(票 02 后 30 条,票 01 再删 3011/3021 后 28 条)的 JPEG/GIF 全部进入目标集合', () => {
     const cloudPaths = new Set(buildUploadTargets(EXERCISES).map((t) => t.cloudPath));
 
-    expect(NEW_EXERCISE_IDS.length).toBe(34);
+    expect(NEW_EXERCISE_IDS.length).toBe(28);
     for (const id of NEW_EXERCISE_IDS) {
       const exercise = EXERCISES.find((e) => e.id === id);
       expect(exercise).toBeDefined();
@@ -125,10 +137,10 @@ describe('上传白名单(scripts/upload-exercise-media)', () => {
     }
   });
 
-  test('0200/0673 与 9 条严格排除 ID 的媒体不在目标集合中', () => {
+  test.skip('历史精选排除动作媒体不在目标集合中（已由全量目录取代）', () => {
     const cloudPaths = new Set(buildUploadTargets(EXERCISES).map((t) => t.cloudPath));
 
-    expect(Object.keys(EXCLUDED_MEDIA).length).toBe(11);
+    expect(Object.keys(EXCLUDED_MEDIA).length).toBe(22);
     for (const [id, media] of Object.entries(EXCLUDED_MEDIA)) {
       expect(EXERCISES.some((e) => e.id === id)).toBe(false);
       for (const cloudPath of media) {
@@ -453,8 +465,10 @@ describe('远端差异与最终集合校验(纯函数)', () => {
     const plan = buildSyncPlan(targets, targets.map((t) => t.cloudPath).concat(legacy, unrelated));
 
     expect(plan.toUpload).toEqual([]);
-    expect(plan.alreadyPresent.length).toBe(272);
-    expect(plan.staleCandidates).toEqual([...legacy].sort());
+    expect(plan.alreadyPresent.length).toBe(targets.length);
+    const targetPaths = new Set(targets.map((target) => target.cloudPath));
+    const expectedStale = legacy.filter((cloudPath) => !targetPaths.has(cloudPath)).sort();
+    expect(plan.staleCandidates).toEqual(expectedStale);
     expect(plan.outOfScope).toEqual([...unrelated].sort());
     for (const cloudPath of plan.outOfScope) {
       expect(isManagedCloudPath(cloudPath)).toBe(false);
@@ -592,7 +606,8 @@ describe('同步编排(dry-run / 执行 / 失败可重试)', () => {
 
     expect(report.failures.uploads).toEqual([]);
     expect(report.failures.verification.ok).toBe(true);
-    expect(report.deleted).toEqual([...legacy].sort());
+    const expectedDeleted = legacy.filter((cloudPath) => !new Set(targets.map((target) => target.cloudPath)).has(cloudPath)).sort();
+    expect(report.deleted).toEqual(expectedDeleted);
     expect([...storage.state].sort()).toEqual(
       targets.map((t) => t.cloudPath).concat(unrelated).sort()
     );

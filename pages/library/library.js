@@ -1,25 +1,42 @@
 /**
- * 动作库:离线浏览精选目录、搜索、器械桶 + 部位标签(含复合动作重叠标签)两维筛选
+ * 动作库:离线浏览发布目录、搜索、官方部位原值 + 器械原值两维胶囊多选
  * 三种打开方式:
  *  - 普通浏览(从计划 tab 入口进入,可加动作到当前训练日)
  *  - pick=1(训练中临时加练,选中后返回训练页)
  *  - planId + dayId(指定加入某训练日)
  */
 const lib = require('../../data/exercises');
+const labels = require('../../data/exercise-labels');
 const media = require('../../data/media-root');
 const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 const paging = require('./library-paging');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
+/** 每行首项「全部」的 key:不参与检索,点击即清空该行 */
+const ALL_KEY = '全部';
+
+/** 组装一行胶囊:首项「全部」,其余为官方原值;active 由选中集推导,与列表结果同一次提交 */
+function filterPills(keys, labelOf, selected) {
+  return [{ key: ALL_KEY, label: ALL_KEY, active: selected.length === 0 }].concat(
+    keys.map((key) => ({ key, label: labelOf(key), active: selected.indexOf(key) !== -1 }))
+  );
+}
+
+/** 同一行多选切换:点已选项取消,点未选项加入 */
+function toggleKey(selected, key) {
+  return selected.indexOf(key) === -1
+    ? selected.concat([key])
+    : selected.filter((item) => item !== key);
+}
 
 Page({
   data: {
     query: '',
-    equipFilter: '全部',
-    equipFilters: [],
-    partFilter: '全部',
-    partFilters: [],
+    equipmentKeys: [],
+    equipmentFilters: [],
+    bodyPartKeys: [],
+    bodyPartFilters: [],
     items: [],
     preheatItems: [],
     resultCount: 0,
@@ -32,8 +49,6 @@ Page({
 
   onLoad(options = {}) {
     this.applySearch({
-      equipFilters: lib.EQUIPMENT_FILTERS.map((key) => ({ key, label: key === '全部' ? '全部' : lib.equipmentLabel(key) })),
-      partFilters: lib.PART_FILTERS.map((key) => ({ key, label: key === '全部' ? '全部' : lib.PART_LABELS[key] })),
       pickMode: options.pick === '1',
       planId: options.planId || '',
       dayId: options.dayId || '',
@@ -48,28 +63,36 @@ Page({
   applySearch(nextData = {}) {
     const has = (key) => Object.prototype.hasOwnProperty.call(nextData, key);
     const query = has('query') ? nextData.query : this.data.query;
-    const equipFilter = has('equipFilter') ? nextData.equipFilter : this.data.equipFilter;
-    const partFilter = has('partFilter') ? nextData.partFilter : this.data.partFilter;
+    const equipmentKeys = has('equipmentKeys') ? nextData.equipmentKeys : this.data.equipmentKeys;
+    const bodyPartKeys = has('bodyPartKeys') ? nextData.bodyPartKeys : this.data.bodyPartKeys;
+    // 选中态直接由选中集推导,与列表结果同一次 setData 提交
+    const patch = Object.assign({}, nextData, {
+      query,
+      equipmentKeys,
+      bodyPartKeys,
+      equipmentFilters: filterPills(labels.equipmentKeys(lib.EXERCISES), labels.equipmentLabel, equipmentKeys),
+      bodyPartFilters: filterPills(labels.BODY_PART_KEYS, labels.bodyPartLabel, bodyPartKeys),
+    });
 
     try {
-      this._matchedItems = lib.search(query, equipFilter, partFilter).map((item) => {
+      this._matchedItems = lib.search(query, equipmentKeys, bodyPartKeys).map((item) => {
         const nameZh = item && item.nameZh ? String(item.nameZh) : '';
         return {
           id: item.id,
           name: nameZh,
-          meta: `${lib.targetLabel(item.target)} · ${lib.equipmentLabel(item.equipment)}`,
+          meta: `${lib.targetLabel(item.target)} · ${labels.equipmentLabel(item.equipment)}`,
           glyph: nameZh.slice(0, 1) || '?',
           thumbSrc: media.resolveMedia(item.imagePath),
           isBodyWeight: item.equipment === 'body weight',
         };
       });
       this._page = 1;
-      this.renderPage(nextData);
+      this.renderPage(patch);
     } catch (err) {
       console.error('动作库检索失败', err);
       this._matchedItems = [];
       this._page = 1;
-      this.setData(Object.assign({}, nextData, {
+      this.setData(Object.assign({}, patch, {
         items: [],
         preheatItems: [],
         resultCount: 0,
@@ -101,15 +124,15 @@ Page({
   },
 
   onEquipFilterTap(e) {
-    const key = e.currentTarget.dataset.bucket;
+    const key = e.currentTarget.dataset.key;
     if (!key) return;
-    this.applySearch({ equipFilter: key });
+    this.applySearch({ equipmentKeys: key === ALL_KEY ? [] : toggleKey(this.data.equipmentKeys, key) });
   },
 
-  onPartFilterTap(e) {
-    const key = e.currentTarget.dataset.bucket;
+  onBodyPartFilterTap(e) {
+    const key = e.currentTarget.dataset.key;
     if (!key) return;
-    this.applySearch({ partFilter: key });
+    this.applySearch({ bodyPartKeys: key === ALL_KEY ? [] : toggleKey(this.data.bodyPartKeys, key) });
   },
 
   /** 缩略图失败只影响对应动作,保留动作行并降回 glyph。 */
@@ -132,9 +155,9 @@ Page({
         id: item.id,
         nameZh: item.nameZh,
         nameEn: item.name,
-        equipmentZh: lib.equipmentLabel(item.equipment),
+        equipmentZh: labels.equipmentLabel(item.equipment),
         targetZh: lib.targetLabel(item.target),
-        bodyPartZh: lib.partTagsLabel(item.id),
+        bodyPartZh: labels.bodyPartLabel(item.bodyPart),
         steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
         gifSrc: media.resolveMedia(item.gifPath),

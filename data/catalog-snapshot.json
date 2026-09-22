@@ -1,0 +1,41 @@
+{
+  "datasetCommit": "7455efae41b330c265e7cd4b78dfa848e7ce5ebd",
+  "dataset": {
+    "file": "exercises.json",
+    "sha256_12": "656634224b89",
+    "rows": 1324
+  },
+  "nameZh": {
+    "file": "name_zh.json",
+    "sha256_12": "c6e415b0a4e3",
+    "keys": 1318
+  },
+  "exclusions": {
+    "count": 0,
+    "ids": []
+  },
+  "counts": {
+    "candidates": 1295,
+    "published": 1295,
+    "excluded": 0
+  },
+  "generatedAt": "2026-09-22T06:41:15.973Z",
+  "chunkSize": 450,
+  "chunks": [
+    {
+      "file": "exercises-data-1.js",
+      "count": 450,
+      "bytes": 284238
+    },
+    {
+      "file": "exercises-data-2.js",
+      "count": 450,
+      "bytes": 284752
+    },
+    {
+      "file": "exercises-data-3.js",
+      "count": 395,
+      "bytes": 253131
+    }
+  ]
+}

@@ -19,4 +19,5 @@
 | [0004](./0004-snapshot-sessions-immutable-history.md) | 打卡快照复制，历史记录不可变 | 已采纳 |
 | [0005](./0005-offline-first-local-cache-with-submit-queue.md) | 离线优先：本地缓存 + 结束时提交 + 队列重试 | 已采纳 |
 | [0006](./0006-local-markdown-issue-tracker.md) | Issue 跟踪使用仓库内本地 markdown | 已采纳 |
-| [0007](./0007-exercises-dataset-as-catalog.md) | 动作库接入 hasaneyldrm/exercises-dataset | 已采纳 |
+| [0007](./0007-exercises-dataset-as-catalog.md) | 动作库接入 hasaneyldrm/exercises-dataset | 已采纳；范围与筛选见 0008 |
+| [0008](./0008-full-non-cardio-catalog.md) | 发布目录改为非 cardio 可用全量，筛选改官方原值 | 已采纳 |

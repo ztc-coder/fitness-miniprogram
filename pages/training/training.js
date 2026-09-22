@@ -7,6 +7,7 @@ const domain = require('../../utils/domain');
 const queue = require('../../utils/queue');
 const fmt = require('../../utils/format');
 const lib = require('../../data/exercises');
+const labels = require('../../data/exercise-labels');
 const media = require('../../data/media-root');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
@@ -152,9 +153,10 @@ Page({
         id: item.id,
         nameZh: item.nameZh,
         nameEn: item.name,
-        equipmentZh: lib.equipmentLabel(item.equipment),
+        // 器械与部位显示中文译名(缺译名回退原值)
+        equipmentZh: labels.equipmentLabel(item.equipment),
         targetZh: lib.targetLabel(item.target),
-        bodyPartZh: lib.partTagsLabel(item.id),
+        bodyPartZh: labels.bodyPartLabel(item.bodyPart),
         steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
         gifSrc: media.resolveMedia(item.gifPath),

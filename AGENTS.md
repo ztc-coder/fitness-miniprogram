@@ -21,5 +21,8 @@ Issues 以本地 markdown 文件形式存储在 `.scratch/<feature>/` 目录下�
 - 领域词汇表与架构概览：`CONTEXT.md`
 - 架构决策记录：`docs/adr/`
 - 需求规格：`docs/spec.md`
-- 动作库当前 spec/验收：`.scratch/catalog-expansion/issue.md`、`.scratch/catalog-expansion/issues/05-integration-acceptance-and-docs.md`
+- 动作库当前 spec/验收：`.scratch/full-catalog/issue.md`
+- 动作库上一轮选择器与 125 条精选：`.scratch/exercise-selector/issue.md`
+- 动作库更早质量修复：`.scratch/catalog-quality-fixes/issue.md`
+- 动作库更早扩容：`.scratch/catalog-expansion/issue.md`
 - Issue 跟踪：`.scratch/<feature>/issue.md`

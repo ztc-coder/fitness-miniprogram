@@ -1,45 +1,12 @@
 #!/usr/bin/env node
 /**
- * 同步最终精选目录的动作媒体到 CloudBase 云存储(幂等,可重复执行)。
+ * 同步发布目录的动作媒体到 CloudBase 云存储（幂等、可重复执行）。
  *
- * 白名单:严格取 data/exercises.js 的 imagePath / gifPath(最终精选目录),
- * 不做整目录上传;被裁掉动作的媒体不会被上传。
- * 清理:只删除 exercises/images/、exercises/videos/ 两个前缀下、
- * 单层文件名、扩展名与前缀匹配、且不再被最终目录引用的对象。
- * 其他任何云存储对象只报告不删除。
+ * 目标集合严格取 data/exercises.js 的最终发布目录：每条动作一个 JPEG 与一个 GIF。
+ * 目录由非 cardio 可用全量生成器产出并减去锁定媒体排除清单，不再依赖精选白名单。
+ * 清理只允许 exercises/images/、exercises/videos/ 两个受管前缀；其他对象只报告不删除。
  *
- * 源目录(按顺序探测,取第一个含 images/ 或 videos/ 的目录):
- *   1. --src <dir> 命令行参数(本地 clone 的 exercises-dataset)
- *   2. 环境变量 EXERCISES_MEDIA_DIR
- *   3. /tmp/exercises-dataset
- *
- * 上传前预检并输出:JPEG / GIF 个数、缺失媒体路径、源/目标总字节数。
- * 任一缺失源媒体即失败退出,不静默上传不完整集合。
- *
- * 云端路径:exercises/images/... 与 exercises/videos/...,与目录数据的
- * imagePath / gifPath 一一对应(逐文件 uploadFile,不用 uploadDirectory)。
- *
- * 凭据(环境变量,二选一组,支持 TCB_ 前缀别名,不读取任何凭据文件):
- *   CLOUDBASE_SECRET_ID / CLOUDBASE_SECRET_KEY
- *   TCB_SECRET_ID       / TCB_SECRET_KEY
- *
- * 依赖:@cloudbase/manager-node(不默认安装,避免主仓库无谓体积)
- *   npm i -D @cloudbase/manager-node
- *   纯函数部分不依赖该 SDK,未安装时仍可被测试导入。
- *
- * 用法:
- *   node scripts/upload-exercise-media.js [--src /path/to/exercises-dataset]
- *   node scripts/upload-exercise-media.js --execute      # 默认只 dry-run,必须显式开启写入
- *
- * 默认 dry-run:只列出远端差异、待上传与待删除对象,不写不删。
- * --execute 才会上传缺失对象、校验最终集合、删除陈旧对象。
- * 任一步失败都会打印失败清单并以非 0 退出;重跑会重新拉取远端状态,只补缺失项,可安全重试。
- *
- * 上传成功后,把桶根(形如 cloud://<env-id>.<bucket-suffix>,不要再加 /exercises)
- * 写入 data/media-root.js 的 MEDIA_ROOT。
- *
- * ⚠️ 媒体版权归 Gym visual(https://gymvisual.com/),仅个人自用;
- * 禁止热链 GitHub / jsDelivr 公开再分发。
+ * 源目录与执行模式、版权约束见下方说明。默认 dry-run；真实上传/删除必须显式 --execute。
  */
 const fs = require('fs');
 const path = require('path');

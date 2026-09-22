@@ -1,49 +1,30 @@
 /**
  * 动作库离线数据(随主包发布,本地可读)
- * 数据源:hasaneyldrm/exercises-dataset,经 data/curated-catalog.js 精选 exerciseId 白名单裁剪,
- * 只含经审查的健身房常用动作(当前 136 条,规格区间约 100–140 条)。已排除 cardio 与白名单外肌群。
+ * 历史精选元数据保留作迁移兼容，不再控制发布目录；当前发布目录由生成器产出的非 cardio 可用全量分片提供。
  * 字段精简为:id / name / nameZh / equipment / bodyPart / target / imagePath / gifPath / instructionSteps / aliases。
- * aliases 是健身房俗称(如「倒蹬」「龙门架」),只参与关键词搜索,不参与部位筛选、不改展示名。
+ * aliases 是健身房俗称(如「倒蹬」「龙门架」),只参与关键词搜索,不参与筛选、不改展示名。
  * equipment == "body weight" 是判断自重动作、切换 volume/总次数口径的唯一依据。
- * 部位筛选与复合标记以精选元数据为准,不依赖上游 bodyPart 字段。
+ * 检索只认官方原值:关键词命中 id / name / nameZh / target / bodyPart / equipment 与 aliases,
+ * 器械、部位按目录里实际出现的原值多选筛选(组内 OR、维度间 AND);
+ * 不再提供器械归并桶,也不再用精选部位标签 / 热身 / 复合 / 模式参与筛选。
  *
  * 图片与 GIF 走 CloudBase 云存储按需加载,不进主包。
  * ⚠️ 媒体版权归 Gym visual,上线前须取得书面授权并保留署名。
  */
-// 顶层 require 分片(微信依赖分析扫不到 concat(require()) 参数,会导致分片未打包)
+// 顶层显式 require 分片，兼容当前 125 条目录与全量生成后的 3 个分片。
+// 空的后续分片由仓库占位，生成器重跑时会覆盖为真实目录。
 const EXERCISES_PART_1 = require('./exercises-data-1');
-const EXERCISES = [].concat(EXERCISES_PART_1);
+const EXERCISES_PART_2 = require('./exercises-data-2');
+const EXERCISES_PART_3 = require('./exercises-data-3');
+const EXERCISES = [].concat(EXERCISES_PART_1, EXERCISES_PART_2, EXERCISES_PART_3);
 const SLUG_MAP = require('./slug-map');
-const { CURATED_EXERCISES, PART_LABELS, PART_FILTERS } = require('./curated-catalog');
+const CURATED_EXERCISES = require('./curated-catalog').CURATED_EXERCISES; // 历史兼容导出，不参与发布目录筛选。
 
 if (!Array.isArray(EXERCISES) || EXERCISES.length === 0) {
   console.error('动作目录加载失败');
 }
 
-const EQUIPMENT_FILTERS = ['全部', 'barbell', 'dumbbell', 'cable', 'machine', 'body weight', 'other'];
-
-const EQUIPMENT_LABELS = {
-  barbell: '杠铃',
-  dumbbell: '哑铃',
-  cable: '绳索',
-  machine: '器械',
-  'body weight': '自重',
-  other: '其他',
-};
-
-const BODY_PART_LABELS = {
-  back: '背',
-  chest: '胸',
-  'lower arms': '前臂',
-  'lower legs': '小腿',
-  neck: '颈',
-  shoulders: '肩',
-  'upper arms': '上臂',
-  'upper legs': '大腿',
-  waist: '腰腹',
-};
-
-/** 非 cardio 的 18 个目标肌群枚举,固定中文表 */
+/** 非 cardio 的 18 个目标肌群枚举,固定中文表(详情展示用,不参与筛选) */
 const TARGET_LABELS = {
   abs: '腹部',
   abductors: '外展肌',
@@ -65,66 +46,8 @@ const TARGET_LABELS = {
   'upper back': '上背',
 };
 
-function bodyPartLabel(bodyPart) {
-  return BODY_PART_LABELS[bodyPart] || bodyPart || '';
-}
-
 function targetLabel(target) {
   return TARGET_LABELS[target] || target || '';
-}
-
-/**
- * 器械筛选桶语义归并:曲杠/奥杠/六角杠→杠铃,史密斯/杠杆/腿举→器械,
- * 绳→绳索,assisted→自重桶,其余(壶铃/弹力带/药球等)→其他。
- * 只影响筛选,不改变 equipment 原值、不影响 volume 口径(body weight 原值判定)。
- */
-function equipmentBucket(equipment) {
-  switch (equipment) {
-    case 'barbell':
-    case 'ez barbell':
-    case 'olympic barbell':
-    case 'trap bar':
-      return 'barbell';
-    case 'dumbbell':
-      return 'dumbbell';
-    case 'cable':
-    case 'rope':
-      return 'cable';
-    case 'leverage machine':
-    case 'smith machine':
-    case 'sled machine':
-      return 'machine';
-    case 'body weight':
-    case 'assisted':
-      return 'body weight';
-    default:
-      return 'other';
-  }
-}
-
-function equipmentLabel(equipment) {
-  return EQUIPMENT_LABELS[equipment] || EQUIPMENT_LABELS[equipmentBucket(equipment)] || '其他';
-}
-
-/**
- * 部位匹配走精选元数据:compound 标签命中全部复合动作,
- * warm-up 与具体部位标签一样按 tags 命中(热身动作同时带具体部位标签,可重叠命中)。
- */
-function matchCuratedPart(id, part) {
-  if (!part || part === '全部') return true;
-  const meta = CURATED_EXERCISES[id];
-  if (!meta) return false;
-  if (part === 'compound') return meta.compound;
-  return meta.tags.indexOf(part) !== -1;
-}
-
-/** 详情展示用:部位标签中文(复合动作追加在末尾),如「胸 · 三头肌 · 复合动作」 */
-function partTagsLabel(id) {
-  const meta = CURATED_EXERCISES[id];
-  if (!meta) return '';
-  const labels = meta.tags.map((tag) => PART_LABELS[tag]).filter(Boolean);
-  if (meta.compound) labels.push(PART_LABELS.compound);
-  return labels.join(' · ');
 }
 
 function findById(id) {
@@ -133,41 +56,52 @@ function findById(id) {
   return EXERCISES.find((item) => item.id === numericId) || null;
 }
 
+/** 统一小写比较,缺失字段按空串处理,避免把 undefined 当字符串命中。 */
+function lower(value) {
+  return value === undefined || value === null ? '' : String(value).toLowerCase();
+}
+
 /**
- * 搜索 + 器械桶 + 部位标签筛选,离线本地执行,三维 AND。
- * 关键词命中中文名、英文名、目标肌群中文、部位中文、器械中文、别名(俗称)。
- * 部位用精选元数据标签(含 compound 重叠标签),不用上游 bodyPart 字段。
+ * 关键词命中:英文名、中文名、id、目标肌群、部位、器械原值(均为数据集原值)与俗称别名。
+ * 全部统一小写比较,避免中文名里的拉丁字母(如「绳索 V 杆划船」)大小写不一致漏命中。
  */
-function search(query, equipment, part) {
+function matchKeyword(item, q) {
+  return (
+    lower(item.id).indexOf(q) !== -1 ||
+    lower(item.name).indexOf(q) !== -1 ||
+    lower(item.nameZh).indexOf(q) !== -1 ||
+    lower(item.target).indexOf(q) !== -1 ||
+    lower(item.bodyPart).indexOf(q) !== -1 ||
+    lower(item.equipment).indexOf(q) !== -1 ||
+    (item.aliases || []).some((alias) => lower(alias).indexOf(q) !== -1)
+  );
+}
+
+/**
+ * 离线本地检索:关键词 ∧ 器械原值组 ∧ 部位原值组,三维 AND。
+ *  - query:关键词,不区分大小写
+ *  - equipmentKeys:器械原值数组(如 ['barbell', 'ez barbell']);空数组或 undefined 表示该维无约束
+ *  - bodyPartKeys:官方 bodyPart 原值数组(如 ['chest', 'shoulders']);空数组或 undefined 表示该维无约束
+ * 同一维多选为并集(OR),维度之间为交集(AND)。
+ * 返回 EXERCISES 中命中的条目原引用,不复制。
+ */
+function search(query, equipmentKeys, bodyPartKeys) {
   if (!Array.isArray(EXERCISES)) return [];
-  const q = (query || '').trim().toLowerCase();
+  const q = lower(query).trim();
+  const equipKeys = Array.isArray(equipmentKeys) ? equipmentKeys : [];
+  const partKeys = Array.isArray(bodyPartKeys) ? bodyPartKeys : [];
   return EXERCISES.filter((item) => {
-    const matchQuery =
-      !q ||
-      item.nameZh.indexOf(q) !== -1 ||
-      item.name.toLowerCase().indexOf(q) !== -1 ||
-      targetLabel(item.target).indexOf(q) !== -1 ||
-      bodyPartLabel(item.bodyPart).indexOf(q) !== -1 ||
-      equipmentLabel(item.equipment).indexOf(q) !== -1 ||
-      (item.aliases || []).some((alias) => String(alias).toLowerCase().indexOf(q) !== -1);
-    const matchEquipment =
-      !equipment || equipment === '全部' || equipmentBucket(item.equipment) === equipment;
-    const matchPart = matchCuratedPart(item.id, part);
+    const matchQuery = !q || matchKeyword(item, q);
+    const matchEquipment = equipKeys.length === 0 || equipKeys.indexOf(item.equipment) !== -1;
+    const matchPart = partKeys.length === 0 || partKeys.indexOf(item.bodyPart) !== -1;
     return matchQuery && matchEquipment && matchPart;
   });
 }
 
 module.exports = {
   EXERCISES,
-  EQUIPMENT_FILTERS,
-  PART_FILTERS,
-  PART_LABELS,
   CURATED_EXERCISES,
-  equipmentBucket,
-  equipmentLabel,
-  bodyPartLabel,
   targetLabel,
-  partTagsLabel,
   findById,
   search,
 };
