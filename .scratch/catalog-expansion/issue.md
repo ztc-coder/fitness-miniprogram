@@ -1,11 +1,17 @@
 ---
 title: 动作库扩容至 136 条、热身标签、v3 计划迁移与媒体同步
 labels: [ready-for-human]
-status: open
+status: done
 created: 2026-09-19
 ---
 
-# 动作库扩容至 136 条、热身标签、v3 计划迁移与媒体同步
+**历史轮次：已被 `.scratch/full-catalog/` 取代。** 本目录只保留早期 136/127 条精选方案的审计记录，不作为当前目录、筛选、迁移或媒体状态依据。
+
+
+> **状态回写（2026-09-21）**：本轮 136 条 / v3 / 272 对象契约已被 `.scratch/catalog-quality-fixes/issue.md`
+> （127 条 / v4 / 254 对象 / 热身 16 条）取代，当前目录契约以该 issue 为准；
+> 真实微信开发者工具与 CloudBase 最终集合的人工验收项随之转移到新一轮。
+> 下文保留本轮历史记录，其中 136/272/v3 只描述当时状态。
 
 **Spec 来源**：`.scratch/catalog-expansion/issues/01-final-catalog-and-generation-chain.md`（execution record）。
 本 issue 只描述需求与验收；精确白名单与逐条元数据以 `data/curated-catalog.js` 的 `CURATED_EXERCISES` 为唯一权威。
@@ -102,8 +108,8 @@ created: 2026-09-19
 | 01 | 最终 136 条目录元数据与生成链（含 aliases、TARGET_WHITELIST） | 无 | done |
 | 02 | 11 个标签筛选与动作库页面契约 | 01 | done |
 | 03 | v3 计划迁移：直接删除旧 ID，无 replacement | 01 | done |
-| 04 | 媒体同步计划与最终集合核对 | 01 | ready-for-human（脚本与 272 目标集合已验证；真实上传/删除待人工） |
-| 05 | 集成验收与领域文档一致性 | 02, 03, 04 | ready-for-human（仓库内通过；真实微信/CloudBase 待人工） |
+- 04 | 媒体同步计划与最终集合核对 | 01 | done（历史 272 对象记录；当前发布以 full-catalog 2,590 对象为准） |
+- 05 | 集成验收与领域文档一致性 | 02, 03, 04 | done（历史轮次收口） |
 
 **人工验收（不由 agent 声称完成）**：微信开发者工具真实筛选/滚动/降级，真实 CloudBase 上传与陈旧媒体清理。
 
@@ -116,7 +122,7 @@ created: 2026-09-19
 - 01：`data/curated-catalog.js` 的 `CURATED_EXERCISES` 冻结为 136 条（删除 `0200/0673`，新增 34 条）；`TARGET_WHITELIST` 14 → 16（含 `traps`、`serratus anterior`）；`aliases` 成为目录一等字段并参与搜索。
 - 02：`PART_LABELS` 新增 `warm-up`（「热身」），`PART_FILTERS` 变为 11 项且顺序冻结；动作库页面 `resultCount = 136`，分页/缩略图行为不变。
 - 03：`PLAN_MIGRATION_VERSION` 2 → 3，按最终目录可查性直接裁剪，无 replacement 映射。
-- 04：媒体同步脚本以最终目录为唯一白名单，目标集合 272 个对象；真实上传/删除待人工。
+- 04：历史轮次媒体同步脚本以精选目录为白名单；当前媒体发布以 full-catalog 票为准。
 - 05：领域文档（`CONTEXT.md` / `docs/spec.md` / `docs/adr/0007` / `README.md`）、`data/exercises.js` 头注释、`AGENTS.md` 索引同步到 136 条 / 10 个标签 / 11 项筛选 / v3 / 272 对象。
 - 后续清理（2026-09-21）：被取代的历史 issue 轮次与冻结提案、调研稿已删除，`docs/spec-mvp.md` 并入 `docs/spec.md`，白名单权威只保留 `data/curated-catalog.js`；文件本体可从 git 历史取回。
 

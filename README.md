@@ -44,12 +44,14 @@ utils/
   db.js          CloudBase 数据访问层(仓库模式,失败降级本地缓存)
   queue.js       提交队列执行器(注入真实网络,断网重试)
   format.js      展示格式化
-data/               精选白名单、离线动作目录、媒体根与生成分片
+data/               离线动作目录、媒体根与生成分片（历史精选白名单仅作兼容元数据）
 images/tabbar/     tabBar 图标(imgGen 生成字形,纯色重着色为双态 81px)
 images/tabbar/gen/ 图标原始生成图(1024px,供二次编辑参考)
 cloudfunctions/login/  静默 openid 登录
 tests/              Jest 外部行为测试（domain、目录、页面分页、迁移、媒体同步）
 ```
+
+当前动作库发布快照：上游 `7455efae`，非 cardio 1,295 条，CloudBase 媒体 2,590 个已同步。
 
 ## 本地开发
 
@@ -66,8 +68,8 @@ npm install
 npm test
 ```
 
-## 发布前置阻塞项
+## 发布前置项
 
-- ⚠️ 动作示意图/GIF 版权归 Gym visual,上线前必须取得书面授权、保留 `© Gym visual — https://gymvisual.com/` 署名并遵守 180×180 分辨率限制。图片/GIF 走 CloudBase 云存储按需加载,不进主包。
-- 动作库 JSON 体积实测:发布目录为非 cardio 可用全量本地分片,需确认是否落进 2MB 主包,超出则走分包。
-- ⚠️ `.scratch/full-catalog/issue.md` 的真实微信开发者工具端到端行为、CloudBase 最终媒体集合（最终目录 × JPEG/GIF）和旧媒体清理仍待人工验收；Node mock、媒体同步 dry-run 和 Jest 不能替代该验收。
+- ⚠️ 动作示意图/GIF 版权归 Gym visual,正式上线前必须取得书面授权、保留 `© Gym visual — https://gymvisual.com/` 署名并遵守 180×180 分辨率限制。
+- 动作库文本已按 1,295 条非 cardio 目录分片；需在微信开发者工具确认实际包体与加载行为，必要时再分包。
+- CloudBase 2,590 个媒体对象已完成同步；剩余人工项是微信开发者工具端到端验收（列表、筛选、分页、详情 GIF、加练与计划入口）。

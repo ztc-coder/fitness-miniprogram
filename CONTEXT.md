@@ -47,7 +47,7 @@
 
 | 术语 | 代码字段 | 含义 |
 |---|---|---|
-| 动作库 | `data/exercises.js` | **离线只读**数据，随主包分片发布；发布目录为上游非 cardio 可用全量，再减去锁定媒体排除清单 |
+| 动作库 | `data/exercises.js` | **离线只读**数据，随主包分片发布；当前发布目录为上游非 cardio 可用全量（1,295 条） |
 | 动作条目 | `{id, name, nameZh, equipment, bodyPart, target, imagePath, gifPath, instructionSteps, aliases}` | 精简字段；`id` 用数据集 4 位数字字符串（如 `"0025"`）；`name` 为英文原名，`nameZh` 为展示名（社区映射打底，手译覆盖）；`equipment` 是判定自重动作的**唯一依据** |
 | 动作演示 | `gifPath` | 数据集提供的 180×180 分解 GIF（灰阶解剖人、目标肌群红高亮）。这就是界面上的「标准动作」视觉。_Avoid_: 视频、跟练 |
 | 动作要领 | `instructionSteps` | 中文分步说明（数据集 `instruction_steps.zh`） |
@@ -152,6 +152,6 @@ npm test        # jest --coverage
 
 - 需求规格：`docs/spec.md`（定位、数据模型、动作库与验收边界）
 - 动作库实现：`data/exercises.js`（离线目录）、`data/media-root.js`（CloudBase 媒体根）、`pages/library/library-paging.js`（分页预热）、生成脚本与媒体同步脚本
-- 动作库当前 spec/验收：`.scratch/full-catalog/issue.md`；上一轮选择器与 125 条精选见 `.scratch/exercise-selector/`，质量修复见 `.scratch/catalog-quality-fixes/issue.md`，扩容见 `.scratch/catalog-expansion/issue.md`
+- 动作库当前 spec/验收：`.scratch/full-catalog/issue.md`；历史选择器与精选目录记录见 `.scratch/exercise-selector/`、`.scratch/catalog-quality-fixes/`、`.scratch/catalog-expansion/`，不作为当前目录契约。
 - 架构决策：`docs/adr/`（接入见 ADR-0007，全量范围与筛选见 ADR-0008）
 - Issue 跟踪：`.scratch/<feature>/issue.md`

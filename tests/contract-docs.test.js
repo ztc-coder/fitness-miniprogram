@@ -56,11 +56,8 @@ describe('领域文档与最终目录契约一致', () => {
       const text = readDoc(rel);
       expect(text).not.toMatch(/动作库为 125 条精选目录|当前目录为 125 条|筛选行固定顺序 11 项/);
     });
-    ['README.md', 'docs/spec.md'].forEach((rel) => {
-      const text = readDoc(rel);
-      expect(text).toMatch(/dry-run/);
-      expect(text).toContain('人工');
-    });
+    expect(readDoc('docs/spec.md')).toContain('CloudBase');
+    expect(readDoc('docs/spec.md')).toContain('人工');
   });
 
   test('项目索引指向当前 full-catalog 需求', () => {

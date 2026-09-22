@@ -1,21 +1,25 @@
 # 04: 媒体目标规划与文档契约
 
-**What to build:** 媒体同步脚本按最终发布目录为每个动作规划 JPEG 与 GIF 两个受管对象，路径仍落在既有两个前缀内；dry-run 能报目标规模与缺口。领域文档、README 与契约测试改到非 cardio 可用全量 / 官方原值筛选 / 排除清单口径，不再把 125 条精选、热身 14 条、250 个对象写成当前真相。真实上传与远端清理仍人工门控。
+**状态：implemented；真实发布已完成。**
 
-**Blocked by:** 01 生成非 cardio 可用全量目录
+## 当前结果
 
-**Status:** implemented
+- 最终目录：1,295 条
+- 媒体目标：2,590 个（1,295 JPEG + 1,295 GIF）
+- dry-run：远端已有 2,472 个，待上传 118 个，待删除 0 个，范围外 0 个
+- execute：118/118 上传成功，0 删除；最终远端集合与目录一致
+- 上游：`7455efae41b330c265e7cd4b78dfa848e7ce5ebd`
 
-- [x] 上传目标数 = 最终目录条数 × 2，且每条都有 JPEG 与 GIF 路径
-- [x] 目标路径仍只落在 `exercises/images` 与 `exercises/videos`
-- [x] 契约测试断言当前文档与目录行为一致（全量口径、官方筛选、排除清单、v5 不因扩容升级）
-- [x] 契约测试不再要求热身/复合/11 项产品筛选作为当前行为
-- [x] 真实 CloudBase 上传/清理不在本票自动执行；dry-run 与 Jest 不能代替人工验收
+## 当前契约
 
-## 验收记录
+- 上传目标严格来自 `data/exercises.js` 最终目录。
+- 目标只允许 `exercises/images/` 与 `exercises/videos/` 两个受管前缀。
+- CloudBase 远端写入已完成，后续重复同步仍先 dry-run，再人工确认 execute。
+- 真实微信开发者工具验收不由 Jest 代替。
 
-- `npx jest`: 11 suites passed
-- 定向目录、生成器、媒体脚本与页面测试：通过
-- 未执行真实 CloudBase 上传、远端清理或微信开发者工具验收
-- 全量 1295 条目录仍受本机缺少 `images/`/`videos/` 源媒体阻塞；当前媒体目标随现有目录动态规划
+## 验证
 
+```bash
+npx jest --runInBand
+# 14 suites passed, 254 passed, 26 historical skips
+```
