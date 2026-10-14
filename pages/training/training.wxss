@@ -167,8 +167,7 @@ button {
 }
 
 .ex-card.is-skipped {
-  opacity: 0.5;
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--surface);
   box-shadow: none;
   border: 1rpx dashed var(--line-strong);
 }
@@ -329,9 +328,11 @@ button {
 
 /* 列宽分配 */
 .col-num {
-  width: 64rpx;
+  width: 88rpx;
   flex-shrink: 0;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
 }
 
@@ -646,3 +647,30 @@ button {
   background: var(--surface-2);
   font-weight: 700;
 }
+
+/* 当前组是唯一主入口；列表只呈现成绩、待练与跳过。 */
+.current-panel {
+  border-left: 6rpx solid var(--amber);
+  background: var(--surface);
+  padding: 32rpx;
+  margin-bottom: 32rpx;
+  border-radius: 0 24rpx 24rpx 0;
+}
+.current-state { color: var(--ink); font-size: var(--t-meta); font-weight: 700; }
+.current-name { color: var(--ink); font-size: 32rpx; font-weight: 800; margin: 16rpx 0 24rpx; }
+.current-cta { margin-top: 24rpx; }
+.rest-clock { font-size: 88rpx; color: var(--ink); line-height: 1.2; margin: 24rpx 0; text-align: center; }
+.rest-actions { display: flex; gap: 16rpx; margin-bottom: 24rpx; }
+.rest-actions button { flex: 1; background: var(--surface-2); padding: 20rpx 8rpx; border-radius: 12rpx; color: var(--ink); font-size: var(--t-meta); }
+.rest-message { color: var(--signal); font-size: var(--t-meta); margin-top: 16rpx; }
+.undo-button { color: var(--ink-dim); font-size: var(--t-meta); padding: 24rpx 0 0; }
+.save-error { color: var(--ink); border-left: 4rpx solid var(--amber); background: var(--surface-2); padding: 24rpx; margin-bottom: 24rpx; font-size: var(--t-meta); line-height: 1.6; }
+.set-status { font-size: 20rpx; margin-top: 8rpx; color: var(--ink-dim); white-space: nowrap; }
+.set-completed .set-status, .set-completed .set-num-badge { color: var(--signal); }
+.set-skipped .set-status { color: var(--ink-faint); }
+.set-current { border-left: 4rpx solid var(--amber); }
+.edit-button { font-size: var(--t-meta); color: var(--signal); padding: 16rpx 0; }
+.edit-fields { display: flex; gap: 24rpx; margin: 32rpx 0; color: var(--ink-dim); font-size: var(--t-meta); }
+.edit-fields > view { flex: 1; min-width: 0; }
+.edit-fields .set-input { background: var(--surface-2); margin-top: 16rpx; }
+button[disabled] { opacity: 0.4; }

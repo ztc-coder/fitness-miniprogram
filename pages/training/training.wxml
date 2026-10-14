@@ -1,13 +1,14 @@
 <view class="training-container">
   <!-- 顶部精简状态栏 -->
   <view class="top-bar">
-    <button class="btn-pause" bindtap="onPause" aria-label="暂停训练">
+    <button class="btn-pause" bindtap="onPause" wx:if="{{phase !== 'paused'}}" disabled="{{submitting || showSummary}}" aria-label="暂停训练">
       <view class="icon-pause">||</view>
       暂停
     </button>
+    <button class="btn-pause" wx:else bindtap="onResume" disabled="{{submitting || showSummary}}">继续训练</button>
     <view class="status-pill">
       <view class="status-dot"></view>
-      <text class="mono">计时中 {{elapsedText}}</text>
+      <text class="mono">本场经过 {{elapsedText}}</text>
     </view>
   </view>
 
@@ -21,7 +22,7 @@
     
     <view class="progress-section">
       <view class="progress-labels">
-        <text class="progress-kicker">完成进度</text>
+        <text class="progress-kicker">已打卡 {{progress.completed}} / {{progress.total}} 组 · 跳过 {{progress.skipped}} 组</text>
         <text class="mono progress-val">{{progressPct}}%</text>
       </view>
       <view class="progress-track">
@@ -30,18 +31,39 @@
     </view>
   </view>
 
+  <view class="save-error" wx:if="{{errorText}}">{{errorText}}<button wx:if="{{!session}}" bindtap="onRetryDraft">重试读取草稿</button></view>
+  <view class="current-panel" wx:if="{{session.training && !showSummary}}">
+    <view class="current-state">{{phase === 'paused' ? '已暂停，需手动继续' : phase === 'rest' ? '组间休息' : phase === 'active' ? '本组训练中' : phase === 'finished' ? (canFinish ? '待整场确认' : '还未打卡，请加练或恢复跳过组') : '当前组待开始'}}</view>
+    <view class="current-name" wx:if="{{current}}">{{current.name}} · 第 {{current.num}} / {{current.count}} 组</view>
+    <block wx:if="{{phase === 'rest' || (phase === 'paused' && session.training.resumePhase === 'rest')}}">
+      <view class="rest-clock mono">{{restText}}</view>
+      <view class="rest-actions">
+        <button bindtap="onAdjustRest" data-delta="-15" disabled="{{submitting}}">−15 秒</button>
+        <button wx:if="{{phase === 'rest'}}" bindtap="onPause" disabled="{{submitting}}">暂停休息</button>
+        <button wx:else bindtap="onResume" disabled="{{submitting}}">继续休息</button>
+        <button bindtap="onAdjustRest" data-delta="15" disabled="{{submitting}}">+15 秒</button>
+      </view>
+      <button class="ghost-button" wx:if="{{phase === 'rest'}}" bindtap="onSkipRest" disabled="{{submitting}}">跳过间歇</button>
+    </block>
+    <view class="rest-message" wx:if="{{restMessage}}">{{restMessage}}</view>
+    <button class="primary-button current-cta" wx:if="{{phase === 'ready'}}" bindtap="onStartSet" disabled="{{submitting}}">开始第 {{current.num}} 组</button>
+    <button class="primary-button current-cta" wx:if="{{phase === 'active'}}" bindtap="onCompleteSet" disabled="{{submitting}}">完成第 {{current.num}} 组</button>
+    <button class="ghost-button" wx:if="{{phase === 'paused' && session.training.resumePhase !== 'rest'}}" bindtap="onResume" disabled="{{submitting}}">继续训练</button>
+    <button class="undo-button" wx:if="{{session.training.undoSetId && phase !== 'paused'}}" bindtap="onUndoSet" disabled="{{submitting}}">撤销最近组</button>
+  </view>
+
   <!-- 动作列表 -->
   <view class="exercise-list">
-    <view class="ex-card {{ex.skipped ? 'is-skipped' : ''}}" wx:for="{{exercises}}" wx:key="exIndex" wx:for-item="ex">
+    <view class="ex-card {{ex.skipped ? 'is-skipped' : ''}}" wx:for="{{exercises}}" wx:key="anchorId" wx:for-item="ex">
       
       <view class="ex-header">
         <view class="ex-info">
           <view class="ex-index-mark mono">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</view>
           <button
             class="ex-thumb"
-            wx:if="{{!ex.skipped}}"
             catchtap="onExerciseTap"
             data-ex="{{ex.exIndex}}"
+            data-anchor-id="{{ex.anchorId}}"
             aria-label="查看{{ex.name}}动作要领"
             hover-class="ex-thumb-hover"
             hover-stay-time="80"
@@ -50,20 +72,19 @@
             <image wx:if="{{ex.thumbSrc}}" class="ex-thumb-img" src="{{ex.thumbSrc}}" mode="aspectFill" binderror="onThumbError" data-ex="{{ex.exIndex}}" />
             <block wx:else>{{ex.glyph}}</block>
           </button>
-          <view class="ex-thumb ex-thumb-disabled" wx:else aria-hidden="true">{{ex.glyph}}</view>
           <view class="ex-name-wrap">
             <view class="ex-name">{{ex.name}}</view>
             <view class="ex-sub">{{ex.isBodyWeight ? '自重 · 容量按总次数计' : '容量 ' + ex.volume + ' kg'}}</view>
           </view>
         </view>
-        <button class="btn-more" catchtap="onSkipExercise" data-ex="{{ex.exIndex}}" aria-label="更多动作操作">
+        <button class="btn-more" catchtap="onSkipExercise" data-anchor-id="{{ex.anchorId}}" disabled="{{submitting || showSummary}}" aria-label="更多动作操作">
           <view class="more-dot"></view>
           <view class="more-dot"></view>
           <view class="more-dot"></view>
         </button>
       </view>
 
-      <view class="ex-body" wx:if="{{!ex.skipped}}">
+      <view class="ex-body">
         <view class="set-row set-header">
           <text class="col-num">组</text>
           <text class="col-input">重量 kg</text>
@@ -71,47 +92,53 @@
           <text class="col-action"></text>
         </view>
 
-        <view class="set-row" wx:for="{{ex.sets}}" wx:for-item="set" wx:key="setIndex">
+        <view class="set-row set-{{set.status}} {{set.setId === current.setId ? 'set-current' : ''}}" wx:for="{{ex.sets}}" wx:for-item="set" wx:key="setId">
           <view class="col-num">
             <view class="set-num-badge mono">{{set.num}}</view>
+            <text class="set-status">{{set.statusText}}</text>
           </view>
           <view class="col-input">
             <input
               class="set-input mono"
+              wx:if="{{set.status === 'pending'}}"
+              disabled="{{submitting || showSummary}}"
               type="digit"
               value="{{set.weight}}"
               placeholder="{{ex.isBodyWeight ? '自重' : '-'}}"
               placeholder-class="ph-color"
-              data-ex="{{ex.exIndex}}"
-              data-set="{{set.setIndex}}"
+              data-set-id="{{set.setId}}"
               bindinput="onInputWeight"
             />
+            <text class="mono" wx:else>{{set.status === 'completed' ? set.weight : '—'}}</text>
           </view>
           <view class="col-input">
             <input
               class="set-input mono"
+              wx:if="{{set.status === 'pending'}}"
+              disabled="{{submitting || showSummary}}"
               type="number"
               value="{{set.reps}}"
               placeholder="-"
               placeholder-class="ph-color"
-              data-ex="{{ex.exIndex}}"
-              data-set="{{set.setIndex}}"
+              data-set-id="{{set.setId}}"
               bindinput="onInputReps"
             />
+            <text class="mono" wx:else>{{set.status === 'completed' ? set.reps : '—'}}</text>
           </view>
           <view class="col-action">
-            <button class="btn-del" wx:if="{{set.canRemove}}" catchtap="onRemoveSet" data-ex="{{ex.exIndex}}" data-set="{{set.setIndex}}" aria-label="删除本组">
+            <button class="edit-button" wx:if="{{set.status === 'completed'}}" bindtap="onEditSet" data-set-id="{{set.setId}}" disabled="{{submitting || showSummary}}">纠错</button>
+            <button class="btn-del" wx:elif="{{set.canRemove}}" catchtap="onRemoveSet" data-set-id="{{set.setId}}" disabled="{{submitting || showSummary}}" aria-label="删除本组">
               <view class="del-icon">×</view>
             </button>
             <view class="del-placeholder" wx:else></view>
           </view>
         </view>
 
-        <button class="btn-add-set" catchtap="onAddSet" data-ex="{{ex.exIndex}}">
+        <button class="btn-add-set" catchtap="onAddSet" data-anchor-id="{{ex.anchorId}}" disabled="{{submitting || showSummary}}">
           <text class="add-icon">+</text> 记录新一组
         </button>
       </view>
-      <view wx:else class="ex-skipped-msg">
+      <view wx:if="{{ex.skipped}}" class="ex-skipped-msg">
         <text class="skip-icon">⊘</text>
         本动作已跳过，不计入本次容量
       </view>
@@ -132,12 +159,12 @@
   <view class="bottom-bar">
     <view class="offline-note" wx:if="{{false}}">结束提交时需要网络。若当前无网，记录会进入待重试队列，不影响本地保存。</view>
     <view class="bottom-actions">
-      <button class="btn-add-ex" bindtap="onAddExercise">
+      <button class="btn-add-ex" bindtap="onAddExercise" disabled="{{submitting || showSummary}}">
         <view class="add-ex-icon">+</view>
         <text>加练动作</text>
       </button>
-      <button class="primary-button" bindtap="onFinish" disabled="{{submitting}}">
-        {{submitting ? '提交中...' : '提交'}}
+      <button class="primary-button" bindtap="onFinish" disabled="{{!canFinish || submitting || showSummary || editing}}">
+        {{submitting ? '本地保存中...' : '完成训练'}}
       </button>
     </view>
   </view>
@@ -147,7 +174,7 @@
     <view class="modal-card">
       <view class="modal-kicker">SESSION COMPLETE</view>
       <view class="page-title">今天做得很稳。</view>
-      <view class="modal-subtitle">本次训练已在本机保存。提交成功后，计划将自动前进到下一个训练日。</view>
+      <view class="modal-subtitle">本次训练已在本机完成，计划已前进到下一个训练日。云端暂不可用时自动排队同步。</view>
 
       <view class="stats-grid">
         <view class="stat-item">
@@ -172,6 +199,21 @@
       <view class="modal-actions">
         <button class="primary-button" bindtap="onSummaryBackToday">回到今天</button>
         <button class="ghost-button" bindtap="onSummaryViewRecords">查看记录</button>
+      </view>
+    </view>
+  </view>
+  <view class="modal-backdrop" wx:if="{{editing}}">
+    <view class="modal-card">
+      <view class="page-title">纠正实际成绩</view>
+      <view class="modal-subtitle">同时填写重量和次数后保存，不改变打卡或间歇状态。</view>
+      <view class="edit-fields">
+        <view>重量 kg<input class="set-input mono" type="digit" value="{{editing.weight}}" bindinput="onEditWeight" /></view>
+        <view>次数<input class="set-input mono" type="number" value="{{editing.reps}}" bindinput="onEditReps" /></view>
+      </view>
+      <view class="save-error" wx:if="{{errorText}}">{{errorText}}</view>
+      <view class="modal-actions">
+        <button class="primary-button" bindtap="onSaveEdit">保存成绩</button>
+        <button class="ghost-button" bindtap="onCancelEdit">取消</button>
       </view>
     </view>
   </view>
