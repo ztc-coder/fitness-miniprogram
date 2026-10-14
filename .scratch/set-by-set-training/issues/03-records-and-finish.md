@@ -1,11 +1,11 @@
 ---
 title: 新旧记录兼容、加练与整场完成集成
 labels: [ready-for-agent]
-status: in-progress
+status: done
 created: 2026-10-14
 ---
 
-独立范围已实施并通过聚焦自动测试；02 训练页面尚未集成，最终集成与真机验收未完成，由 04 统一关闭。依据 [spec](../spec.md) §2.4、§5；依赖 01，最终集成依赖 02。
+独立范围已实施并通过聚焦自动测试；02 训练页面已集成并通过自动回归；双轴修复待复审，真机验收由 04 继续。依据 [spec](../spec.md) §2.4、§5；依赖 01，最终集成依赖 02。
 
 ## 修改范围
 
@@ -29,4 +29,4 @@ created: 2026-10-14
 
 - 提供 queue.complete/getCompletedSession；单键完成日志、稳定云写入、未同步游标覆盖与 legacy 队列兼容。
 - 今天与动作库保护/升级草稿；记录与详情共用 domain 统计，部分跳过保留容量，跳过预填不当成绩。
-- 聚焦 Jest、node --check、git diff --check 见执行报告；未运行生产构建。真机/真实云权限、02 集成未验，不标 done。
+- 聚焦 Jest、node --check、git diff --check 见执行报告；未运行生产构建。02 自动集成验证已执行，见 acceptance.md；真机/真实云权限未验，整体验收不关闭。

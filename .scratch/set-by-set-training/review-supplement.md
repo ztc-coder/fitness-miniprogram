@@ -15,3 +15,6 @@
 实际输出：`fitness:plans` 为 `[]`，但 `getLocalPlans()` 返回 `[{id: 'p', cursor: 1}]`。`training-log.overlayPlans()` 把已明确删除的计划重新追加；随后同步也可能重建远端计划。
 
 应保留已完成场次历史，但使该计划的待同步推进失效或显式标记删除，避免日志把删除动作撤销。需要通过 db / queue 公开边界增加回归，覆盖 cloud id、映射后的 local id 与网络重试。不扩大成一般离线计划同步框架；旧计划目录迁移 v5 规则不改。
+## 统一修复后
+
+以上原探针保留为问题来源。完成日志现持久取消同 raw/cloud alias 的计划工作；公开 db/queue 回归覆盖删除后读取、重试、inflight set 回调及删除存储失败，保留场次 canonical/history。实际自动验证见 [acceptance.md](acceptance.md)，独立复审及真机未完成。

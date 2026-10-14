@@ -435,11 +435,11 @@ function finalizeTrainingSession(session, now) {
 }
 
 function isTrainingExercise(exercise) {
-  return exercise.flowVersion === 1 || (exercise.sets || []).some(set => set.status !== undefined);
+  return !!exercise && (exercise.flowVersion === 1 || (exercise.sets || []).some(set => set.status !== undefined));
 }
 
 function actualSets(exercise) {
-  const sets = exercise.sets || [];
+  const sets = (exercise && exercise.sets) || [];
   return isTrainingExercise(exercise) ? sets.filter(set => set.status === 'completed') : sets;
 }
 
@@ -605,6 +605,8 @@ module.exports = {
   addSessionSet,
   removeSessionSet,
   setExerciseSkipped,
+  isTrainingExercise,
+  actualSets,
   computeVolume,
   computeSessionTotalVolume,
   computeExerciseCount,

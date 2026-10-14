@@ -1,6 +1,6 @@
 # 逐组训练集成验收
 
-状态：**集成进行中，未验收完成**。分支 `feat/set-by-set-training`；固定基线 `0850414189c6ebbf6c4f42469b8ebaa336490fce`。无生产构建、云端部署、真实 WXML / 真机验收。
+状态：**实现及自动集成验证已落地，修复待复审，真机未验**。分支 `feat/set-by-set-training`；固定基线 `0850414189c6ebbf6c4f42469b8ebaa336490fce`。无生产构建、云端部署、真实 WXML / 真机验收。
 
 ## 已执行检查
 
@@ -23,11 +23,38 @@ domain 单套件加覆盖率会因收集但未执行 `data/exercises.js` 使全�
 
 ## 尚待执行
 
-- 02 / 03 合并后的完整自动回归：Page 生命周期、休息提醒、输入 / 存储失败、加练、记录与本地完成 / 游标。
-- 双轴代码审查：Standards 与 Spec，固定比较 `git diff 0850414189c6ebbf6c4f42469b8ebaa336490fce...HEAD`；P0–P2 修复和定向复验。
-- 修改 JS 全部 `node --check`，整体 diff whitespace 与 Markdown 链接检查。
+- 双轴修复后的独立复审（原始发现保留在 review.md）。
+- 双轴初审已执行且 REQUEST_CHANGES；修复后的复审仍待执行，固定比较 `git diff 0850414189c6ebbf6c4f42469b8ebaa336490fce...HEAD`；P0–P2 修复和定向复验。
+- 真机与实际 WXML 验收不由自动测试替代。
 - 真机关键场景，证据模板见 [manual-acceptance.md](manual-acceptance.md)。无本地设计图与稳定页面 URL，不声明视觉代理验收通过。
 
 ## 状态关闭规则
 
-01–03 仅在实现及对应自动验证、最终集成审查通过后标 done。04 与父 issue 的真机关键场景无证据时保持 `labels: [ready-for-human]`、`status: open`，结论为部分完成，不把 mock 测试当真实设备证据。
+01–03 按实现和自动集成验证标 done；双轴修复待主代理独立复审，不宣称审查通过。04 与父 issue 的真机关键场景无证据时保持 `labels: [ready-for-human]`、`status: open`，结论为部分完成，不把 mock 测试当真实设备证据。
+## 双轴统一修复：实际自动验证
+
+基于集成 `86bc5deaf84b6ca81ae795af5055058813b86966` 的隔离 worktree；修复后检查 `git merge --ff-only feat/set-by-set-training` 返回 `Already up to date`，再执行下面两轮测试并实际读取 JSON。
+
+```bash
+npx --no-install jest tests/domain.test.js tests/training-flow.test.js tests/training-submission.test.js tests/training-records.test.js tests/db.test.js tests/training-media.test.js tests/media-root.test.js tests/library-*.test.js --runInBand --json --outputFile=/tmp/set-by-set-training-review-fixes-tests.json
+npx --no-install jest --runInBand --coverage --json --outputFile=/tmp/set-by-set-training-review-fixes-full.json
+```
+
+- 定向：`success: true`，10 suites passed；182 passed / 25 skipped / 0 failed。
+- 全量：`success: false`，17 suites passed / 1 failed；366 passed / 29 skipped / 1 failed。唯一失败仍为 catalog 默认 `/tmp/exercises-dataset` 缺源数据，无新增 failed，不改历史 skip。
+- coverage：全局 statements 94.10%、branches 88.65%、functions 97.46%、lines 96.06%；domain branches 89.00%（原 88.69%），保持原 80% 门禁。
+- 9 份修改 JS 全部 `node --check`、`git diff --check` 通过；修改 Markdown 相对链接检查通过。
+- 音频读取：16 kHz、mono、16-bit PCM、4,800 frames（0.3 秒）；执行原生成脚本后 SHA-256 保持 `599a36a005074c2f62d2e635cde241fde89e8344437fb9566db6daa5f5608fc1`，未修改资源。
+- 不运行 production build、不 push、不产生云部署或真机证据。修复完成不表示独立审查通过。
+
+### 新增回归与问题对应
+
+| 问题 | 公开 seam 回归 | 实际结果 |
+|---|---|---|
+| Standards P1 / Spec P1 删除复活 | db/queue：cloud id、local id、inflight stable alias/raw 删除、网络重试、canonical 历史仍在、删除标记/缓存写失败恢复、原 save 回调补删除 | submission 17 tests passed |
+| Standards P2 队列判定旁路 | real queue + wx：无网不上传、head 失败阻塞后续、legacy 重试、plan-only 不再上传/推进；执行路径每轮使用 real domain.decideSubmission | submission 17 tests passed；旧返回契约不变 |
+| Spec P1 重载覆盖加练 | Page：已升级 show 无多余写入；加练成功后 read throw / legacy upgrade write fail；全部旧状态写入口拒绝，显式重试采用新增动作并继续，deadline 保留 | flow 31 tests passed |
+| Spec P2 连续零秒漏响 | Page：3 组零秒两个间歇各一次、重复完成/show/tick 不重响、final 无 rest、撤销再确认及写失败不响 | flow 31 tests passed |
+| Standards 判断性重复 | domain 公开共享识别/实际组 selector null、新/旧/混合状态；详情实际/跳过展示兼容 | domain 74 tests / records 5 tests passed |
+
+主要 red→green 记录：删除回归先复现 local 计划重新出现；升级草稿 show 回归先复现无意义写；连续零秒回归先复现第二间歇仅响一次；公开 selector 回归先复现未导出；save 旧回调回归先复现无补删除。零秒身份修复的首轮回归发现开始组清空 undoSetId 多响，核对根因后限定非空认领 ID，最终连续零秒/撤销/失败回归通过。队列纯判定属于审查指出的结构修复，真实执行回归在修改前后均通过，未伪称其行为测试先失败。

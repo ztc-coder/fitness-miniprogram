@@ -1,6 +1,6 @@
 # 逐组训练实施契约（01，供 02/03 共用）
 
-实现：`utils/domain.js`；公开纯函数测试：`tests/domain.test.js`。本票不做页面、持久化、队列或游标推进。历史 records **不调用升级函数**。
+实现：`utils/domain.js`；公开纯函数测试：`tests/domain.test.js`。领域票原范围不含页面/持久化；当前 02/03 已集成，自动验证见 acceptance.md。历史 records **不调用升级函数**。
 
 ## 数据
 
@@ -11,7 +11,7 @@
 - `currentSetId` 为当前 active 组或顺序第一个 pending，无 pending 为 null；恢复较早跳过组不会抢占已有 active。增删/跳过后由 domain 核对引用。
 - 默认 `restSeconds = 90`，本场统一；`restEndsAt` 为毫秒时间戳。暂停清空截止并冻结 `restRemainingSec`（ceil 整秒），`resumePhase` 保存原阶段。非主动切后台不暂停，返回只校准时间。
 - `restNotified` 表示该间歇到时提醒已在业务状态认领；`restSkipped` 表示主动跳过。新间歇重置两者。到时将 phase 改为 ready，`restNotified` 置 true，不自动开始组；重复校准 no-op。跳过置 `restSkipped: true, restNotified: false`，后续校准不会补响。
-- 页面必须先持久化返回状态，再对本次 `restNotified: false → true` 发出一次提示/声音/振动；失败不得重新清除此标记。暂停调整至零亦认领到时；页面自行决定暂停 UI 的提示展示，但不得重复发声。单纯后台/销毁仅停止页面资源，不能改业务截止。
+- 页面必须先持久化返回状态，再对本次 `restNotified` 新认领（false → true 或非空 `undoSetId` 改变） 发出一次提示/声音/振动；失败不得重新清除此标记。暂停调整至零亦认领到时；页面自行决定暂停 UI 的提示展示，但不得重复发声。单纯后台/销毁仅停止页面资源，不能改业务截止。
 - `undoSetId` 最近可撤销 completed 组；在下一组开始时清空。在间歇、待开始、待整场确认时可撤销；暂停时须先继续。撤销保留输入，取消间歇并回该组 active。
 - 新流程以逐组 status 为准，动作 `skipped` 仅保留既有操作标记，**不得用它过滤整个动作/成绩**。跳过只改非 completed 组；恢复不改 completed。
 
@@ -56,14 +56,23 @@
 
 建议 03 的本地完成封装先 gate/finalize，然后只持久化 final 快照、入队和推进游标；submittedAt 是**本地成立时间**，网络重试不得重写。控制态已清理，不需页面自行拼快照。页面提交锁、本地写入失败回滚/错误提示、队列推进幂等不属于本票，须在 02/03 集成。记录详情/趋势应保留逐组 status，跳过预填不得当成绩展示；历史 records 零升级写入。
 
-## 03 本地完成与同步接口（已实施，02 集成待验）
+## 03 本地完成与同步接口（已实施并完成自动集成验证，真机未验）
 
 公开调用 `utils/queue.js`：`complete(session, now = Date.now()) -> Promise<canonicalFinalSession>`；`getCompletedSession(id) -> finalSession | null` 同步只读。门禁使用 domain.finalizeTrainingSession。重复 id 返回最初快照和时间；首次本地写失败 reject，不删草稿、不推进。Promise 本地提交后立即成立，不等待网络；后续网络失败不会撤销完成。
 
-`fitness:completedTraining` 单键数组条目为 `{ session, plan, sessionSynced, planSynced, cloudPlanId? }`。一次同步写保存 final 快照和当时 advanceCursor 结果，是唯一提交点。草稿删除仅 best-effort；历史日志不会在云成功后删除。计划缓存和云读取合并未同步游标，重试只同步保存的结果，不再次 advance。多场完成按日志顺序覆盖到最新游标；无计划时 plan=null，不伪造计划。
+`fitness:completedTraining` 单键数组条目为 `{ session, plan, sessionSynced, planSynced, cloudPlanId?, planDeleted? }`。一次同步写保存 final 快照和当时 advanceCursor 结果，是唯一提交点。草稿删除仅 best-effort；历史日志不会在云成功后删除。计划缓存和云读取合并未同步游标，重试只同步保存的结果，不再次 advance。多场完成按日志顺序覆盖到最新游标；无计划时 plan=null，不伪造计划。
 
 `db.fetchSessions()` 合并云端、旧 pendingQueue 与本地完成，按 id（旧数据 fallback _id）去重，本地 canonical 优先；新时间固定。旧历史不升级、不重写。旧队列仍可重试。新云端场次 `sessions.doc(String(id)).set({data})`，剔除 `_id/_openid/training/nextSetId/attempts`，明确 created/updated 全零保留队列。
 
 已完成 local_ 计划同步使用稳定 `completed_<local_id>` 文档 id（仅该完成同步路径），先在同一日志键保存 alias，再幂等 set；计划其它保存沿用既有 add/update。旧 session.planId 保持快照原值，后续 complete 用 alias 查计划，避免失效引用/重复推进。计划读取、种子迁移与同步路径共用该映射。权限仍为仅创建者读写；真实云权限/设备未验证。
 
-新增公开边界回归：`tests/training-submission.test.js`、`tests/training-records.test.js`。测试只替换 wx 存储/网络/云接口，使用 real domain/db/queue/Page。02 尚未合入，03 不修改 training 页面，最终整场页面回归由 04 统一验收。
+新增公开边界回归：`tests/training-submission.test.js`、`tests/training-records.test.js`。测试只替换 wx 存储/网络/云接口，使用 real domain/db/queue/Page。02/03 已合入，Page 与真实 queue/db 自动集成回归已执行；04 保留复审和真机验收。
+
+## 双轴修复后的公开边界
+
+- `isTrainingExercise(exercise)` / `actualSets(exercise)` 导出 domain 原兼容判据与实际组 selector；null 分别返回 false / []。详情每动作映射一次，共用统计判据；旧历史成绩不变。
+- `db.deletePlan(id)` 对完成日志的同 raw local id / cloudPlanId alias 写 `planDeleted: true, planSynced: true` 后清缓存。标记保存失败抛错，不假报删除；缓存清理失败也抛错，但持久标记使重启读取仍排除计划。不删除 session/history，不改目录 v5 或默认 savePlan 路径。
+- overlay 排除已标记计划，包括旧缓存/云读；计划同步在 I/O 前及 await 后复查标记，旧回调不 upsert，已进入网络请求则 best-effort 补删除。远端删除失败仍由本地标记隐藏，不承诺通用离线计划事务。
+- queue.flush 每轮通过 domain.decideSubmission 选择 head / online / idle / retry；执行器只做 session/plan I/O。plan-only 重试不重复上传场次、不重新推进游标，保留原判定返回契约。
+- training Page 已升级且 upgrade===draft 时直接采用持久快照，不无意义写入。读取/必要升级写失败进入 reloadBlocked，所有写事件、tick、菜单回调、加练和完成共用 canEdit 门禁；显式重试成功采用新草稿才解锁，隐藏不改 deadline。
+- 提醒身份使用非空最近完成 undoSetId；清空引用开始下一组不提醒。连续零秒间歇分别认领，撤销再确认可重新提醒，final 组不创建 rest；状态先成功持久化才响。

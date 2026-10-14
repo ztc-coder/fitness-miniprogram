@@ -35,12 +35,12 @@ pages/
   plan/          计划:循环计划管理(增删训练日、排序、切换 active)
   plan-day/      训练日详情:动作列表与统一目标编辑
   library/       动作库:非 cardio 可用全量、关键词(含俗称别名)/七类部位/器械原值多选筛选、24 条分页 JPEG 缩略图、加练/加入训练日
-  training/      训练中:set 录入、增删组、跳过、加练、完成提交
+  training/      训练中:逐组开始/确认、间歇倒计时、暂停/撤销、加练、本地完成
   records/       记录:场次时间线 + 单动作趋势曲线(volume/总次数)
   session-detail/ 训练快照详情(不可变副本)
   me/            我的:偏好设置、待提交队列、授权状态
 utils/
-  domain.js      ★ domain logic 唯一 seam(游标推进/快照/volume/提交队列,纯函数)
+  domain.js      ★ domain logic 核心纯函数 seam(游标推进/快照/volume/提交队列,纯函数)
   db.js          CloudBase 数据访问层(仓库模式,失败降级本地缓存)
   queue.js       提交队列执行器(注入真实网络,断网重试)
   format.js      展示格式化
@@ -73,3 +73,7 @@ npm test
 - ⚠️ 动作示意图/GIF 版权归 Gym visual,正式上线前必须取得书面授权、保留 `© Gym visual — https://gymvisual.com/` 署名并遵守 180×180 分辨率限制。
 - 动作库文本已按 1,295 条非 cardio 目录分片；需在微信开发者工具确认实际包体与加载行为，必要时再分包。
 - CloudBase 2,590 个媒体对象已完成同步；剩余人工项是微信开发者工具端到端验收（列表、筛选、分页、详情 GIF、加练与计划入口）。
+
+## 逐组训练状态
+
+逐组开始/打卡、时间戳间歇、暂停/撤销、加练、实际记录与本地整场完成已实现并执行自动集成验证。双轴修复待复审，真机声音/振动、静音、锁屏恢复与实际 WXML 尚未验收。实际结果见 [集成验收](.scratch/set-by-set-training/acceptance.md)。不保证后台准时提醒。

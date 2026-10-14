@@ -642,3 +642,15 @@ test('逐组 status 也是新流程标记，编辑保护不依赖 session 版本
   const skipped = domain.setExerciseSkipped(s, 0, true);
   expect(skipped.exercises[0].sets.map(set => set.status)).toEqual(['completed', 'skipped', 'skipped', 'skipped']);
 });
+
+test('shared exercise compatibility selectors safely handle null and preserve legacy actual sets', () => {
+  expect(domain.isTrainingExercise(null)).toBe(false);
+  expect(domain.actualSets(null)).toEqual([]);
+  const legacy = {sets:[{weight:10,reps:2}]};
+  expect(domain.isTrainingExercise(legacy)).toBe(false);
+  expect(domain.actualSets(legacy)).toEqual([{weight:10,reps:2}]);
+  expect(domain.actualSets({flowVersion:1,sets:[{weight:10,reps:2}]})).toEqual([]);
+  const marked = {sets:[{status:'completed',weight:10,reps:2},{status:'skipped',weight:20,reps:2},{weight:30,reps:2}]};
+  expect(domain.isTrainingExercise(marked)).toBe(true);
+  expect(domain.actualSets(marked)).toEqual([{status:'completed',weight:10,reps:2}]);
+});

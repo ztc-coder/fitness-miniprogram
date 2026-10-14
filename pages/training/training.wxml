@@ -1,11 +1,11 @@
 <view class="training-container">
   <!-- 顶部精简状态栏 -->
   <view class="top-bar">
-    <button class="btn-pause" bindtap="onPause" wx:if="{{phase !== 'paused'}}" disabled="{{submitting || showSummary}}" aria-label="暂停训练">
+    <button class="btn-pause" bindtap="onPause" wx:if="{{phase !== 'paused'}}" disabled="{{reloadBlocked || submitting || showSummary}}" aria-label="暂停训练">
       <view class="icon-pause">||</view>
       暂停
     </button>
-    <button class="btn-pause" wx:else bindtap="onResume" disabled="{{submitting || showSummary}}">继续训练</button>
+    <button class="btn-pause" wx:else bindtap="onResume" disabled="{{reloadBlocked || submitting || showSummary}}">继续训练</button>
     <view class="status-pill">
       <view class="status-dot"></view>
       <text class="mono">本场经过 {{elapsedText}}</text>
@@ -31,25 +31,25 @@
     </view>
   </view>
 
-  <view class="save-error" wx:if="{{errorText}}">{{errorText}}<button wx:if="{{!session}}" bindtap="onRetryDraft">重试读取草稿</button></view>
+  <view class="save-error" wx:if="{{errorText}}">{{errorText}}<button wx:if="{{reloadBlocked}}" bindtap="onRetryDraft">重试读取草稿</button></view>
   <view class="current-panel" wx:if="{{session.training && !showSummary}}">
     <view class="current-state">{{phase === 'paused' ? '已暂停，需手动继续' : phase === 'rest' ? '组间休息' : phase === 'active' ? '本组训练中' : phase === 'finished' ? (canFinish ? '待整场确认' : '还未打卡，请加练或恢复跳过组') : '当前组待开始'}}</view>
     <view class="current-name" wx:if="{{current}}">{{current.name}} · 第 {{current.num}} / {{current.count}} 组</view>
     <block wx:if="{{phase === 'rest' || (phase === 'paused' && session.training.resumePhase === 'rest')}}">
       <view class="rest-clock mono">{{restText}}</view>
       <view class="rest-actions">
-        <button bindtap="onAdjustRest" data-delta="-15" disabled="{{submitting}}">−15 秒</button>
-        <button wx:if="{{phase === 'rest'}}" bindtap="onPause" disabled="{{submitting}}">暂停休息</button>
-        <button wx:else bindtap="onResume" disabled="{{submitting}}">继续休息</button>
-        <button bindtap="onAdjustRest" data-delta="15" disabled="{{submitting}}">+15 秒</button>
+        <button bindtap="onAdjustRest" data-delta="-15" disabled="{{reloadBlocked || submitting}}">−15 秒</button>
+        <button wx:if="{{phase === 'rest'}}" bindtap="onPause" disabled="{{reloadBlocked || submitting}}">暂停休息</button>
+        <button wx:else bindtap="onResume" disabled="{{reloadBlocked || submitting}}">继续休息</button>
+        <button bindtap="onAdjustRest" data-delta="15" disabled="{{reloadBlocked || submitting}}">+15 秒</button>
       </view>
-      <button class="ghost-button" wx:if="{{phase === 'rest'}}" bindtap="onSkipRest" disabled="{{submitting}}">跳过间歇</button>
+      <button class="ghost-button" wx:if="{{phase === 'rest'}}" bindtap="onSkipRest" disabled="{{reloadBlocked || submitting}}">跳过间歇</button>
     </block>
     <view class="rest-message" wx:if="{{restMessage}}">{{restMessage}}</view>
-    <button class="primary-button current-cta" wx:if="{{phase === 'ready'}}" bindtap="onStartSet" disabled="{{submitting}}">开始第 {{current.num}} 组</button>
-    <button class="primary-button current-cta" wx:if="{{phase === 'active'}}" bindtap="onCompleteSet" disabled="{{submitting}}">完成第 {{current.num}} 组</button>
-    <button class="ghost-button" wx:if="{{phase === 'paused' && session.training.resumePhase !== 'rest'}}" bindtap="onResume" disabled="{{submitting}}">继续训练</button>
-    <button class="undo-button" wx:if="{{session.training.undoSetId && phase !== 'paused'}}" bindtap="onUndoSet" disabled="{{submitting}}">撤销最近组</button>
+    <button class="primary-button current-cta" wx:if="{{phase === 'ready'}}" bindtap="onStartSet" disabled="{{reloadBlocked || submitting}}">开始第 {{current.num}} 组</button>
+    <button class="primary-button current-cta" wx:if="{{phase === 'active'}}" bindtap="onCompleteSet" disabled="{{reloadBlocked || submitting}}">完成第 {{current.num}} 组</button>
+    <button class="ghost-button" wx:if="{{phase === 'paused' && session.training.resumePhase !== 'rest'}}" bindtap="onResume" disabled="{{reloadBlocked || submitting}}">继续训练</button>
+    <button class="undo-button" wx:if="{{session.training.undoSetId && phase !== 'paused'}}" bindtap="onUndoSet" disabled="{{reloadBlocked || submitting}}">撤销最近组</button>
   </view>
 
   <!-- 动作列表 -->
@@ -77,7 +77,7 @@
             <view class="ex-sub">{{ex.isBodyWeight ? '自重 · 容量按总次数计' : '容量 ' + ex.volume + ' kg'}}</view>
           </view>
         </view>
-        <button class="btn-more" catchtap="onSkipExercise" data-anchor-id="{{ex.anchorId}}" disabled="{{submitting || showSummary}}" aria-label="更多动作操作">
+        <button class="btn-more" catchtap="onSkipExercise" data-anchor-id="{{ex.anchorId}}" disabled="{{reloadBlocked || submitting || showSummary}}" aria-label="更多动作操作">
           <view class="more-dot"></view>
           <view class="more-dot"></view>
           <view class="more-dot"></view>
@@ -101,7 +101,7 @@
             <input
               class="set-input mono"
               wx:if="{{set.status === 'pending'}}"
-              disabled="{{submitting || showSummary}}"
+              disabled="{{reloadBlocked || submitting || showSummary}}"
               type="digit"
               value="{{set.weight}}"
               placeholder="{{ex.isBodyWeight ? '自重' : '-'}}"
@@ -115,7 +115,7 @@
             <input
               class="set-input mono"
               wx:if="{{set.status === 'pending'}}"
-              disabled="{{submitting || showSummary}}"
+              disabled="{{reloadBlocked || submitting || showSummary}}"
               type="number"
               value="{{set.reps}}"
               placeholder="-"
@@ -126,15 +126,15 @@
             <text class="mono" wx:else>{{set.status === 'completed' ? set.reps : '—'}}</text>
           </view>
           <view class="col-action">
-            <button class="edit-button" wx:if="{{set.status === 'completed'}}" bindtap="onEditSet" data-set-id="{{set.setId}}" disabled="{{submitting || showSummary}}">纠错</button>
-            <button class="btn-del" wx:elif="{{set.canRemove}}" catchtap="onRemoveSet" data-set-id="{{set.setId}}" disabled="{{submitting || showSummary}}" aria-label="删除本组">
+            <button class="edit-button" wx:if="{{set.status === 'completed'}}" bindtap="onEditSet" data-set-id="{{set.setId}}" disabled="{{reloadBlocked || submitting || showSummary}}">纠错</button>
+            <button class="btn-del" wx:elif="{{set.canRemove}}" catchtap="onRemoveSet" data-set-id="{{set.setId}}" disabled="{{reloadBlocked || submitting || showSummary}}" aria-label="删除本组">
               <view class="del-icon">×</view>
             </button>
             <view class="del-placeholder" wx:else></view>
           </view>
         </view>
 
-        <button class="btn-add-set" catchtap="onAddSet" data-anchor-id="{{ex.anchorId}}" disabled="{{submitting || showSummary}}">
+        <button class="btn-add-set" catchtap="onAddSet" data-anchor-id="{{ex.anchorId}}" disabled="{{reloadBlocked || submitting || showSummary}}">
           <text class="add-icon">+</text> 记录新一组
         </button>
       </view>
@@ -159,11 +159,11 @@
   <view class="bottom-bar">
     <view class="offline-note" wx:if="{{false}}">结束提交时需要网络。若当前无网，记录会进入待重试队列，不影响本地保存。</view>
     <view class="bottom-actions">
-      <button class="btn-add-ex" bindtap="onAddExercise" disabled="{{submitting || showSummary}}">
+      <button class="btn-add-ex" bindtap="onAddExercise" disabled="{{reloadBlocked || submitting || showSummary}}">
         <view class="add-ex-icon">+</view>
         <text>加练动作</text>
       </button>
-      <button class="primary-button" bindtap="onFinish" disabled="{{!canFinish || submitting || showSummary || editing}}">
+      <button class="primary-button" bindtap="onFinish" disabled="{{reloadBlocked || !canFinish || submitting || showSummary || editing}}">
         {{submitting ? '本地保存中...' : '完成训练'}}
       </button>
     </view>

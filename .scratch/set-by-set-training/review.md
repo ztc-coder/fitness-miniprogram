@@ -1,6 +1,6 @@
 # 集成双轴审查
 
-固定比较：`git diff 0850414189c6ebbf6c4f42469b8ebaa336490fce...afec2c5598804a04727bb5a95981e1976b8a0e8d`。Standards 与 Spec 独立并行审查，以下不跨轴合并或重新排序。修复未完成。
+固定比较：`git diff 0850414189c6ebbf6c4f42469b8ebaa336490fce...afec2c5598804a04727bb5a95981e1976b8a0e8d`。Standards 与 Spec 独立并行审查，以下不跨轴合并或重新排序。原始两轴发现保留；本轮实现修复与自动验证记录见末尾，待独立复审。
 
 ## Standards
 
@@ -30,3 +30,15 @@ Possible Duplicated Code / Shotgun Surgery：详情页多次判断 `flowVersion/
 ## 汇总
 
 Standards：2 个硬问题（最高 P1），1 项判断性维护建议。Spec：3 个问题（最高 P1）。两轴独立保留；实际修复包含共同报告的计划删除问题、队列判定、重载保护、零秒提醒，并处理兼容识别重复。由单个实现代理统一修复，再定向复验。
+## 本轮修复记录（待独立复审）
+
+原始 Standards / Spec 发现和 REQUEST_CHANGES 保持独立，不删除共同的计划删除发现。修复与实际新增回归见 [acceptance.md](acceptance.md) 的“双轴统一修复”节。
+
+- Standards P1：完成日志计划删除标记匹配 raw/cloud alias；取消计划工作，保留 canonical/history；读取及 inflight 回调不复活，网络已开始则 best-effort 补删除。公开 db/queue 失败/重试/race 回归已执行。
+- Standards P2：flush 每轮使用 domain.decideSubmission，执行层不再自行选择 head/online；真实 wx 边界验证顺序/失败重试/plan-only 不重复上传与游标。
+- Standards 判断性建议：导出原 domain 兼容识别和 actualSets，详情每动作一次调用，共用判据。
+- Spec P1 删除：同上述实现，但本轴发现独立保留；不改变 session/history、默认 savePlan 或 v5 迁移。
+- Spec P1 重载：新草稿直接采用快照；读取/升级写失败关闭写入，WXML 显式重试；所有写事件直到重载成功才解锁。
+- Spec P2 提醒：以非空最近完成 setId 辨认新认领，连续零秒分别提醒；先成功存储，final/skip/双击/重进不补响。
+
+定向 JSON success=true（182 passed / 25 skipped / 0 failed）；全量 JSON success=false（366 passed / 29 skipped / 唯一已知 catalog 缺源失败）。阈值未改，domain branches 89%。未执行独立复审或设备验证，不能将本记录解读为审查通过。

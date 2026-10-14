@@ -9,10 +9,23 @@ function resolvePlanId(id) {
   const entry = read().find(item => item.plan && item.plan.id === id && item.cloudPlanId);
   return entry ? entry.cloudPlanId : id;
 }
+function isPlanDeleted(id) {
+  const resolved = resolvePlanId(id);
+  return read().some(entry => entry.planDeleted && entry.plan &&
+    (entry.plan.id === id || entry.cloudPlanId === id || resolvePlanId(entry.plan.id) === resolved));
+}
+function deletePlan(id) {
+  const resolved = resolvePlanId(id);
+  const entries = read();
+  if (entries.some(entry => entry.plan && (entry.plan.id === id || resolvePlanId(entry.plan.id) === resolved))) {
+    write(entries.map(entry => entry.plan && (entry.plan.id === id || resolvePlanId(entry.plan.id) === resolved)
+      ? Object.assign({}, entry, { planDeleted: true, planSynced: true }) : entry));
+  }
+}
 function overlayPlans(plans) {
-  const result = plans.slice();
+  const result = plans.filter(plan => !isPlanDeleted(plan.id));
   read().forEach(entry => {
-    if (!entry.plan || entry.planSynced) return;
+    if (!entry.plan || entry.planSynced || isPlanDeleted(entry.plan.id)) return;
     const id = resolvePlanId(entry.plan.id);
     const index = result.findIndex(p => p.id === id || p.id === entry.plan.id);
     if (index < 0) result.push(Object.assign({}, entry.plan, { id }));
@@ -20,4 +33,4 @@ function overlayPlans(plans) {
   });
   return result;
 }
-module.exports = { read, write, update, resolvePlanId, overlayPlans };
+module.exports = { read, write, update, resolvePlanId, isPlanDeleted, deletePlan, overlayPlans };

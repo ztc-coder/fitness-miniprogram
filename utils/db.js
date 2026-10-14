@@ -143,6 +143,7 @@ function savePlan(plan) {
 }
 
 function syncCompletedPlan(plan) {
+  if (log.isPlanDeleted(plan.id)) return Promise.resolve(null);
   let id = log.resolvePlanId(plan.id);
   if (!isCloudPlanId(id)) {
     id = 'completed_' + id;
@@ -151,8 +152,14 @@ function syncCompletedPlan(plan) {
   }
   const latest = readLocalPlans().find(p => p.id === id) || plan;
   const data = Object.assign({}, latest, { id });
-  return Promise.resolve().then(() => db().collection(COLLECTIONS.PLANS).doc(id).set({ data }))
+  return Promise.resolve().then(() => {
+    if (log.isPlanDeleted(plan.id)) return null;
+    return db().collection(COLLECTIONS.PLANS).doc(id).set({ data });
+  })
     .then(res => {
+      if (log.isPlanDeleted(plan.id)) {
+        return Promise.resolve().then(() => removePlanFromCloud(id)).catch(() => {}).then(() => null);
+      }
       if (res.stats && res.stats.created === 0 && res.stats.updated === 0) throw new Error('计划未写入');
       removeLocalPlan(plan.id);
       upsertLocalPlan(data);
@@ -161,6 +168,7 @@ function syncCompletedPlan(plan) {
 }
 
 function syncPlanToCloud(plan) {
+  if (log.isPlanDeleted(plan.id)) return Promise.resolve(null);
   if (log.read().some(e => e.plan && (e.plan.id === plan.id || e.cloudPlanId === plan.id) && !e.planSynced)) {
     return syncCompletedPlan(plan);
   }
@@ -177,7 +185,9 @@ function syncPlanToCloud(plan) {
       .collection(COLLECTIONS.PLANS)
       .doc(plan.id)
       .update({ data: doc })
-      .then(() => plan);
+      .then(() => log.isPlanDeleted(plan.id)
+        ? Promise.resolve().then(() => removePlanFromCloud(plan.id)).catch(() => {}).then(() => null)
+        : plan);
   }
   return db()
     .collection(COLLECTIONS.PLANS)
@@ -190,6 +200,9 @@ function syncPlanToCloud(plan) {
       if (entries.some(e => e.plan && e.plan.id === plan.id)) {
         log.write(entries.map(e => e.plan && e.plan.id === plan.id
           ? Object.assign({}, e, { cloudPlanId: saved.id }) : e));
+      }
+      if (log.isPlanDeleted(plan.id)) {
+        return Promise.resolve().then(() => removePlanFromCloud(saved.id)).catch(() => {}).then(() => null);
       }
       removeLocalPlan(plan.id);
       upsertLocalPlan(saved);
@@ -208,9 +221,11 @@ function removePlanFromCloud(planId) {
  * 删除计划:本地立即删除,云端 best-effort 删除(local_ 计划从未上云,跳过)。
  */
 function deletePlan(planId) {
+  const id = log.resolvePlanId(planId);
+  log.deletePlan(planId); // durable cancellation precedes repairable cache cleanup
   removeLocalPlan(planId);
-  if (isCloudPlanId(planId)) {
-    return removePlanFromCloud(planId).catch((err) => {
+  if (isCloudPlanId(id)) {
+    return Promise.resolve().then(() => removePlanFromCloud(id)).catch((err) => {
       console.warn('计划云端删除失败,已本地删除', err);
     });
   }

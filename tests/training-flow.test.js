@@ -324,7 +324,8 @@ test('自重空重量允许归零打卡；新加末组仍pending，全部完成�
 });
 
 test('首次升级保存失败可显式重试，不开放未保存草稿；读取失败给可恢复错误', () => {
-  storage.set(DRAFT_KEY, draft());
+  const legacy = draft(); delete legacy.flowVersion; delete legacy.training;
+  storage.set(DRAFT_KEY, legacy);
   wx.setStorageSync.mockImplementationOnce(() => { throw new Error('full'); });
   page.onLoad(); page.onShow();
   expect(page.data.session).toBeNull();
@@ -426,4 +427,67 @@ test('跨动作也休息，返回到待开始而不自动开练；历史比较�
   expect(page.data.summary.comparison).toMatchObject({ volumeDiff: 200, improved: true });
   jest.advanceTimersByTime(60000);
   expect(page.data.summary.duration).toBe('2m');
+});test('already upgraded reload adopts persisted added exercise without redundant storage writes', () => {
+  load(draft());
+  const added = domain.addSessionExercise(storage.get(DRAFT_KEY), {exerciseId:'0001',name:'加练',equipment:'body weight'});
+  storage.set(DRAFT_KEY, added);
+  wx.setStorageSync.mockClear();
+  page.onShow();
+  expect(page.data.session.exercises).toHaveLength(2);
+  expect(wx.setStorageSync).not.toHaveBeenCalled();
+});
+test.each(['read', 'upgrade-write'])('reload %s failure blocks stale writes until explicit retry adopts added exercise', mode => {
+  load(draft()); page.onStartSet(); page.onCompleteSet();
+  const deadline = page.data.session.training.restEndsAt;
+  page.onHide();
+  const added = domain.addSessionExercise(storage.get(DRAFT_KEY), {exerciseId:'0001',name:'加练',equipment:'body weight'});
+  if (mode === 'upgrade-write') {delete added.flowVersion; delete added.training;}
+  storage.set(DRAFT_KEY, added);
+  if (mode === 'read') wx.getStorageSync.mockImplementationOnce(() => {throw Error('read');});
+  else wx.setStorageSync.mockImplementationOnce(() => {throw Error('full');});
+  page.onShow();
+  expect(page.data.reloadBlocked).toBe(true);
+  expect(page.data.canFinish).toBe(false);
+  wx.setStorageSync.mockClear();
+  const setId = page.data.session.exercises[0].sets[0].id;
+  const secondId = page.data.session.exercises[0].sets[1].id;
+  page.onInputWeight(event({setId:secondId},'99'));
+  page.onAddSet(event({anchorId:setId})); page.onRemoveSet(event({setId:secondId}));
+  page.onStartSet(); page.onCompleteSet(); page.onPause(); page.onResume();
+  page.onAdjustRest(event({delta:-15})); page.onSkipRest(); page.onUndoSet();
+  page.onEditSet(event({setId})); page.onSaveEdit();
+  page.onSkipExercise(event({anchorId:setId})); page.onAddExercise(); page.onFinish();
+  jest.advanceTimersByTime(1000); page.onShow();
+  expect(wx.setStorageSync).not.toHaveBeenCalled();
+  expect(storage.get(DRAFT_KEY).exercises).toHaveLength(2);
+  expect(wx.navigateTo).not.toHaveBeenCalled();
+  page.onRetryDraft();
+  expect(page.data.reloadBlocked).toBe(false);
+  expect(page.data.session.exercises).toHaveLength(2);
+  if (mode === 'read') expect(page.data.session.training.restEndsAt).toBe(deadline);
+  page.onAddSet(event({anchorId:setId}));
+  expect(storage.get(DRAFT_KEY).exercises[0].sets).toHaveLength(3);
+});
+test('each consecutive zero-second rest sounds once, final set and repeated callbacks never sound', () => {
+  load(draft(3));
+  for (let i=0;i<6;i++) page.onAdjustRest(event({delta:-15}));
+  page.onStartSet(); page.onCompleteSet(); page.onCompleteSet();
+  expect(audio.play).toHaveBeenCalledTimes(1);
+  page.onShow(); page.onStartSet(); page.onCompleteSet(); page.onCompleteSet();
+  expect(audio.play).toHaveBeenCalledTimes(2);
+  page.onShow(); jest.advanceTimersByTime(2000);
+  expect(audio.play).toHaveBeenCalledTimes(2);
+  page.onStartSet(); page.onCompleteSet();
+  expect(audio.play).toHaveBeenCalledTimes(2);
+  expect(page.data.canFinish).toBe(true);
+});
+test('undo and reconfirm zero rest claims a new reminder only after durable write', () => {
+  load(draft(3));
+  for (let i=0;i<6;i++) page.onAdjustRest(event({delta:-15}));
+  page.onStartSet(); page.onCompleteSet(); page.onUndoSet();
+  wx.setStorageSync.mockImplementationOnce(() => {throw Error('full');});
+  page.onCompleteSet(); expect(audio.play).toHaveBeenCalledTimes(1);
+  page.onCompleteSet(); page.onCompleteSet(); page.onShow();
+  expect(audio.play).toHaveBeenCalledTimes(2);
+  expect(wx.vibrateShort).toHaveBeenCalledTimes(2);
 });

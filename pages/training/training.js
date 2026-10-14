@@ -15,6 +15,7 @@ const DRAFT_KEY = 'fitness:trainingDraft';
 Page({
   data: {
     session: null,
+    reloadBlocked: true,
     exercises: [],
     progressPct: 0,
     elapsedText: '0m',
@@ -36,6 +37,7 @@ Page({
     try {
       const draft = wx.getStorageSync(DRAFT_KEY);
       if (!draft) {
+        this.blockReload();
         wx.showToast({ title: '没有进行中的训练', icon: 'none' });
         return;
       }
@@ -44,9 +46,9 @@ Page({
         this.showCompleted(completed);
         return;
       }
-      this.persistDraft(domain.upgradeTrainingDraft(draft), false);
+      this.adoptDraft(draft);
     } catch (err) {
-      this.setData({ errorText: '读取或保存本机草稿失败，请重试。' });
+      this.blockReload();
     }
   },
 
@@ -54,7 +56,7 @@ Page({
   onShow() {
     this._visible = true;
     if (this._finishLocked || this._unloaded || this.data.showSummary) return;
-    if (!this.data.session) return;
+    if (!this.data.session || this.data.reloadBlocked) return;
     try {
       const draft = wx.getStorageSync(DRAFT_KEY);
       if (draft && draft.id === this.data.session.id) {
@@ -63,20 +65,35 @@ Page({
           this.showCompleted(completed);
           return;
         }
-        if (!this.persistDraft(domain.upgradeTrainingDraft(draft), false)) return;
+        this.adoptDraft(draft);
+      } else {
+        this.blockReload();
+        return;
       }
       this.updateClock();
       clearInterval(this.timer);
       this.timer = setInterval(() => this.updateClock(), 1000);
     } catch (err) {
-      this.setData({ errorText: '读取本机草稿失败，请重进后重试。' });
+      this.blockReload();
     }
   },
 
   onRetryDraft() {
     if (this._finishLocked || this._unloaded || this.data.showSummary) return;
-    if (!this.data.session) this.onLoad();
+    this.onLoad();
     this.onShow();
+  },
+
+  blockReload() {
+    this.clearResources();
+    this.setData({ reloadBlocked: true, canFinish: false, editing: null,
+      errorText: '读取或升级保存本机草稿失败，请重试读取草稿。' });
+  },
+
+  adoptDraft(draft) {
+    const upgraded = domain.upgradeTrainingDraft(draft);
+    if (upgraded !== draft) wx.setStorageSync(DRAFT_KEY, upgraded);
+    this.setData({ session: upgraded, reloadBlocked: false, errorText: '' }, () => this.renderExercises());
   },
 
   onHide() {
@@ -182,7 +199,7 @@ Page({
   },
 
   canEdit() {
-    return !this._finishLocked && !this._unloaded && !this.data.showSummary && !!(this.data.session && this.data.session.training);
+    return !this.data.reloadBlocked && !this._finishLocked && !this._unloaded && !this.data.showSummary && !!(this.data.session && this.data.session.training);
   },
 
   findSet(setId) {
@@ -197,7 +214,7 @@ Page({
 
   /** 所有编辑都写回草稿 + 本地缓存(全程离线) */
   persistDraft(nextSession, notify = true) {
-    if (this._finishLocked || this._unloaded || this.data.showSummary) return false;
+    if (!this.canEdit()) return false;
     const previous = this.data.session;
     try {
       wx.setStorageSync(DRAFT_KEY, nextSession);
@@ -207,7 +224,7 @@ Page({
       return false;
     }
     this.setData({ session: nextSession, errorText: '' }, () => this.renderExercises());
-    if (notify && nextSession.training && nextSession.training.restNotified && previous && previous.training && !previous.training.restNotified) this.notifyRest();
+    if (notify && nextSession.training && nextSession.training.restNotified && nextSession.training.undoSetId && previous && previous.training && (!previous.training.restNotified || previous.training.undoSetId !== nextSession.training.undoSetId)) this.notifyRest();
     return true;
   },
 

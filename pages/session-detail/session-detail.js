@@ -29,18 +29,22 @@ Page({
         dateLine: fmt.formatDateLine(s.submittedAt || s.startedAt),
         totalVolume: fmt.formatNumber(domain.computeSessionTotalVolume(s)),
         duration: fmt.formatDuration(durationSec),
-        exercises: (s.exercises || []).map((ex) => ({
-          name: ex.name,
-          skipped: !!ex.skipped && !(ex.flowVersion === 1 || (ex.sets || []).some(set => set.status)),
-          isBodyWeight: domain.isBodyWeight(ex),
-          volume: domain.computeVolume(ex),
-          sets: (ex.sets || []).map((set, i) => ({
-            num: i + 1,
-            text: set.status === 'skipped' ? '已跳过' :
-              (ex.flowVersion === 1 || (ex.sets || []).some(s => s.status)) && set.status !== 'completed' ? '未打卡' :
-              `${set.weight || 0} kg × ${set.reps || 0}`,
-          })),
-        })),
+        exercises: (s.exercises || []).map((ex) => {
+          const training = domain.isTrainingExercise(ex);
+          const actual = domain.actualSets(ex);
+          return {
+            name: ex.name,
+            skipped: !!ex.skipped && !training,
+            isBodyWeight: domain.isBodyWeight(ex),
+            volume: domain.computeVolume(ex),
+            sets: (ex.sets || []).map((set, i) => ({
+              num: i + 1,
+              text: set.status === 'skipped' ? '已跳过' :
+                training && !actual.includes(set) ? '未打卡' :
+                `${set.weight || 0} kg × ${set.reps || 0}`,
+            })),
+          };
+        }),
       });
     });
   },

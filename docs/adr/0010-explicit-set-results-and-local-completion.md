@@ -1,6 +1,6 @@
 # ADR-0010：逐组显式结果与整场本地完成
 
-- 状态：已采纳；实施与验收状态见逐组训练 issue
+- 状态：已采纳，实现落地，自动验证已执行；修复待复审，真机待验
 - 相关文档：[逐组规格](../../.scratch/set-by-set-training/spec.md)、[领域契约](../../.scratch/set-by-set-training/implementation.md)、[并行提交契约](../../.scratch/set-by-set-training/integration-contract.md)
 
 ## Context（背景）
@@ -24,3 +24,4 @@
 - 没有后台准时通知或音频保活保证；真机声音、静音、振动、锁屏恢复仍是独立验收项。
 
 ADR-0004 的快照解耦和历史不可变、ADR-0005 的离线优先原则保留；旧“整项跳过全排除”和“提交驱动推进”由本 ADR 对新流程细化为“逐组结果”和“本地整场完成驱动推进”。
+完成日志中的计划工作在明确删除时按 raw local id / cloud alias 持久标记失效；取消推进同步但保留 canonical 场次历史。读取与网络回调不能复活已删计划；已进入网络请求的回调 best-effort 补删除。队列每轮使用 domain 纯判定，Page 重载失败关闭全部写入口直到显式重试成功采用新持久草稿；提醒以最近完成组识别新间歇。

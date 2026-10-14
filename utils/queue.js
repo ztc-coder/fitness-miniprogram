@@ -74,8 +74,11 @@ function complete(session, now = Date.now()) {
 function flush() {
   if (flushing) return flushing;
   flushing = Promise.resolve().then(isOnline).then(async online => {
-    if (!online) return getQueue();
-    for (const target of getQueue()) {
+    while (true) {
+      const pending = getQueue();
+      const decision = domain.decideSubmission(pending, online);
+      if (decision.action === 'idle' || decision.action === 'queued') break;
+      const target = pending.find(session => session.id === decision.sessionId);
       const entry = log.read().find(e => e.session.id === target.id);
       try {
         if (!entry || !entry.sessionSynced) {
@@ -83,7 +86,7 @@ function flush() {
           if (entry) log.update(target.id, { sessionSynced: true });
           else saveQueue(domain.dequeueSession(wx.getStorageSync(QUEUE_KEY) || [], target.id));
         }
-        if (entry && !entry.planSynced) {
+        if (entry && !entry.planSynced && !log.isPlanDeleted(entry.plan.id)) {
           await db.syncCompletedPlan(entry.plan);
           log.update(target.id, { planSynced: true });
         }
