@@ -5,7 +5,7 @@ status: open
 created: 2026-10-14
 ---
 
-当前仅方案阶段，尚未实施或验收。依据 [spec](../spec.md) §6；依赖 01–03。
+已授权实施；01 已合并，02 / 03 并行进行。整体尚未验收。依据 [spec](../spec.md) §6；依赖 01–03。实际检查见 [acceptance.md](../acceptance.md)，真机证据清单见 [manual-acceptance.md](../manual-acceptance.md)。
 
 ## 自动验收
 
