@@ -10,6 +10,8 @@
 | 01 合并 `81d4e78` | domain 定向 Jest，核对 JSON | 73 / 73 通过 |
 | 01 合并 `81d4e78` | domain JS / tests 的 `node --check`、`git diff --check` | 通过 |
 | 01 合并后 | 回归 + coverage，显式排除 `tests/catalog.test.js` | 14 套件、305 用例通过，29 既有跳过，覆盖率门禁通过；不是全量通过 |
+| 03 合并 `0c64878` | 9 个相关套件，核对 JSON；9 份修改 JS 的语法与 diff 检查 | 147 用例通过、25 既有跳过、0 失败；语法与 diff 通过 |
+| 03 合并后 | 全量 Jest + coverage，核对 JSON | 16 套件通过、1 失败；327 用例通过、29 既有跳过、1 基线目录环境失败；无新增失败 |
 
 ### 基线环境失败
 
