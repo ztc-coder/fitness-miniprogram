@@ -21,7 +21,7 @@ Spec：[spec.md](spec.md)。领域术语：根目录 `CONTEXT.md`。
 
 | 票 | 范围 | 依赖 | 状态 |
 |---|---|---|---|
-| [01](issues/01-domain-and-draft.md) | 纯状态流、输入校验、草稿兼容、容量/完成判定 | 无 | open |
+| [01](issues/01-domain-and-draft.md) | 纯状态流、输入校验、草稿兼容、容量/完成判定 | 无 | done |
 | [02](issues/02-training-and-rest.md) | 训练页逐组交互、离线倒计时、提醒与生命周期 | 01 | open |
 | [03](issues/03-records-and-finish.md) | 实际记录展示、提交门禁、加练与游标推进集成 | 01；最终集成依赖 02 | open |
 | [04](issues/04-integration-acceptance.md) | 回归、聚焦审查与微信端人工验收 | 01–03 | open |
