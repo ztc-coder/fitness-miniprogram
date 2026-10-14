@@ -95,7 +95,7 @@ Page({
     wx.showModal({
       title: '新建训练日',
       editable: true,
-      placeholderText: '例如:推 / 拉 / 腿 / 肩',
+      placeholderText: '胸/背/肩/腿',
       success: (res) => {
         if (!res.confirm || !res.content) return;
         const day = {

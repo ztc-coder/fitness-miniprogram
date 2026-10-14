@@ -55,6 +55,7 @@
 
 /* ===== 搜索栏 ===== */
 .search-row {
+  position: relative;
   display: flex;
   align-items: center;
   margin-bottom: 8rpx;
@@ -64,7 +65,8 @@
   width: 100%;
   height: 88rpx;
   min-height: 88rpx;
-  padding: 0 28rpx;
+  /* 右侧给清空图标留出触控区,文字不压在图标下 */
+  padding: 0 84rpx 0 28rpx;
   background: var(--surface);
   border: 1rpx solid var(--line);
   border-radius: 20rpx;
@@ -81,6 +83,41 @@
 .search-placeholder {
   color: var(--ink-faint);
   font-size: var(--t-body);
+}
+
+/* 清空图标:叠在输入框右内侧,仅关键词非空时渲染 */
+.search-clear {
+  position: absolute;
+  right: 10rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.search-clear-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  background: var(--surface-2);
+  border: 1rpx solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink-dim);
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.search-clear-hover {
+  opacity: 0.6;
 }
 
 /* ===== 器械索引轨（sticky 外壳 + 横向 scroll + 内层轨道）=====
@@ -329,8 +366,36 @@
 .library-action-col {
   display: flex;
   align-items: center;
+  gap: 14rpx;
   flex-shrink: 0;
   margin-left: 8rpx;
+}
+
+/* 快捷加入:独立图标按钮,不打开详情 */
+.library-quick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 50%;
+  background: var(--signal);
+  border: 1rpx solid var(--signal);
+  box-sizing: border-box;
+  transition: opacity 0.15s ease, transform 0.12s ease;
+}
+
+.library-quick-glyph {
+  color: var(--signal-ink);
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.library-quick-btn-hover {
+  opacity: 0.86;
+  transform: scale(0.96);
 }
 
 .library-btn-circle {
@@ -392,7 +457,197 @@
   border-color: var(--signal-ink);
 }
 
-/* ===== 提示卡片（沿用全局 note 语义，本页略收紧） ===== */
+/* ===== 训练日选择弹层(普通浏览快捷加入) =====
+   卡片取确定高度:内层 scroll-view 才能拿到确定高度并原生滚动。 */
+.picker-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 36rpx 32rpx calc(36rpx + env(safe-area-inset-bottom));
+  background: rgba(21, 59, 58, 0.45);
+  box-sizing: border-box;
+}
+
+.picker-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640rpx;
+  height: 62vh;
+  max-height: calc(100vh - 72rpx - env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-radius: 28rpx;
+  box-shadow: 0 24rpx 60rpx -24rpx rgba(21, 59, 58, 0.4);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 26rpx 28rpx 18rpx;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.picker-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.picker-close {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx !important;
+  height: 64rpx !important;
+  min-width: 64rpx !important;
+  max-width: 64rpx !important;
+  min-height: 64rpx !important;
+  max-height: 64rpx !important;
+  flex-shrink: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--ink-dim) !important;
+  background: var(--surface-2) !important;
+  border: 1rpx solid var(--line-strong) !important;
+  border-radius: 50% !important;
+  font-size: 32rpx !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+.picker-close::after {
+  display: none !important;
+  border: none !important;
+}
+
+.picker-close-hover {
+  opacity: 0.75;
+}
+
+/* 计划行:横向滚动,多计划时切换 */
+.picker-plan-line {
+  flex-shrink: 0;
+  width: 100%;
+  height: auto;
+  white-space: nowrap;
+  padding: 18rpx 0 0;
+  box-sizing: border-box;
+}
+
+.picker-plan-track {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  padding: 0 28rpx;
+  box-sizing: border-box;
+  vertical-align: top;
+}
+
+.picker-plan-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 60rpx;
+  margin-right: 12rpx;
+  padding: 0 26rpx;
+  background: var(--surface-2);
+  border: 1rpx solid var(--line-strong);
+  border-radius: 999rpx;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.picker-plan-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--ink-dim);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.picker-plan-pill.active {
+  background: var(--amber);
+  border-color: rgba(217, 180, 40, 0.85);
+}
+
+.picker-plan-pill.active .picker-plan-label {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.picker-plan-hover {
+  opacity: 0.82;
+}
+
+/* 训练日列表:吃满剩余高度,原生滚动 */
+.picker-day-scroll {
+  flex: 1 1 0%;
+  height: 0;
+  padding: 12rpx 0;
+  box-sizing: border-box;
+}
+
+.picker-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 20rpx 12rpx;
+  padding: 24rpx 24rpx;
+  background: var(--surface-2);
+  border: 1rpx solid var(--line);
+  border-radius: 18rpx;
+  box-sizing: border-box;
+}
+
+.picker-day-hover {
+  background: rgba(22, 191, 174, 0.12);
+  border-color: var(--signal);
+}
+
+.picker-day.is-saving {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.picker-day-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-day-meta {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  font-size: 22rpx;
+  color: var(--ink-dim);
+}
+
+.picker-empty {
+  padding: 40rpx 28rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--ink-faint);
+}
+
+/* ===== 提示卡片(沿用全局 note 语义,本页略收紧) ===== */
 .note-card {
   margin-top: 8rpx;
   padding: 22rpx 24rpx;

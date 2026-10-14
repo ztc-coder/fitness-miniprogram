@@ -45,6 +45,13 @@ Page({
     planId: '',
     dayId: '',
     detail: null,
+    // 普通浏览快捷加入:选择计划/训练日的弹层状态
+    pickerVisible: false,
+    pickerPlans: [],
+    pickerPlanId: '',
+    pickerDays: [],
+    pendingExerciseId: '',
+    pickerSaving: false,
   },
 
   onLoad(options = {}) {
@@ -123,6 +130,13 @@ Page({
     this.applySearch({ query: e.detail.value });
   },
 
+  /** 清空关键词:与筛选条件同一次提交,器械/部位选中集不变 */
+  onClearSearch() {
+    this.applySearch({ query: '' });
+  },
+
+  noop() {},
+
   onEquipFilterTap(e) {
     const key = e.currentTarget.dataset.key;
     if (!key) return;
@@ -170,64 +184,163 @@ Page({
     this.setData({ detail: null });
   },
 
-  /** 选中动作:训练中加练 → 写入草稿;否则加入指定训练日 */
+  /** 详情确认:训练中加练 → 写入草稿;否则加入指定训练日 */
   onPickExercise() {
     const { detail, pickMode, planId, dayId } = this.data;
     if (!detail) return;
 
     if (pickMode) {
-      const draft = wx.getStorageSync(DRAFT_KEY);
-      if (draft) {
-        const next = domain.addSessionExercise(draft, {
-          exerciseId: detail.id,
-          name: detail.nameZh,
-          equipment: this.rawEquipmentOf(detail.id),
-        });
-        wx.setStorageSync(DRAFT_KEY, next);
-      }
+      this.addToDraft(detail.id);
       wx.navigateBack();
       return;
     }
 
     if (planId && dayId) {
-      db.fetchPlans().then((plans) => {
-        const plan = plans.find((p) => p.id === planId);
-        if (!plan) {
-          wx.showToast({ title: '计划不存在', icon: 'none' });
-          return;
-        }
-        const equipment = this.rawEquipmentOf(detail.id);
-        const cycleDays = plan.cycleDays.map((day) => {
-          if (day.dayId !== dayId) return day;
-          return Object.assign({}, day, {
-            exercises: day.exercises.concat([
-              {
-                exerciseId: detail.id,
-                name: detail.nameZh,
-                equipment,
-                sets: 3,
-                targetReps: 10,
-                targetWeight: equipment === 'body weight' ? 0 : 20,
-              },
-            ]),
-          });
-        });
-        db.savePlan(Object.assign({}, plan, { cycleDays }))
-          .then(() => {
-            wx.showToast({ title: '已加入训练日', icon: 'success' });
-            this.setData({ detail: null });
-          })
-          .catch(() => wx.showToast({ title: '保存失败', icon: 'none' }));
-      });
+      this.addToPlanDay(planId, dayId, detail.id);
       return;
     }
 
     wx.showToast({ title: '请从计划页进入以加入训练日', icon: 'none' });
   },
 
-  /** 按数据集 id 取器械原值;assisted 走自重筛选桶但不是自重动作 */
-  rawEquipmentOf(id) {
-    const item = lib.findById(id);
-    return item ? item.equipment : '';
+  /**
+   * 卡片快捷按钮:不打开详情直接加入。
+   * catchtap 绑定,不冒泡到卡片的 onItemTap。
+   */
+  onQuickAdd(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id || !lib.findById(id)) return;
+
+    if (this.data.pickMode) {
+      this.addToDraft(id);
+      wx.navigateBack();
+      return;
+    }
+
+    const { planId, dayId } = this.data;
+    if (planId && dayId) {
+      this.addToPlanDay(planId, dayId, id);
+      return;
+    }
+
+    this.openDayPicker(id);
+  },
+
+  /** 训练中加练:只写训练草稿,不写计划 */
+  addToDraft(exerciseId) {
+    const draft = wx.getStorageSync(DRAFT_KEY);
+    const item = lib.findById(exerciseId);
+    if (!draft || !item) return;
+    wx.setStorageSync(
+      DRAFT_KEY,
+      domain.addSessionExercise(draft, {
+        exerciseId: item.id,
+        name: item.nameZh,
+        equipment: item.equipment,
+      })
+    );
+  },
+
+  /** 目录动作 → 计划里的默认处方(3 组 10 次;自重 0 负重,其余 20) */
+  buildPlanExercise(exerciseId) {
+    const item = lib.findById(exerciseId);
+    if (!item) return null;
+    return {
+      exerciseId: item.id,
+      name: item.nameZh,
+      equipment: item.equipment,
+      sets: 3,
+      targetReps: 10,
+      targetWeight: item.equipment === 'body weight' ? 0 : 20,
+    };
+  },
+
+  /** 加入指定训练日:详情确认与卡片快捷按钮共用同一条写入路径 */
+  addToPlanDay(planId, dayId, exerciseId) {
+    const exercise = this.buildPlanExercise(exerciseId);
+    if (!exercise) return Promise.resolve();
+
+    // 每次保存完成后重新读取计划，避免连续点击基于同一旧快照相互覆盖。
+    const save = () => db.fetchPlans().then((plans) => {
+      const plan = (plans || []).find((p) => p.id === planId);
+      if (!plan) {
+        wx.showToast({ title: '计划不存在', icon: 'none' });
+        return;
+      }
+      if (!(plan.cycleDays || []).some((day) => day.dayId === dayId)) {
+        wx.showToast({ title: '训练日不存在', icon: 'none' });
+        return;
+      }
+      const cycleDays = (plan.cycleDays || []).map((day) => {
+        if (day.dayId !== dayId) return day;
+        return Object.assign({}, day, {
+          exercises: (day.exercises || []).concat([exercise]),
+        });
+      });
+      return db.savePlan(Object.assign({}, plan, { cycleDays })).then(() => {
+        wx.showToast({ title: '已加入训练日', icon: 'success' });
+        this.setData({ detail: null, pickerVisible: false });
+      });
+    }).catch(() => wx.showToast({ title: '保存失败', icon: 'none' }));
+    this._planAddQueue = (this._planAddQueue || Promise.resolve()).then(save);
+    return this._planAddQueue;
+  },
+
+  /** 计划 → 选择器行;只保留有训练日的计划 */
+  buildPickerPlans(plans) {
+    return (plans || [])
+      .map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        days: (plan.cycleDays || []).map((day) => ({
+          dayId: day.dayId,
+          name: day.name,
+          meta: `${(day.exercises || []).length} 个动作`,
+        })),
+      }))
+      .filter((plan) => plan.days.length > 0);
+  },
+
+  /** 普通浏览:没有指定训练日时先选计划和训练日;无训练日则提示先创建 */
+  openDayPicker(exerciseId) {
+    return db
+      .fetchPlans()
+      .then((plans) => {
+        const pickerPlans = this.buildPickerPlans(plans);
+        if (!pickerPlans.length) {
+          wx.showToast({ title: '请先创建训练日', icon: 'none' });
+          return;
+        }
+        const current = pickerPlans.find((p) => p.id === this.data.planId) || pickerPlans[0];
+        this.setData({
+          pickerVisible: true,
+          pendingExerciseId: exerciseId,
+          pickerPlans,
+          pickerPlanId: current.id,
+          pickerDays: current.days,
+        });
+      })
+      .catch(() => wx.showToast({ title: '计划读取失败', icon: 'none' }));
+  },
+
+  onPickerPlanTap(e) {
+    const id = e.currentTarget.dataset.id;
+    const plan = (this.data.pickerPlans || []).find((p) => p.id === id);
+    if (!plan) return;
+    this.setData({ pickerPlanId: plan.id, pickerDays: plan.days });
+  },
+
+  onPickerDayTap(e) {
+    const dayId = e.currentTarget.dataset.dayid;
+    const { pickerPlanId, pendingExerciseId } = this.data;
+    if (this.data.pickerSaving || !dayId || !pickerPlanId || !pendingExerciseId) return;
+    this.setData({ pickerSaving: true });
+    this.addToPlanDay(pickerPlanId, dayId, pendingExerciseId).then(() => {
+      this.setData({ pickerSaving: false });
+    });
+  },
+
+  onClosePicker() {
+    this.setData({ pickerVisible: false });
   },
 });

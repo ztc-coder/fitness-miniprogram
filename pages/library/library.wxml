@@ -16,6 +16,16 @@
       placeholder-class="search-placeholder"
       bindinput="onSearchInput"
     />
+    <!-- 清空图标只在关键词非空时出现;catchtap 不冒泡到列表/卡片 -->
+    <view
+      wx:if="{{query}}"
+      class="search-clear"
+      catchtap="onClearSearch"
+      hover-class="search-clear-hover"
+      aria-label="清空检索词"
+    >
+      <text class="search-clear-glyph">×</text>
+    </view>
   </view>
 
   <!-- sticky 外壳 + 内层轨道：左右安全区写在轨道上，避免 scroll-view padding 不计滚动宽 -->
@@ -80,6 +90,16 @@
         </view>
       </view>
       <view class="library-action-col">
+        <!-- 独立快捷按钮:不打开详情,直接加入训练日/训练草稿 -->
+        <view
+          class="library-quick-btn"
+          data-id="{{item.id}}"
+          catchtap="onQuickAdd"
+          hover-class="library-quick-btn-hover"
+          aria-label="快捷加入"
+        >
+          <text class="library-quick-glyph">+</text>
+        </view>
         <view class="library-btn-circle {{pickMode ? 'pick-active' : ''}}">
           <text class="library-btn-text">{{pickMode ? '加' : '查'}}</text>
           <view class="library-chevron"></view>
@@ -109,6 +129,44 @@
   </view>
 
   <view class="note-card">动作示意图由 Gym visual 提供。正式上线前需完成书面授权并保留 © Gym visual 署名。</view>
+
+  <!-- 普通浏览快捷加入:选择计划/训练日(可滚动) -->
+  <view wx:if="{{pickerVisible}}" class="picker-mask" bindtap="onClosePicker" catchtouchmove="noop">
+    <view class="picker-card" catchtap="noop">
+      <view class="picker-head">
+        <view class="picker-title">选择训练日</view>
+        <button class="picker-close" bindtap="onClosePicker" aria-label="关闭" hover-class="picker-close-hover">×</button>
+      </view>
+      <scroll-view class="picker-plan-line" scroll-x show-scrollbar="{{false}}">
+        <view class="picker-plan-track">
+          <view
+            wx:for="{{pickerPlans}}"
+            wx:key="id"
+            class="picker-plan-pill {{item.id === pickerPlanId ? 'active' : ''}}"
+            data-id="{{item.id}}"
+            bindtap="onPickerPlanTap"
+            hover-class="picker-plan-hover"
+          >
+            <text class="picker-plan-label">{{item.name}}</text>
+          </view>
+        </view>
+      </scroll-view>
+      <scroll-view class="picker-day-scroll" scroll-y>
+        <view
+          wx:for="{{pickerDays}}"
+          wx:key="dayId"
+          class="picker-day {{pickerSaving ? 'is-saving' : ''}}"
+          data-dayid="{{item.dayId}}"
+          bindtap="onPickerDayTap"
+          hover-class="picker-day-hover"
+        >
+          <text class="picker-day-name">{{item.name}}</text>
+          <text class="picker-day-meta">{{item.meta}}</text>
+        </view>
+        <view wx:if="{{pickerDays.length === 0}}" class="picker-empty">该计划还没有训练日</view>
+      </scroll-view>
+    </view>
+  </view>
 
   <!-- 动作详情弹层(组件,打卡页复用) -->
   <exercise-detail
