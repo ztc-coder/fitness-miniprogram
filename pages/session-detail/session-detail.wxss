@@ -1,6 +1,7 @@
 .page {
   min-height: 100vh;
-  padding: 30rpx 32rpx 48rpx;
+  padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
   background: var(--bg);
 }
 
@@ -11,7 +12,7 @@
   color: var(--signal);
   font-size: var(--t-kicker);
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0;
   margin-bottom: 14rpx;
 }
 
@@ -30,6 +31,7 @@
 }
 
 .metric {
+  min-width: 0;
   padding: 24rpx 18rpx;
   background: var(--surface);
   border: 1rpx solid var(--line);
@@ -40,7 +42,8 @@
 
 .metric-num {
   font-family: "SF Mono", Menlo, monospace;
-  font-size: 38rpx;
+  font-size: 34rpx;
+  overflow-wrap: break-word;
   font-weight: 700;
 }
 
@@ -59,21 +62,26 @@
 }
 
 .exercise-card.skipped {
-  opacity: 0.45;
+  background: var(--bg);
 }
 
 .exercise-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 16rpx;
 }
 
 .exercise-name {
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
   font-size: 30rpx;
   font-weight: 700;
 }
 
 .exercise-volume {
+  flex-shrink: 0;
   font-family: "SF Mono", Menlo, monospace;
   font-size: var(--t-meta);
   font-weight: 700;
@@ -104,4 +112,6 @@
 
 .note-card {
   margin-top: 32rpx;
+  background: var(--surface);
+  border: 1rpx solid var(--line);
 }

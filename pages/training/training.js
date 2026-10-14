@@ -11,6 +11,10 @@ const labels = require('../../data/exercise-labels');
 const media = require('../../data/media-root');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
+const clockText = seconds => {
+  const value = Math.max(0, Math.floor(seconds || 0));
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+};
 
 Page({
   data: {
@@ -29,8 +33,15 @@ Page({
     phase: 'ready',
     restText: '00:00',
     errorText: '',
-    editing: null,
     restMessage: '',
+    restExpanded: false,
+    restActive: false,
+    restPaused: false,
+    restSeconds: 90,
+    restPresets: [60, 90, 120, 180],
+    ringRight: 0,
+    ringLeft: 0,
+    confirming: false,
   },
 
   onLoad() {
@@ -86,17 +97,19 @@ Page({
 
   blockReload() {
     this.clearResources();
-    this.setData({ reloadBlocked: true, canFinish: false, editing: null,
+    this.setData({ reloadBlocked: true, canFinish: false,
       errorText: '读取或升级保存本机草稿失败，请重试读取草稿。' });
   },
 
   adoptDraft(draft) {
     const upgraded = domain.upgradeTrainingDraft(draft);
     if (upgraded !== draft) wx.setStorageSync(DRAFT_KEY, upgraded);
+    this._inputEdits = {};
     this.setData({ session: upgraded, reloadBlocked: false, errorText: '' }, () => this.renderExercises());
   },
 
   onHide() {
+    if (this.canRecord()) this.flushInputEdits();
     this._visible = false;
     this.clearResources();
   },
@@ -121,7 +134,24 @@ Page({
     const session = this.data.session;
     const next = domain.tickTrainingRest(session, Date.now());
     if (next !== session) this.persistDraft(next);
-    else this.renderExercises();
+    else this.renderClock();
+  },
+
+  renderClock() {
+    const session = this.data.session;
+    if (!session || !session.training) return;
+    const t = session.training;
+    const remaining = domain.getRestRemainingSec(session, Date.now());
+    const restActive = t.phase === 'rest' || (t.phase === 'paused' && t.resumePhase === 'rest');
+    const angle = Math.min(1, remaining / Math.max(1, t.restSeconds)) * 360;
+    this.setData({
+      phase: t.phase, restActive, restPaused: !!t.restPaused || t.phase === 'paused',
+      restText: clockText(remaining), restSeconds: t.restSeconds,
+      ringRight: Math.min(180, angle), ringLeft: Math.max(0, angle - 180),
+      elapsedText: clockText((Date.now() - session.startedAt) / 1000),
+      restMessage: t.restNotified ? '间歇结束，准备好再开始下一组' : '',
+      ...(!restActive ? { restExpanded: false } : {}),
+    });
   },
 
   notifyRest() {
@@ -157,41 +187,49 @@ Page({
         isBodyWeight: domain.isBodyWeight(ex),
         skipped: ex.sets.every((set) => set.status === 'skipped'),
         volume: domain.computeVolume(ex),
+        completedCount: ex.sets.filter(set => set.status === 'completed').length,
+        bodyPart: item ? labels.bodyPartLabel(labels.bodyPartCategory(item)) : labels.equipmentLabel(ex.equipment),
         sets: ex.sets.map((set, setIndex) => {
           if (set.id === session.training.currentSetId) current = { name: ex.name, num: setIndex + 1, count: ex.sets.length, setId: set.id };
           return {
             setId: set.id,
             status: set.status,
-            statusText: set.status === 'completed' ? '已打卡' : set.status === 'skipped' ? '已跳过' : set.id === session.training.currentSetId ? '当前组' : '待练',
+            statusText: set.status === 'completed' ? '已完成' : set.status === 'skipped' ? '已跳过' : '待练',
             setIndex,
             num: setIndex + 1,
-            weight: set.weight === null || set.weight === undefined ? '' : set.weight,
-            reps: set.reps === null || set.reps === undefined ? '' : set.reps,
-            canRemove: setIndex === ex.sets.length - 1 && ex.sets.length > 1 && set.status !== 'completed' && !(set.id === session.training.currentSetId && (session.training.phase === 'active' || session.training.resumePhase === 'active')),
+            weight: this._inputEdits && this._inputEdits[set.id] ? this._inputEdits[set.id].weight : set.weight === null || set.weight === undefined ? '' : set.weight,
+            reps: this._inputEdits && this._inputEdits[set.id] ? this._inputEdits[set.id].reps : set.reps === null || set.reps === undefined ? '' : set.reps,
+            canRemove: ex.sets.length > 1 && set.status !== 'completed',
           };
         }),
       };
     });
     const progress = domain.getTrainingProgress(session);
-    const remaining = domain.getRestRemainingSec(session, Date.now());
     this.setData({ exercises, current, progress, progressPct: Math.round(progress.ratio * 100),
-      canFinish: domain.canFinishTraining(session), phase: session.training.phase,
-      restText: `${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`,
-      elapsedText: fmt.formatDuration(Math.round((Date.now() - session.startedAt) / 1000)),
-      restMessage: session.training.restNotified ? '间歇结束，可以开始下一组' : '',
+      canFinish: domain.canFinishTraining(session),
     });
+    this.renderClock();
   },
 
-  onStartSet() {
-    if (!this.canEdit()) return;
-    this.persistDraft(domain.startTrainingSet(this.data.session, this.data.session.training.currentSetId, Date.now()));
-  },
-
-  onCompleteSet() {
-    if (!this.canEdit()) return;
+  onToggleSet(e) {
+    if (!this.canRecord()) return;
+    const setId = e.currentTarget.dataset.setId;
+    const ref = this.findSet(setId);
+    if (!ref || ref.value.status === 'skipped') return;
+    if (ref.value.status === 'completed') {
+      let next = domain.uncompleteTrainingSet(this.data.session, setId);
+      const edits = this._inputEdits && this._inputEdits[setId];
+      if (edits) next = domain.editTrainingSet(next, setId, edits);
+      if (this.persistDraft(next)) {
+        if (this._inputEdits) delete this._inputEdits[setId];
+        this.renderExercises();
+      }
+      return;
+    }
+    if (!this.flushInputEdits()) return;
     const session = this.data.session;
-    const next = domain.completeTrainingSet(session, session.training.currentSetId, Date.now());
-    if (session.training.phase === 'active' && next === session) {
+    const next = domain.completeTrainingSet(session, setId, Date.now());
+    if (next === session) {
       this.setData({ errorText: '请填写合法成绩：次数须为正整数，重量须非负。' });
       return;
     }
@@ -199,7 +237,11 @@ Page({
   },
 
   canEdit() {
-    return !this.data.reloadBlocked && !this._finishLocked && !this._unloaded && !this.data.showSummary && !!(this.data.session && this.data.session.training);
+    return !this.data.reloadBlocked && !this._confirming && !this._finishLocked && !this._unloaded && !this.data.showSummary && !!(this.data.session && this.data.session.training);
+  },
+
+  canRecord() {
+    return this.canEdit() && this.data.session.training.phase !== 'paused';
   },
 
   findSet(setId) {
@@ -224,7 +266,7 @@ Page({
       return false;
     }
     this.setData({ session: nextSession, errorText: '' }, () => this.renderExercises());
-    if (notify && nextSession.training && nextSession.training.restNotified && nextSession.training.undoSetId && previous && previous.training && (!previous.training.restNotified || previous.training.undoSetId !== nextSession.training.undoSetId)) this.notifyRest();
+    if (notify && nextSession.training && nextSession.training.restNotified && previous && previous.training && !previous.training.restNotified) this.notifyRest();
     return true;
   },
 
@@ -237,10 +279,40 @@ Page({
   },
 
   inputSet(e, field) {
-    if (!this.canEdit()) return;
+    if (!this.canRecord()) return;
     const ref = this.findSet(e.currentTarget.dataset.setId);
-    if (!ref || ref.value.status !== 'pending') return;
+    if (!ref || ref.value.status === 'skipped') return;
+    if (ref.value.status === 'completed') {
+      this._inputEdits = this._inputEdits || {};
+      const values = this._inputEdits[ref.value.id] || { weight: ref.value.weight, reps: ref.value.reps };
+      this._inputEdits[ref.value.id] = { ...values, [field]: e.detail.value };
+      return;
+    }
     this.persistDraft(domain.updateSessionSet(this.data.session, ref.ex, ref.set, field, e.detail.value));
+  },
+
+  onInputBlur() {
+    if (this.canRecord()) this.flushInputEdits();
+  },
+
+  flushInputEdits() {
+    let next = this.data.session;
+    const edits = this._inputEdits || {};
+    const ids = Object.keys(edits);
+    if (!ids.length) return true;
+    for (const setId of ids) {
+      const ref = this.findSet(setId);
+      if (!ref) continue;
+      if (ref.value.status === 'completed' && !domain.validateTrainingSet(next.exercises[ref.ex], edits[setId])) {
+        this.setData({ errorText: '已完成组的成绩无效，请填写非负重量和正整数次数，或取消该组勾选。' });
+        return false;
+      }
+      next = domain.editTrainingSet(next, setId, edits[setId]);
+    }
+    if (!this.persistDraft(next)) return false;
+    this._inputEdits = {};
+    this.renderExercises();
+    return true;
   },
 
   /** 行内示意图加载失败:清空该行 thumbSrc,降回 glyph(不写回草稿) */
@@ -250,65 +322,32 @@ Page({
   },
 
   onAddSet(e) {
-    if (!this.canEdit()) return;
+    if (!this.canRecord() || !this.flushInputEdits()) return;
     const ref = this.findSet(e.currentTarget.dataset.anchorId);
     if (ref) this.persistDraft(domain.addSessionSet(this.data.session, ref.ex));
   },
 
   onRemoveSet(e) {
-    if (!this.canEdit()) return;
+    if (!this.canRecord() || !this.flushInputEdits()) return;
     const ref = this.findSet(e.currentTarget.dataset.setId);
     if (!ref) return;
     const next = domain.removeSessionSet(this.data.session, ref.ex, ref.set);
     if (next === this.data.session) {
-      this.setData({ errorText: '只能删除未打卡的末组，至少保留一组；训练中组不可删除。' });
+      this.setData({ errorText: '已完成组请先取消勾选，每个动作至少保留一组。' });
       return;
     }
     this.persistDraft(next);
   },
 
-  onEditSet(e) {
-    if (!this.canEdit()) return;
-    const ref = this.findSet(e.currentTarget.dataset.setId);
-    if (!ref || ref.value.status !== 'completed') return;
-    this.setData({ editing: { setId: ref.value.id, weight: ref.value.weight, reps: ref.value.reps } });
-  },
-
-  onEditWeight(e) {
-    if (!this.canEdit() || !this.data.editing) return;
-    this.setData({ editing: { ...this.data.editing, weight: e.detail.value } });
-  },
-
-  onEditReps(e) {
-    if (!this.canEdit() || !this.data.editing) return;
-    this.setData({ editing: { ...this.data.editing, reps: e.detail.value } });
-  },
-
-  onCancelEdit() {
-    if (!this.canEdit()) return;
-    this.setData({ editing: null });
-  },
-
-  onSaveEdit() {
-    if (!this.canEdit() || !this.data.editing) return;
-    const { setId, weight, reps } = this.data.editing;
-    const ref = this.findSet(setId);
-    if (!ref || !domain.validateTrainingSet(this.data.session.exercises[ref.ex], { weight, reps })) {
-      this.setData({ errorText: '成绩无效，请填写非负重量和正整数次数后保存。' });
-      return;
-    }
-    if (this.persistDraft(domain.editTrainingSet(this.data.session, setId, { weight, reps }))) this.setData({ editing: null });
-  },
-
   /** 跳过剩余不抹掉成绩；异步菜单按稳定组引用重新查当前 session */
   onSkipExercise(e) {
-    if (!this.canEdit()) return;
+    if (!this.canRecord() || !this.flushInputEdits()) return;
     const { anchorId } = e.currentTarget.dataset;
     if (!this.findSet(anchorId)) return;
     wx.showActionSheet({
       itemList: ['跳过剩余组', '恢复跳过组', '移除未练动作'],
       success: (res) => {
-        if (!this.canEdit()) return;
+        if (!this.canRecord()) return;
         const ref = this.findSet(anchorId);
         if (!ref) return;
         const session = this.data.session;
@@ -326,8 +365,8 @@ Page({
           }
           this.persistDraft(domain.setExerciseSkipped(session, ref.ex, false));
         } else if (res.tapIndex === 2) {
-          if (ex.sets.some((set) => set.status === 'completed' || (set.id === session.training.currentSetId && (session.training.phase === 'active' || session.training.resumePhase === 'active')))) {
-            this.setData({ errorText: '已打卡或训练中的动作不可移除，请使用跳过剩余组。' });
+          if (ex.sets.some((set) => set.status === 'completed')) {
+            this.setData({ errorText: '已完成的动作不可移除，请使用跳过剩余组。' });
             return;
           }
           this.persistDraft(domain.removeSessionExercise(session, ref.ex));
@@ -369,13 +408,13 @@ Page({
 
   /** 临时加练:从动作库选 */
   onAddExercise() {
-    if (!this.canEdit()) return;
+    if (!this.canRecord() || !this.flushInputEdits()) return;
     wx.navigateTo({ url: '/pages/library/library?pick=1' });
   },
 
   /** 暂停:草稿已在本地,随时可以回来继续 */
   onPause() {
-    if (!this.canEdit()) return;
+    if (!this.canRecord() || !this.flushInputEdits()) return;
     this.persistDraft(domain.pauseTraining(this.data.session, Date.now()));
   },
 
@@ -385,33 +424,108 @@ Page({
   },
 
   onAdjustRest(e) {
-    if (!this.canEdit()) return;
+    if (!this.canRecord()) return;
     this.persistDraft(domain.adjustTrainingRest(this.data.session, Number(e.currentTarget.dataset.delta), Date.now()));
   },
 
   onSkipRest() {
-    if (!this.canEdit()) return;
+    if (!this.canRecord()) return;
     this.persistDraft(domain.skipTrainingRest(this.data.session));
   },
 
-  onUndoSet() {
-    if (!this.canEdit()) return;
-    this.persistDraft(domain.undoLastTrainingSet(this.data.session));
+  onStartRest() {
+    if (!this.canRecord() || !this.flushInputEdits()) return;
+    const session = this.data.session;
+    const next = domain.startTrainingRest(session, Date.now());
+    if (next === session) return;
+    if (this.persistDraft(next, false)) {
+      this.setData({ restExpanded: next.training.phase === 'rest' });
+      if (next.training.restNotified) this.notifyRest();
+    }
+  },
+
+  onExpandRest() {
+    if (this.canEdit() && this.data.restActive) this.setData({ restExpanded: true });
+  },
+
+  onCollapseRest() {
+    this.setData({ restExpanded: false });
+  },
+
+  onRestPreset(e) {
+    if (!this.canRecord()) return;
+    this.persistDraft(domain.setTrainingRestSeconds(this.data.session, Number(e.currentTarget.dataset.seconds), Date.now()));
+  },
+
+  onPauseRest() {
+    if (!this.canRecord()) return;
+    this.persistDraft(domain.pauseTrainingRest(this.data.session, Date.now()));
+  },
+
+  onResumeRest() {
+    if (!this.canRecord()) return;
+    this.persistDraft(domain.resumeTrainingRest(this.data.session, Date.now()));
+  },
+
+  onBlockTouch() {},
+
+  releaseConfirmation() {
+    this._confirming = false;
+    if (!this._unloaded) this.setData({ confirming: false });
   },
 
   /** 完成训练并提交:本地成立 → 入队 → 有网提交,无网重试 */
   onFinish() {
-    if (!this.canEdit() || this.data.editing) return;
+    if (!this.canRecord() || !this.flushInputEdits()) return;
     const { session } = this.data;
     if (!domain.canFinishTraining(session)) {
-      this.setData({ errorText: '需至少打卡一组，并处理所有待练组后才能完成训练。' });
+      this.setData({ errorText: '至少完成一组后才能结束训练。' });
       return;
     }
+    const progress = domain.getTrainingProgress(session);
+    if (!progress.pending) return this.completeSession(session);
+    this._confirming = true;
+    this.setData({ confirming: true });
+    return new Promise(resolve => {
+      wx.showModal({
+        title: '结束本次训练？',
+        content: `已完成 ${progress.completed} 组，剩余 ${progress.pending} 组将跳过。保存实际成绩后，计划进入下一训练日。`,
+        confirmText: '保存结束', cancelText: '继续记录',
+        success: result => {
+          this.releaseConfirmation();
+          if (!result.confirm || !this.canRecord()) { resolve(); return; }
+          // 系统弹窗期间可能切后台或从其他入口更新草稿，确认只对眼前版本生效。
+          try {
+            const latest = wx.getStorageSync(DRAFT_KEY);
+            if (!latest || JSON.stringify(latest) !== JSON.stringify(session)) {
+              this.setData({ errorText: '训练记录已变化，请重新读取后确认结束。' });
+              this.onShow();
+              resolve(); return;
+            }
+          } catch (err) { this.blockReload(); resolve(); return; }
+          resolve(this.completeSession(session));
+        },
+        fail: () => {
+          this.releaseConfirmation();
+          if (!this._unloaded) {
+            this.setData({ errorText: '结束确认打开失败，请重试。训练记录仍保留在本机。' });
+            wx.showToast({ title: '结束确认失败，请重试', icon: 'none' });
+          }
+          resolve();
+        },
+      });
+    });
+  },
+
+  completeSession(session) {
+    if (!this.canRecord()) return;
+    const prepared = domain.prepareTrainingCompletion(session);
+    if (!prepared) return;
     // 同步实例锁：在 complete 调用之前锁住全部编辑与 onShow。
     this._finishLocked = true;
     this.setData({ submitting: true, errorText: '' });
     let completion;
-    try { completion = queue.complete(session, Date.now()); } catch (err) { completion = Promise.reject(err); }
+    try { completion = queue.complete(prepared, Date.now()); } catch (err) { completion = Promise.reject(err); }
     return Promise.resolve(completion).then((completed) => {
       this.clearResources();
       if (this._unloaded) return;
@@ -427,7 +541,7 @@ Page({
     this._finishLocked = true;
     this.clearResources();
     this.setData({ session, submitting: false, showSummary: true, canFinish: false,
-      detail: null, editing: null, errorText: '', summary: this.formatSummary(session, []),
+      detail: null, restExpanded: false, restActive: false, errorText: '', summary: this.formatSummary(session, []),
     });
     // 固定本地小结先显示；云端历史比较失败/悬挂不影响完成。
     Promise.resolve().then(() => db.fetchSessions(20)).then((previous) => {
@@ -438,15 +552,32 @@ Page({
 
   formatSummary(session, previous) {
     const summary = domain.computeSummary(session, previous);
+    const comparison = summary.metricComparison;
+    const comparisons = [];
+    if (comparison) {
+      if (summary.weightedVolume > 0 || comparison.prevWeightedVolume > 0) comparisons.push({
+        label: '负重容量', diffText: `${comparison.weightedVolumeDiff >= 0 ? '+' : ''}${fmt.formatNumber(comparison.weightedVolumeDiff)} kg`,
+        improved: comparison.weightedVolumeDiff >= 0,
+      });
+      if (summary.bodyWeightReps > 0 || comparison.prevBodyWeightReps > 0) comparisons.push({
+        label: '自重次数', diffText: `${comparison.bodyWeightRepsDiff >= 0 ? '+' : ''}${fmt.formatNumber(comparison.bodyWeightRepsDiff)} 次`,
+        improved: comparison.bodyWeightRepsDiff >= 0,
+      });
+    }
     return {
       exerciseCount: summary.exerciseCount,
       totalVolume: fmt.formatNumber(summary.totalVolume),
-      duration: fmt.formatDuration(summary.durationSec),
-      comparison: summary.comparison ? {
-        volumeDiff: summary.comparison.volumeDiff,
-        diffText: `${summary.comparison.volumeDiff >= 0 ? '+' : ''}${fmt.formatNumber(summary.comparison.volumeDiff)} kg`,
-        improved: summary.comparison.volumeDiff >= 0,
-      } : null,
+      completedSets: summary.completedSets,
+      weightedVolume: fmt.formatNumber(summary.weightedVolume),
+      bodyWeightReps: fmt.formatNumber(summary.bodyWeightReps),
+      hasBodyWeight: session.exercises.some(ex => domain.isBodyWeight(ex) && domain.actualSets(ex).length),
+      duration: clockText(summary.durationSec),
+      date: fmt.formatDateLine(session.submittedAt),
+      comparisons,
+      exercises: session.exercises.filter(ex => domain.actualSets(ex).length).map((ex, index) => ({
+        key: index, name: ex.name, completed: domain.actualSets(ex).length,
+        volumeText: `${fmt.formatNumber(domain.computeVolume(ex))} ${domain.isBodyWeight(ex) ? '次' : 'kg'}`,
+      })),
     };
   },
 

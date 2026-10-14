@@ -1,6 +1,7 @@
 # ADR-0010：逐组显式结果与整场本地完成
 
 - 状态：已采纳，实现及自动验证落地，双轴复审通过；真机待验
+- 更新：逐组交互、草稿版本与间歇认领策略由 [ADR-0011](./0011-checklist-training-and-independent-rest.md) 细化；本地完成与历史不可变原则保留。
 - 相关文档：[逐组规格](../../.scratch/set-by-set-training/spec.md)、[领域契约](../../.scratch/set-by-set-training/implementation.md)、[并行提交契约](../../.scratch/set-by-set-training/integration-contract.md)
 
 ## Context（背景）

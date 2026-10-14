@@ -2,10 +2,10 @@
   <view class="topline">
     <text class="topline-label">训练记录</text>
     <text class="topline-hint" wx:if="{{pendingCount > 0}}">{{pendingCount}} 条待提交</text>
-    <text class="topline-hint" wx:else>仅展示已提交 session</text>
+    <text class="topline-hint" wx:else>已提交的训练</text>
   </view>
   <view class="page-title">记录</view>
-  <view class="page-subtitle">历史快照不会随计划修改而变化</view>
+  <view class="page-subtitle">记录保留当次训练数据，不受计划修改影响</view>
 
   <view class="record-tabs">
     <button class="record-tab {{view === 'sessions' ? 'active' : ''}}" data-view="sessions" bindtap="onSwitchView">训练场次</button>
@@ -40,13 +40,13 @@
       <picker mode="selector" range="{{exerciseNames}}" bindchange="onSelectExercise">
         <view class="picker-box">{{selectedExercise || '选择动作'}} ▾</view>
       </picker>
-      <button class="metric-btn" bindtap="onOpenMetricSheet">指标:{{metricLabel}}</button>
+      <button class="metric-btn" bindtap="onOpenMetricSheet">指标：{{metric === 'volume' ? '总容量' : (metric === 'topWeight' ? '最高重量' : metricLabel)}}</button>
     </view>
 
     <view class="chart-wrap" wx:if="{{!trendEmpty}}">
       <view class="chart-head">
         <text class="chart-title">{{selectedExercise}}</text>
-        <text class="chart-sub">{{isBodyWeight ? '纵轴:总次数(自重动作)' : '纵轴:volume(Σ 重量 × 次数)'}}</text>
+        <text class="chart-sub">{{isBodyWeight ? '纵轴：总次数（自重动作）' : '纵轴：总容量（重量 × 次数）'}}</text>
       </view>
       <view class="chart">
         <view class="chart-bars">
@@ -62,7 +62,7 @@
       <view class="empty-desc">完成包含该动作的训练后,趋势会出现在这里</view>
     </view>
 
-    <view class="record-footnote">纵轴默认使用总容量(重量 × 次数)。自重动作切换为总次数;top weight 与估算 1RM 预留为后续指标。</view>
+    <view class="record-footnote">负重动作展示总容量（重量 × 次数），自重动作展示总次数。</view>
   </block>
 
   <!-- 指标切换(预留) -->
@@ -76,7 +76,7 @@
         data-key="{{item.key}}"
         data-label="{{item.label}}"
         bindtap="onPickMetric"
-      >{{item.label}}</button>
+      >{{item.key === 'volume' ? '总容量' : (item.key === 'topWeight' ? '最高重量 · 预留' : item.label)}}</button>
     </view>
   </view>
 </view>

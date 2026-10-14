@@ -16,7 +16,6 @@ function plan(id = 'p') {
 }
 function finished(p = plan()) {
   let s = domain.snapshotSession(p);
-  s = domain.startTrainingSet(s, s.training.currentSetId, 100);
   return domain.completeTrainingSet(s, s.training.currentSetId, 200);
 }
 test('local completion resolves without network, survives restart and advances once', async () => {
@@ -240,4 +239,20 @@ test('original local save callback cannot resurrect a plan deleted after complet
   expect(db.getLocalPlans()).toEqual([]);
   expect(removed).toEqual(['cloud_saved']);
   expect(queue.getCompletedSession(final.id)).toEqual(final);
+});
+test('partial completion requires explicit preparation before queue can save or advance', async () => {
+  const { storage, queue, db } = environment();
+  const p = plan(); p.cycleDays[0].exercises[0].sets = 2;
+  storage['fitness:plans'] = [p];
+  let s = domain.snapshotSession(p);
+  s = domain.completeTrainingSet(s, 'set_2', 200);
+  storage['fitness:trainingDraft'] = s;
+  expect(domain.canFinishTraining(s)).toBe(true);
+  await expect(queue.complete(s, 500)).rejects.toThrow();
+  expect(queue.getCompletedSession(s.id)).toBeNull();
+  expect(storage['fitness:trainingDraft']).toBe(s);
+  expect(db.getLocalPlans()[0].cursor).toBe(0);
+  const final = await queue.complete(domain.prepareTrainingCompletion(s), 500);
+  expect(final.exercises[0].sets.map(set => set.status)).toEqual(['skipped', 'completed']);
+  expect(db.getLocalPlans()[0].cursor).toBe(1);
 });

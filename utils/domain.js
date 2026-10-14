@@ -109,7 +109,7 @@ function snapshotSession(plan) {
         name: item.name || '',
         equipment: item.equipment || '',
         skipped: false,
-        flowVersion: 1,
+        flowVersion: 2,
         sets,
       };
     }),
@@ -121,6 +121,7 @@ function snapshotSession(plan) {
  * 从草稿中移除一个动作(跳过/临时不练)。
  */
 function removeSessionExercise(session, index) {
+  if (session && session.training && session.training.phase === 'paused') return session;
   if (!session || !Array.isArray(session.exercises)) {
     return session;
   }
@@ -135,6 +136,7 @@ function removeSessionExercise(session, index) {
  * 向草稿追加一个动作(临时加练),预填一组空白 set。
  */
 function addSessionExercise(session, exercise) {
+  if (session && session.training && session.training.phase === 'paused') return session;
   if (!session || !Array.isArray(session.exercises) || !exercise) return session;
   const next = clone(session);
   next.exercises.push({
@@ -142,7 +144,7 @@ function addSessionExercise(session, exercise) {
     name: exercise.name || '',
     equipment: exercise.equipment || '',
     skipped: false,
-    flowVersion: 1,
+    flowVersion: 2,
     sets: [allocatePendingSet(next)],
   });
   return reconcileTraining(next);
@@ -152,6 +154,7 @@ function addSessionExercise(session, exercise) {
  * 更新草稿中某组数据。field: 'weight' | 'reps';空值保持 null。
  */
 function updateSessionSet(session, exIndex, setIndex, field, value) {
+  if (session && session.training && session.training.phase === 'paused') return session;
   if (!session || !Array.isArray(session.exercises) || !['weight', 'reps'].includes(field)) return session;
   if (!Number.isInteger(exIndex) || exIndex < 0 || !Number.isInteger(setIndex) || setIndex < 0) return session;
   const ex = session.exercises[exIndex];
@@ -166,17 +169,22 @@ function updateSessionSet(session, exIndex, setIndex, field, value) {
 }
 
 function addSessionSet(session, exIndex) {
+  if (session && session.training && session.training.phase === 'paused') return session;
   if (!session || !Array.isArray(session.exercises) || !Number.isInteger(exIndex) ||
       exIndex < 0 || exIndex >= session.exercises.length) return session;
   const next = clone(session);
   const ex = next.exercises[exIndex];
   if (ex) {
-    ex.sets.push(allocatePendingSet(next));
+    const last = ex.sets[ex.sets.length - 1];
+    const set = allocatePendingSet(next);
+    if (last) Object.assign(set, { weight: last.weight, reps: last.reps });
+    ex.sets.push(set);
   }
   return reconcileTraining(next);
 }
 
 function removeSessionSet(session, exIndex, setIndex) {
+  if (session && session.training && session.training.phase === 'paused') return session;
   if (!session || !Array.isArray(session.exercises) || !Number.isInteger(exIndex) ||
       exIndex < 0 || exIndex >= session.exercises.length) return session;
   if (!Number.isInteger(setIndex) || setIndex < 0) return session;
@@ -185,16 +193,14 @@ function removeSessionSet(session, exIndex, setIndex) {
   if (ex && ex.sets.length > 1 && Number.isInteger(setIndex) && setIndex >= 0) {
     const set = ex.sets[setIndex];
     if (!set) return session;
-    const active = next.training && (next.training.phase === 'active' ||
-      (next.training.phase === 'paused' && next.training.resumePhase === 'active'));
-    if (isTrainingExercise(ex) && (setIndex !== ex.sets.length - 1 ||
-        set.status === 'completed' || (active && set.id === next.training.currentSetId))) return session;
+    if (set.status === 'completed') return session;
     ex.sets.splice(setIndex, 1);
   }
   return reconcileTraining(next);
 }
 
 function setExerciseSkipped(session, exIndex, skipped) {
+  if (session && session.training && session.training.phase === 'paused') return session;
   if (!session || !Array.isArray(session.exercises) || !Number.isInteger(exIndex) ||
       exIndex < 0 || exIndex >= session.exercises.length) return session;
   const next = clone(session);
@@ -213,23 +219,41 @@ function setExerciseSkipped(session, exIndex, skipped) {
 // ===== 逐组草稿控制（状态迁移不读取真实时间） =====
 /** 只升级本地未提交旧草稿，历史 records 永不改写。 */
 function upgradeTrainingDraft(session) {
-  if (!session || (session.submittedAt !== null && session.submittedAt !== undefined) || session.flowVersion === 1) return session;
+  if (!session || (session.submittedAt !== null && session.submittedAt !== undefined) || session.flowVersion === 2) return session;
   const next = clone(session);
-  let nextSetId = 1;
-  next.exercises = (next.exercises || []).map(ex => ({ ...ex, flowVersion: 1,
-    sets: (ex.sets && ex.sets.length ? ex.sets : [{}]).map(set => ({
-      ...pendingSet(nextSetId++, set.weight, set.reps), status: ex.skipped ? 'skipped' : 'pending',
-    })),
+  next.flowVersion = 2;
+  // 保留已有稳定身份；只给缺 ID 的旧组分配新身份。
+  const usedIds = new Set(trainingSets(next).map(set => set.id).filter(Boolean));
+  let nextSetId = Math.max(1, Number.isInteger(next.nextSetId) ? next.nextSetId : 1);
+  usedIds.forEach(id => {
+    const number = Number(String(id).replace(/^set_/, ''));
+    if (Number.isInteger(number)) nextSetId = Math.max(nextSetId, number + 1);
+  });
+  next.exercises = (next.exercises || []).map(ex => ({ ...ex, flowVersion: 2,
+    sets: (ex.sets && ex.sets.length ? ex.sets : [{}]).map(set => {
+      const id = set.id || `set_${nextSetId++}`;
+      return { ...set, id, status: set.status || (ex.skipped ? 'skipped' : 'pending') };
+    }),
   }));
-  return initializeTraining(next, nextSetId);
+  const previousTraining = next.training;
+  initializeTraining(next, nextSetId);
+  if (previousTraining) {
+    Object.assign(next.training, previousTraining, {
+      phase: previousTraining.phase === 'active' ? 'ready' : previousTraining.phase,
+      resumePhase: previousTraining.resumePhase === 'active' ? 'ready' : previousTraining.resumePhase,
+      restPaused: !!previousTraining.restPaused,
+    });
+    delete next.training.undoSetId;
+  }
+  return reconcileTraining(next);
 }
 
 function initializeTraining(session, nextSetId) {
-  session.flowVersion = 1;
+  session.flowVersion = 2;
   session.nextSetId = nextSetId;
   session.training = { phase: 'ready', currentSetId: null, restSeconds: 90,
-    restEndsAt: null, restRemainingSec: null, restNotified: false,
-    restSkipped: false, undoSetId: null, resumePhase: null };
+    restEndsAt: null, restRemainingSec: null, restPaused: false, restNotified: false,
+    restSkipped: false, resumePhase: null };
   return reconcileTraining(session);
 }
 
@@ -241,25 +265,18 @@ function reconcileTraining(session) {
   if (!session.training) return session;
   const t = session.training;
   const pending = trainingSets(session).filter(set => set.status === 'pending');
+  t.currentSetId = pending.length ? pending[0].id : null;
   const phase = t.phase === 'paused' ? t.resumePhase : t.phase;
-  if (phase !== 'active' || !pending.some(set => set.id === t.currentSetId)) {
-    t.currentSetId = pending.length ? pending[0].id : null;
-    const nextPhase = pending.length ? (phase === 'rest' ? 'rest' : 'ready') : 'finished';
-    if (t.phase === 'paused') t.resumePhase = nextPhase;
-    else t.phase = nextPhase;
-    if (nextPhase === 'finished') {
-      t.restEndsAt = null;
-      t.restRemainingSec = null;
-    }
-  }
+  // 记录变更不触碰间歇，即使最后一个 pending 被完成/跳过/删除。
+  const nextPhase = phase === 'rest' ? 'rest' : (pending.length ? 'ready' : 'finished');
+  if (t.phase === 'paused') t.resumePhase = nextPhase;
+  else t.phase = nextPhase;
   return session;
 }
 
 function canFinishTraining(session) {
-  if (!session || !session.training || session.training.phase !== 'finished') return false;
-  const sets = trainingSets(session);
-  return sets.some(set => set.status === 'completed') &&
-    sets.every(set => set.status === 'completed' || set.status === 'skipped');
+  return !!session && !!session.training && session.training.phase !== 'paused' &&
+    trainingSets(session).some(set => set.status === 'completed');
 }
 
 function findTrainingSet(session, setId) {
@@ -268,16 +285,6 @@ function findTrainingSet(session, setId) {
     if (set) return { exercise, set };
   }
   return null;
-}
-
-function startTrainingSet(session, setId, now) {
-  if (!session || !session.training || !Number.isFinite(now) ||
-      session.training.phase !== 'ready' || session.training.currentSetId !== setId ||
-      !findTrainingSet(session, setId)) return session;
-  const next = clone(session);
-  next.training.phase = 'active';
-  next.training.undoSetId = null;
-  return next;
 }
 
 function validateTrainingSet(exercise, set) {
@@ -292,55 +299,79 @@ function validateTrainingSet(exercise, set) {
 }
 
 function completeTrainingSet(session, setId, now) {
-  if (!session || !session.training || !Number.isFinite(now) ||
-      session.training.phase !== 'active' || session.training.currentSetId !== setId) return session;
+  if (!session || !session.training || !Number.isFinite(now) || session.training.phase === 'paused') return session;
   const current = findTrainingSet(session, setId);
   const values = current && validateTrainingSet(current.exercise, current.set);
   if (!values || current.set.status !== 'pending') return session;
   const next = clone(session);
   Object.assign(findTrainingSet(next, setId).set, values, { status: 'completed' });
-  next.training.phase = 'ready';
-  next.training.undoSetId = setId;
-  next.training.restEndsAt = null;
-  next.training.restRemainingSec = null;
-  next.training.restNotified = false;
-  next.training.restSkipped = false;
-  reconcileTraining(next);
-  if (next.training.currentSetId) {
-    next.training.phase = 'rest';
-    next.training.restEndsAt = now + next.training.restSeconds * 1000;
-  }
-  return tickTrainingRest(next, now);
+  return reconcileTraining(next);
+}
+
+function uncompleteTrainingSet(session, setId) {
+  if (!session || !session.training || session.training.phase === 'paused') return session;
+  const current = findTrainingSet(session, setId);
+  if (!current || current.set.status !== 'completed') return session;
+  const next = clone(session);
+  findTrainingSet(next, setId).set.status = 'pending';
+  return reconcileTraining(next);
 }
 
 function getRestRemainingSec(session, now) {
   const t = session && session.training;
-  if (!t) return 0;
-  if (t.phase === 'paused' && t.resumePhase === 'rest') return t.restRemainingSec;
-  if (t.phase !== 'rest' || !Number.isFinite(now)) return 0;
+  if (!t || (t.phase !== 'rest' && !(t.phase === 'paused' && t.resumePhase === 'rest'))) return 0;
+  if (t.phase === 'paused' || t.restPaused) return Math.max(0, t.restRemainingSec || 0);
+  if (!Number.isFinite(now)) return 0;
   return Math.max(0, Math.ceil((t.restEndsAt - now) / 1000));
+}
+
+function clearTrainingRest(session, notified, skipped = false) {
+  const t = session.training;
+  if (t.phase === 'paused') t.resumePhase = 'ready';
+  else t.phase = 'ready';
+  Object.assign(t, { restEndsAt: null, restRemainingSec: null, restPaused: false,
+    restNotified: notified, restSkipped: skipped });
+  return reconcileTraining(session);
 }
 
 function tickTrainingRest(session, now) {
   if (!session || !session.training || !Number.isFinite(now) ||
-      session.training.phase !== 'rest' || getRestRemainingSec(session, now) > 0) return session;
+      session.training.phase !== 'rest' || session.training.restPaused ||
+      getRestRemainingSec(session, now) > 0) return session;
+  return clearTrainingRest(clone(session), true);
+}
+
+function startTrainingRest(session, now) {
+  if (!Number.isFinite(now) || !canFinishTraining(session)) return session;
   const next = clone(session);
-  next.training.phase = 'ready';
-  next.training.restEndsAt = null;
-  next.training.restRemainingSec = null;
-  next.training.restNotified = true;
-  return reconcileTraining(next);
+  Object.assign(next.training, { phase: 'rest', restEndsAt: now + next.training.restSeconds * 1000,
+    restRemainingSec: null, restPaused: false, restNotified: false, restSkipped: false });
+  return tickTrainingRest(next, now);
+}
+
+function pauseTrainingRest(session, now) {
+  if (!session || !session.training || !Number.isFinite(now) ||
+      session.training.phase !== 'rest' || session.training.restPaused) return session;
+  const settled = tickTrainingRest(session, now);
+  if (settled.training.phase !== 'rest') return settled;
+  const next = clone(settled);
+  Object.assign(next.training, { restPaused: true,
+    restRemainingSec: getRestRemainingSec(settled, now), restEndsAt: null });
+  return next;
+}
+
+function resumeTrainingRest(session, now) {
+  if (!session || !session.training || !Number.isFinite(now) ||
+      session.training.phase !== 'rest' || !session.training.restPaused) return session;
+  const next = clone(session);
+  Object.assign(next.training, { restPaused: false,
+    restEndsAt: now + next.training.restRemainingSec * 1000, restRemainingSec: null });
+  return tickTrainingRest(next, now);
 }
 
 function skipTrainingRest(session) {
   if (!session || !session.training || session.training.phase !== 'rest') return session;
-  const next = clone(session);
-  next.training.phase = 'ready';
-  next.training.restEndsAt = null;
-  next.training.restRemainingSec = null;
-  next.training.restNotified = false;
-  next.training.restSkipped = true;
-  return reconcileTraining(next);
+  return clearTrainingRest(clone(session), false, true);
 }
 
 function pauseTraining(session, now) {
@@ -362,11 +393,24 @@ function resumeTraining(session, now) {
   const t = next.training;
   t.phase = t.resumePhase;
   t.resumePhase = null;
-  if (t.phase === 'rest') {
+  if (t.phase === 'rest' && !t.restPaused) {
     t.restEndsAt = now + t.restRemainingSec * 1000;
     t.restRemainingSec = null;
   }
   return tickTrainingRest(reconcileTraining(next), now);
+}
+
+function setTrainingRestSeconds(session, seconds, now) {
+  if (!session || !session.training || !Number.isFinite(now) ||
+      ![60, 90, 120, 180].includes(seconds)) return session;
+  const next = clone(tickTrainingRest(session, now));
+  const t = next.training;
+  t.restSeconds = seconds;
+  if (t.phase === 'rest' || (t.phase === 'paused' && t.resumePhase === 'rest')) {
+    if (t.phase === 'paused' || t.restPaused) t.restRemainingSec = seconds;
+    else t.restEndsAt = now + seconds * 1000;
+  }
+  return next;
 }
 
 function adjustTrainingRest(session, deltaSec, now) {
@@ -376,34 +420,18 @@ function adjustTrainingRest(session, deltaSec, now) {
   const next = clone(tickTrainingRest(session, now));
   const t = next.training;
   t.restSeconds = Math.max(0, t.restSeconds + deltaSec);
-  if (t.phase === 'rest') {
+  if (t.phase === 'rest' || (t.phase === 'paused' && t.resumePhase === 'rest')) {
     const remaining = Math.max(0, getRestRemainingSec(next, now) + deltaSec);
-    t.restEndsAt = now + remaining * 1000;
-  } else if (t.phase === 'paused' && t.resumePhase === 'rest') {
-    t.restRemainingSec = Math.max(0, t.restRemainingSec + deltaSec);
-    if (t.restRemainingSec === 0) {
-      t.resumePhase = t.currentSetId ? 'ready' : 'finished';
-      t.restRemainingSec = null;
-      t.restNotified = true;
-    }
+    if (t.phase === 'paused' || t.restPaused) {
+      t.restRemainingSec = remaining;
+      if (remaining === 0) return clearTrainingRest(next, true);
+    } else t.restEndsAt = now + remaining * 1000;
   }
   return tickTrainingRest(next, now);
 }
 
-function undoLastTrainingSet(session) {
-  const t = session && session.training;
-  if (!t || !t.undoSetId || !['rest', 'ready', 'finished'].includes(t.phase)) return session;
-  const current = findTrainingSet(session, t.undoSetId);
-  if (!current || current.set.status !== 'completed') return session;
-  const next = clone(session);
-  findTrainingSet(next, t.undoSetId).set.status = 'pending';
-  Object.assign(next.training, { phase: 'active', currentSetId: t.undoSetId,
-    undoSetId: null, restEndsAt: null, restRemainingSec: null,
-    restNotified: false, restSkipped: false });
-  return next;
-}
-
 function editTrainingSet(session, setId, values) {
+  if (session && session.training && session.training.phase === 'paused') return session;
   if (!session || !values || !Object.prototype.hasOwnProperty.call(values, 'weight') || !Object.prototype.hasOwnProperty.call(values, 'reps')) return session;
   const current = findTrainingSet(session, setId);
   if (!current) return session;
@@ -423,9 +451,20 @@ function getTrainingProgress(session) {
   return { completed, pending, skipped, total, ratio: total ? completed / total : 0 };
 }
 
+/** 页面确认部分完成后调用；零成绩/整场暂停返回 null。不保存、不入队。 */
+function prepareTrainingCompletion(session) {
+  if (!canFinishTraining(session) || (session.submittedAt !== null && session.submittedAt !== undefined)) return null;
+  const next = clone(session);
+  trainingSets(next).forEach(set => {
+    if (set.status === 'pending') set.status = 'skipped';
+  });
+  return clearTrainingRest(next, false);
+}
+
 /** 整场可提交快照；不存储、不入队、不推进游标。拒绝返回 null。 */
 function finalizeTrainingSession(session, now) {
   if (!Number.isFinite(now) || !canFinishTraining(session) ||
+      trainingSets(session).some(set => set.status === 'pending') ||
       (session.submittedAt !== null && session.submittedAt !== undefined)) return null;
   const next = clone(session);
   next.submittedAt = now;
@@ -435,7 +474,7 @@ function finalizeTrainingSession(session, now) {
 }
 
 function isTrainingExercise(exercise) {
-  return !!exercise && (exercise.flowVersion === 1 || (exercise.sets || []).some(set => set.status !== undefined));
+  return !!exercise && (exercise.flowVersion === 1 || exercise.flowVersion === 2 || (exercise.sets || []).some(set => set.status !== undefined));
 }
 
 function actualSets(exercise) {
@@ -478,6 +517,19 @@ function computeSessionTotalVolume(session) {
   }, 0);
 }
 
+/** 单位分离的小结指标；旧历史依原成绩读取，跳过 legacy skipped。 */
+function computeSessionMetrics(session) {
+  const metrics = { completedSets: 0, weightedVolume: 0, bodyWeightReps: 0 };
+  for (const ex of (session && session.exercises) || []) {
+    if (!isTrainingExercise(ex) && ex.skipped) continue;
+    const sets = actualSets(ex);
+    metrics.completedSets += sets.length;
+    if (isBodyWeight(ex)) metrics.bodyWeightReps += computeVolume(ex);
+    else metrics.weightedVolume += computeVolume(ex);
+  }
+  return metrics;
+}
+
 /**
  * 新流程仅计含 completed 的动作；旧历史保持非 skipped 动作数口径。
  */
@@ -510,8 +562,18 @@ function computeSummary(session, previousSessions) {
     )
     .sort((a, b) => b.submittedAt - a.submittedAt)[0];
 
+  const metrics = computeSessionMetrics(session);
+  let metricComparison = null;
   let comparison = null;
   if (prev) {
+    const prevMetrics = computeSessionMetrics(prev);
+    metricComparison = {
+      weightedVolumeDiff: metrics.weightedVolume - prevMetrics.weightedVolume,
+      bodyWeightRepsDiff: metrics.bodyWeightReps - prevMetrics.bodyWeightReps,
+      prevWeightedVolume: prevMetrics.weightedVolume,
+      prevBodyWeightReps: prevMetrics.bodyWeightReps,
+      prevDate: prev.submittedAt,
+    };
     const prevVolume = computeSessionTotalVolume(prev);
     comparison = {
       volumeDiff: totalVolume - prevVolume,
@@ -521,6 +583,8 @@ function computeSummary(session, previousSessions) {
   }
 
   return {
+    ...metrics,
+    metricComparison,
     exerciseCount,
     totalVolume,
     durationSec,
@@ -583,7 +647,13 @@ module.exports = {
   upgradeTrainingDraft,
   getTrainingProgress,
   editTrainingSet,
-  undoLastTrainingSet,
+  uncompleteTrainingSet,
+  startTrainingRest,
+  pauseTrainingRest,
+  resumeTrainingRest,
+  setTrainingRestSeconds,
+  prepareTrainingCompletion,
+  computeSessionMetrics,
   adjustTrainingRest,
   pauseTraining,
   resumeTraining,
@@ -591,7 +661,6 @@ module.exports = {
   tickTrainingRest,
   skipTrainingRest,
   validateTrainingSet,
-  startTrainingSet,
   completeTrainingSet,
   buildSessionSets,
   canFinishTraining,

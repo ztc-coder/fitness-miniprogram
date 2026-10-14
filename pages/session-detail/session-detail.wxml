@@ -1,5 +1,5 @@
 <view class="page" wx:if="{{session}}">
-  <view class="kicker">训练快照 · 独立副本</view>
+  <view class="kicker">当次训练记录</view>
   <view class="page-title">{{session.dayName}}</view>
   <view class="page-subtitle">{{dateLine}} · {{session.planName}}</view>
 
@@ -30,5 +30,5 @@
     <view wx:else class="skipped-note">当次已跳过</view>
   </view>
 
-  <view class="note-card">这条记录来自当次 session 的独立副本。之后编辑计划不会改写这里的动作和数据。</view>
+  <view class="note-card">这里保留当次训练的动作和数据，之后编辑计划不会改变这条记录。</view>
 </view>

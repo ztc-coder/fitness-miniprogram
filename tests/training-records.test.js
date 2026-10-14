@@ -12,11 +12,11 @@ const settled = async () => { for(let i=0;i<20;i++) await Promise.resolve(); };
 function draft() {
   return domain.snapshotSession({id:'p',cursor:0,cycleDays:[{dayId:'a',exercises:[{exerciseId:'0025',name:'卧推',equipment:'barbell',sets:4,targetWeight:20,targetReps:10}]}]});
 }
-test('today start preserves existing paused draft and resume explicitly upgrades legacy without resuming pause', () => {
+test('today resume preserves existing paused draft and explicitly upgrades legacy without resuming pause', () => {
   const { page, storage } = setup('../pages/today/today');
   const paused = domain.pauseTraining(draft(), 100);
   storage['fitness:trainingDraft'] = paused;
-  page.onStartTraining();
+  page.onResumeDraft();
   expect(storage['fitness:trainingDraft']).toEqual(paused);
   expect(wx.navigateTo).toHaveBeenCalled();
   page.onResumeDraft();
@@ -28,7 +28,7 @@ test('today start preserves existing paused draft and resume explicitly upgrades
 });
 test('library upgrades legacy draft, preserves rest and stable IDs, never navigates on write failure', () => {
   const { page, storage } = setup('../pages/library/library');
-  let s = draft(); s = domain.startTrainingSet(s,s.training.currentSetId,100); s = domain.completeTrainingSet(s,s.training.currentSetId,200);
+  let s = draft(); s = domain.completeTrainingSet(s,s.training.currentSetId,200); s = domain.startTrainingRest(s,200);
   storage['fitness:trainingDraft'] = s;
   page.data.pickMode = true;
   page.onQuickAdd({currentTarget:{dataset:{id:'0043'}}});
@@ -46,7 +46,7 @@ test('library upgrades legacy draft, preserves rest and stable IDs, never naviga
 });
 test('offline detail and trend keep completed volume on partially skipped exercise, suppress skipped targets', async () => {
   const { page, storage } = setup('../pages/records/records');
-  let s = draft(); s = domain.startTrainingSet(s,s.training.currentSetId,100); s = domain.completeTrainingSet(s,s.training.currentSetId,200); s = domain.setExerciseSkipped(s,0,true);
+  let s = draft(); s = domain.completeTrainingSet(s,s.training.currentSetId,200); s = domain.setExerciseSkipped(s,0,true);
   const final = await require('../utils/queue').complete(s,500);
   page.data.view = 'trend'; page.onShow(); await settled();
   expect(page.data.sessions[0].volume).toBe('200 kg');
@@ -61,7 +61,7 @@ test('offline detail and trend keep completed volume on partially skipped exerci
 });
 test('completed residual drafts cannot restart or accept library additions even if deletion fails', async () => {
   const { page, storage } = setup('../pages/today/today');
-  let s = draft(); s = domain.startTrainingSet(s,s.training.currentSetId,100); s = domain.completeTrainingSet(s,s.training.currentSetId,200); s = domain.setExerciseSkipped(s,0,true);
+  let s = draft(); s = domain.completeTrainingSet(s,s.training.currentSetId,200); s = domain.setExerciseSkipped(s,0,true);
   await require('../utils/queue').complete(s,500);
   storage['fitness:trainingDraft'] = s;
   wx.removeStorageSync = () => {throw Error('full');};
@@ -78,7 +78,7 @@ test('legacy submitted history stays unchanged while untrained new exercises are
   const legacy = { _id:'legacy', startedAt:100, submittedAt:200, exercises:[{name:'旧成绩',equipment:'barbell',sets:[{weight:30,reps:5}]}] };
   const pending = domain.snapshotSession({id:'p',cycleDays:[{dayId:'a',exercises:[{name:'未练',sets:1,targetWeight:50,targetReps:10}]}],cursor:0});
   storage['fitness:pendingQueue'] = [legacy];
-  let s = draft(); s = domain.startTrainingSet(s,s.training.currentSetId,100); s = domain.completeTrainingSet(s,s.training.currentSetId,200); s = domain.setExerciseSkipped(s,0,true);
+  let s = draft(); s = domain.completeTrainingSet(s,s.training.currentSetId,200); s = domain.setExerciseSkipped(s,0,true);
   s = domain.addSessionExercise(s,{name:'未练',equipment:'barbell'}); s = domain.setExerciseSkipped(s,1,true);
   await require('../utils/queue').complete(s,500);
   page.data.view = 'trend'; page.refresh(); await settled();

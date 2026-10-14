@@ -3,7 +3,7 @@
   <view class="page-header">
     <view class="topline">
       <view class="topline-left">
-        <text class="topline-label">CYCLE DECK</text>
+        <text class="topline-label">FORGE</text>
         <view class="topline-dot {{activePlan ? 'on' : ''}}"></view>
       </view>
       <button
@@ -14,18 +14,17 @@
       >{{editing ? '完成' : '编辑'}}</button>
     </view>
     <view class="page-title">计划</view>
-    <view class="page-subtitle">active 计划决定今天显示的训练日 · 完成才推进</view>
+    <view class="page-subtitle">按顺序训练，完成一天再进入下一天</view>
   </view>
 
   <block wx:if="{{activePlan}}">
     <!-- active 计划卡：进度浮层 + 循环轨道 -->
     <view class="plan-card">
-      <view class="plan-card-glow" aria-hidden="true"></view>
       <view class="plan-card-head">
         <view class="plan-card-info">
-          <view class="plan-card-kicker">ACTIVE PLAN</view>
+          <view class="plan-card-kicker">当前计划</view>
           <view class="plan-card-title">{{activePlan.name}}</view>
-          <view class="plan-card-sub">完成驱动 · {{activePlan.cycleDays.length}} 个训练日</view>
+          <view class="plan-card-sub">循环训练 · {{activePlan.cycleDays.length}} 个训练日</view>
         </view>
         <view class="plan-card-action">
           <button
@@ -57,7 +56,7 @@
 
       <view class="plan-card-note">
         <text class="plan-card-note-mark mono">{{activePlan.cursor + 1}}</text>
-        <text class="plan-card-note-text">游标停在第 {{activePlan.cursor + 1}} 天，未打卡不会跳过</text>
+        <text class="plan-card-note-text">当前第 {{activePlan.cursor + 1}} 天，未打卡不会跳过</text>
       </view>
     </view>
 
@@ -128,7 +127,7 @@
               <text wx:if="{{item.active}}" class="all-plan-badge">当前使用</text>
             </view>
             <view class="all-plan-meta">
-              游标第 <text class="mono highlight">{{item.cursor + 1}}</text> 天 · <text class="mono highlight">{{item.cycleDays.length}}</text> 个训练日
+              当前第 <text class="mono highlight">{{item.cursor + 1}}</text> 天 · <text class="mono highlight">{{item.cycleDays.length}}</text> 个训练日
             </view>
           </view>
           <view class="all-plan-actions">
@@ -159,7 +158,7 @@
   <view wx:else class="empty-state">
     <view class="empty-glyph">◔</view>
     <view class="empty-title">还没有训练计划</view>
-    <view class="empty-desc">第 N 天循环，不绑定星期几，完成才推进</view>
+    <view class="empty-desc">按训练日循环，不绑定星期几；完成后进入下一天</view>
     <button class="primary-button empty-btn" bindtap="onNewPlan" hover-class="primary-press" hover-stay-time="80">创建第一个计划</button>
   </view>
 </view>

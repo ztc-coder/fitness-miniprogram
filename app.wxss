@@ -1,23 +1,18 @@
-/* ============================================================
-   设计系统:训练日志 / 晴空青黄(方向 B)
-   轻快明亮风 —— 薄荷纸为底,青色驱动行动,黄色标记进度与 active
-   签名元素:巨型描边游标数字(DAY 01),全站仅此一件
-   结构编码:字标 01 02 03 = 第 N 天循环的顺序;黄色点 = 游标
-   ============================================================ */
+/* FORGE：全站深墨绿、清晰成绩数字与信号绿行动，原生页面共享同一色板。 */
 page {
   /* color */
-  --bg: #dff0eb;
-  --surface: #ffffff;
-  --surface-2: #e8f2ee;
-  --line: #dcebe5;
-  --line-strong: rgba(21, 59, 58, 0.18);
-  --ink: #153b3a;
-  --ink-dim: #6f8780;
-  --ink-faint: rgba(21, 59, 58, 0.45);
-  --signal: #16bfae;
-  --signal-ink: #ffffff;
-  --amber: #ffd84a;
-  --danger: #e5533d;
+  --bg: #0c1613;
+  --surface: #14211c;
+  --surface-2: #22352b;
+  --line: #2a3b32;
+  --line-strong: #3c5144;
+  --ink: #eef5f1;
+  --ink-dim: #a2b5aa;
+  --ink-faint: #91a89a;
+  --signal: #3ddc97;
+  --signal-ink: #092518;
+  --amber: #ffb020;
+  --danger: #ff8f7c;
 
   /* type scale(rpx) */
   --t-hero: 128rpx;
@@ -45,6 +40,7 @@ button {
   background: transparent;
   font: inherit;
   line-height: inherit;
+  color: inherit;
 }
 
 button::after {
@@ -92,7 +88,7 @@ button::after {
 }
 
 /* ===== 通用按钮 ===== */
-.primary-button {
+.primary-button.primary-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,10 +97,12 @@ button::after {
   padding: 18rpx 28rpx;
   color: var(--signal-ink);
   background: var(--signal);
-  border-radius: 999rpx;
-  font-size: 32rpx;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  border-radius: 28rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin: 0;
+  line-height: 1.4;
   transition: opacity 0.15s ease;
 }
 
@@ -112,7 +110,7 @@ button::after {
   opacity: 0.82;
 }
 
-.ghost-button {
+.ghost-button.ghost-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,7 +119,10 @@ button::after {
   color: var(--ink-dim);
   background: transparent;
   border: 1rpx solid var(--line-strong);
-  border-radius: 999rpx;
+  width: 100%;
+  margin: 0;
+  line-height: 1.4;
+  border-radius: 24rpx;
   font-size: var(--t-meta);
 }
 
@@ -167,8 +168,8 @@ button::after {
 .note-card {
   padding: 24rpx;
   color: var(--ink-dim);
-  background: rgba(255, 216, 74, 0.16);
-  border: 1rpx dashed rgba(217, 200, 121, 0.9);
+  background: var(--surface-2);
+  border: 1rpx solid var(--line-strong);
   border-radius: 16rpx;
   font-size: var(--t-kicker);
   line-height: 1.6;
