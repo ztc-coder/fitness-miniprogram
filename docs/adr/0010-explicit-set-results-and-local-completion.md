@@ -1,6 +1,6 @@
 # ADR-0010：逐组显式结果与整场本地完成
 
-- 状态：已采纳，实现落地，自动验证已执行；修复待复审，真机待验
+- 状态：已采纳，实现及自动验证落地，双轴复审通过；真机待验
 - 相关文档：[逐组规格](../../.scratch/set-by-set-training/spec.md)、[领域契约](../../.scratch/set-by-set-training/implementation.md)、[并行提交契约](../../.scratch/set-by-set-training/integration-contract.md)
 
 ## Context（背景）

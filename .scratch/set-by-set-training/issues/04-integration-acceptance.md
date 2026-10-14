@@ -5,7 +5,7 @@ status: open
 created: 2026-10-14
 ---
 
-01–03 实现已集成，自动验证已执行；双轴修复待复审，真机无证据，整体尚未验收。依据 [spec](../spec.md) §6；依赖 01–03。实际检查见 [acceptance.md](../acceptance.md)，真机证据清单见 [manual-acceptance.md](../manual-acceptance.md)。
+01–03 实现已集成，自动回归无新增失败，双轴复审均 APPROVE。真机无证据，整体尚未验收，保持 ready-for-human / open。依据 [spec](../spec.md) §6；依赖 01–03。实际检查见 [acceptance.md](../acceptance.md)，真机证据清单见 [manual-acceptance.md](../manual-acceptance.md)。
 
 ## 自动验收
 

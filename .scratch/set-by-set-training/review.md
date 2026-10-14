@@ -1,6 +1,6 @@
 # 集成双轴审查
 
-固定比较：`git diff 0850414189c6ebbf6c4f42469b8ebaa336490fce...afec2c5598804a04727bb5a95981e1976b8a0e8d`。Standards 与 Spec 独立并行审查，以下不跨轴合并或重新排序。原始两轴发现保留；本轮实现修复与自动验证记录见末尾，待独立复审。
+初审固定比较：`git diff 0850414189c6ebbf6c4f42469b8ebaa336490fce...afec2c5598804a04727bb5a95981e1976b8a0e8d`。Standards 与 Spec 独立并行审查，以下不跨轴合并或重新排序。原始两轴发现保留；统一修复已合入 `26c83c1`，独立双轴复审均 APPROVE，结果见末尾。
 
 ## Standards
 
@@ -30,7 +30,7 @@ Possible Duplicated Code / Shotgun Surgery：详情页多次判断 `flowVersion/
 ## 汇总
 
 Standards：2 个硬问题（最高 P1），1 项判断性维护建议。Spec：3 个问题（最高 P1）。两轴独立保留；实际修复包含共同报告的计划删除问题、队列判定、重载保护、零秒提醒，并处理兼容识别重复。由单个实现代理统一修复，再定向复验。
-## 本轮修复记录（待独立复审）
+## 本轮修复记录
 
 原始 Standards / Spec 发现和 REQUEST_CHANGES 保持独立，不删除共同的计划删除发现。修复与实际新增回归见 [acceptance.md](acceptance.md) 的“双轴统一修复”节。
 
@@ -41,4 +41,27 @@ Standards：2 个硬问题（最高 P1），1 项判断性维护建议。Spec：
 - Spec P1 重载：新草稿直接采用快照；读取/升级写失败关闭写入，WXML 显式重试；所有写事件直到重载成功才解锁。
 - Spec P2 提醒：以非空最近完成 setId 辨认新认领，连续零秒分别提醒；先成功存储，final/skip/双击/重进不补响。
 
-定向 JSON success=true（182 passed / 25 skipped / 0 failed）；全量 JSON success=false（366 passed / 29 skipped / 唯一已知 catalog 缺源失败）。阈值未改，domain branches 89%。未执行独立复审或设备验证，不能将本记录解读为审查通过。
+修复代理定向 JSON success=true（182 passed / 25 skipped / 0 failed）；合并后协调者指定 10 套件为 186 passed / 25 skipped / 0 failed。全量 JSON success=false（366 passed / 29 skipped / 唯一已知 catalog 缺源失败）。阈值未改，domain branches 89%。设备验证仍未执行。
+
+## 独立复审 — Standards
+
+**APPROVE；0 个剩余 P0–P2。** 固定范围 `86bc5de..26c83c1`，只读高覆盖静态复核。
+
+- P1 删除复活：Resolved。raw / cloud alias 的删除标记持久取消计划工作，overlay 排除已删计划；同步前后复查，旧回调不 upsert，已发请求 best-effort 补删除；场次历史保留。
+- P2 队列旁路：Resolved。flush 每轮调用 `domain.decideSubmission()`，符合核心规则集中原则。
+- 判断性兼容重复：Resolved。详情页使用 domain 导出 selector，与统计共用判据。
+
+未运行测试或构建；动态结果引用协调者实际验证，不误称 reviewer 独立执行。云权限、远端补删除失败、设备存储配额与真实 WXML / 提醒未动态验证。
+
+## 独立复审 — Spec
+
+**APPROVE；0 个剩余 P0–P2。** 固定范围 `86bc5de..26c83c1`，只读高覆盖静态复核，不等同重新扫描全量基线。
+
+- 删除与历史保留：Covered。raw / alias、旧异步回调、重试及历史保留有实现与 submission 回归。
+- A16 / A21 最新草稿恢复：Covered。新草稿直接采用；读取 / 升级写失败阻断事件、finish、tick，显式重试成功才解锁；新增动作与截止时间保留。
+- 每次零秒间歇提醒：Covered。比较非空稳定最近完成组 ID，先持久化；连续零秒、final、skip、重进、撤销均有回归。
+- 真机验收：Not Verifiable。无设备、真实 WXML 或云权限证据，04 / 父 issue 保持 ready-for-human / open。
+
+未运行测试或构建。远端补删除仍为 best-effort，真实设备行为待人工验证。
+
+最终两轴汇总：Standards 0 个剩余问题、Spec 0 个剩余问题；两轴均 APPROVE，不据此关闭人工验收。

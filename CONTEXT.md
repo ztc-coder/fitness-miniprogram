@@ -157,7 +157,7 @@ npm test        # jest --coverage
 - **媒体版权**：数据层 MIT 可用；示意图/GIF 版权归 Gym visual（与 ExerciseDB 权利主张冲突，克隆仓库 ≠ 授权）。个人自用可加载真实媒体并署名；商用上线前必须取得书面授权，且不得把仓库媒体镜像再分发。分辨率限制 180×180。
 - **包体积**：动作库文本裁成 `id/name/nameZh/equipment/bodyPart/target/imagePath/gifPath/instructionSteps` 后打进主包；超 2MB 再分包。示意图与 GIF 不进包。
 - **环境配置**：`app.js` 顶部 `ENV_ID` 为云开发环境 ID；云数据库需建集合 `plans`、`sessions`；首次进入自动种入「胸三 / 背二 / 肩腿」演示计划。
-- **逐组训练与组间计时**：领域、页面与提交集成已落地，自动验证已执行；修复待复审，真机未验；规格见 `.scratch/set-by-set-training/spec.md`，实际验收见 `acceptance.md`，不再属于后期可选项。真机关键场景无证据时不能标整体验收完成。
+- **逐组训练与组间计时**：领域、页面与提交集成已落地，自动回归无新增失败，双轴复审通过；真机未验。规格见 `.scratch/set-by-set-training/spec.md`，实际验收见 `.scratch/set-by-set-training/acceptance.md`，不再属于后期可选项。真机关键场景无证据时不能标整体验收完成。
 - **MVP 不做**：趋势曲线的 top weight / 估算 1RM 指标（仅预留切换入口）。
 
 ## 10. 相关文档

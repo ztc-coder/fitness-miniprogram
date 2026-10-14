@@ -7,7 +7,7 @@ created: 2026-10-14
 
 # 状态
 
-需求已经三轮澄清并确认；方案阶段结束后，用户已授权实施。**实现与自动集成验证已落地；双轴修复待复审，真机未验，整体仍 open。**
+需求已经三轮澄清并确认；方案阶段结束后，用户已授权实施。**01–03 实现完成，自动回归无新增失败，Standards / Spec 复审均 APPROVE；04 真机未验，整体仍 open / ready-for-human。**
 
 集成分支：`feat/set-by-set-training`。实施基线：`0850414189c6ebbf6c4f42469b8ebaa336490fce`。基线全量 Jest：14 个套件通过、1 个套件失败；275 用例通过、29 跳过、1 失败。既有失败为 `tests/catalog.test.js` 的生成器用例，默认源目录 `/tmp/exercises-dataset` 缺少 `exercises.json` 与 `name_zh.json`，`DATASET_DIR` 未设置；不改无关测试掩盖失败。TDD 边界已确认：domain 公开函数、Page 用户事件/生命周期、记录与提交/队列公开边界。禁止生产构建。
 
@@ -34,7 +34,7 @@ Spec：[spec.md](spec.md)。领域术语：根目录 `CONTEXT.md`。
 - 功能代码、测试代码、音频资源、云数据库均未修改。
 - 外部参考与文档检查结果见 spec 和下方记录；不把参考产品的后台能力当作微信小程序能力。
 
-## 验证记录
+## 方案阶段验证记录（历史）
 
 2026-10-14，文档阶段：
 
@@ -43,3 +43,11 @@ Spec：[spec.md](spec.md)。领域术语：根目录 `CONTEXT.md`。
 - 本轮 8 份相关 Markdown 文件：相对链接、代码围栏、新文件尾部空白检查通过。
 - 官方参考：Strong Rest Timer、Hevy Workout Rest Timer / Live Activity，来源和能力边界已写入 spec。
 - 未运行全量功能测试、生产构建或微信端验收；本轮未新增功能代码，状态仍为方案阶段。
+
+## 实施结果
+
+- 集成分支 `feat/set-by-set-training`，最终功能 / 修复提交 `26c83c1`；01–03 按本地 tracker 标 done。
+- 最终定向 186 passed / 25 skipped / 0 failed；全量 366 passed / 29 skipped / 1 既有目录源数据环境失败，无新增失败，覆盖率阈值未改。
+- 原始两轴问题统一修复，独立 Standards / Spec 复审均 APPROVE，0 个剩余 P0–P2。
+- 14 份修改 JS 语法、Markdown、diff 与自主提示音验证通过；隔离 worktree 已清理。未运行生产构建、push 或部署。
+- 04 与父 issue 保持 open / ready-for-human。具体检查见 [acceptance.md](acceptance.md)，人工证据模板见 [manual-acceptance.md](manual-acceptance.md)。

@@ -1,6 +1,6 @@
 # 逐组训练集成验收
 
-状态：**实现及自动集成验证已落地，修复待复审，真机未验**。分支 `feat/set-by-set-training`；固定基线 `0850414189c6ebbf6c4f42469b8ebaa336490fce`。无生产构建、云端部署、真实 WXML / 真机验收。
+状态：**代码实施与双轴复审完成；无新增自动回归失败，真机待验，整体部分完成**。分支 `feat/set-by-set-training`；固定基线 `0850414189c6ebbf6c4f42469b8ebaa336490fce`，最终代码提交 `26c83c1c4069efa6955e73fd8a8c0141264e9989`。无生产构建、云端部署、真实 WXML / 真机验收。
 
 ## 已执行检查
 
@@ -12,6 +12,12 @@
 | 01 合并后 | 回归 + coverage，显式排除 `tests/catalog.test.js` | 14 套件、305 用例通过，29 既有跳过，覆盖率门禁通过；不是全量通过 |
 | 03 合并 `0c64878` | 9 个相关套件，核对 JSON；9 份修改 JS 的语法与 diff 检查 | 147 用例通过、25 既有跳过、0 失败；语法与 diff 通过 |
 | 03 合并后 | 全量 Jest + coverage，核对 JSON | 16 套件通过、1 失败；327 用例通过、29 既有跳过、1 基线目录环境失败；无新增失败 |
+| 02 合并 `afec2c5` | 7 个相关套件；随后全量回归 | 144 通过、25 跳过、0 失败；全量 353 通过、29 跳过、1 基线目录环境失败 |
+| 统一修复合入 `26c83c1` | 10 个相关套件，核对 JSON | 186 通过、25 既有跳过、0 失败，success=true |
+| 统一修复合入 `26c83c1` | 全量 Jest + coverage，核对 JSON | 17 套件通过、1 失败；366 通过、29 既有跳过、唯一 1 个基线目录环境失败；覆盖率门禁通过，无新增失败 |
+| 最终代码 | 14 份 JS 的 node --check、19 份 Markdown 链接 / 围栏、整体 diff、WAV 校验 | 全通过；提示音为 16 kHz / mono / 16-bit PCM / 0.3 秒，SHA-256 未变 |
+| 最终代码 | 主代理重跑删除公开接口探针 | 删除后计划为空，canonical 历史保留，离线场次仍待同步 |
+| 最终代码 | 独立 Standards / Spec 定向复审 `86bc5de..26c83c1` | 两轴分别 APPROVE，0 个剩余 P0–P2；静态复核，不称设备验收 |
 
 ### 基线环境失败
 
@@ -23,14 +29,12 @@ domain 单套件加覆盖率会因收集但未执行 `data/exercises.js` 使全�
 
 ## 尚待执行
 
-- 双轴修复后的独立复审（原始发现保留在 review.md）。
-- 双轴初审已执行且 REQUEST_CHANGES；修复后的复审仍待执行，固定比较 `git diff 0850414189c6ebbf6c4f42469b8ebaa336490fce...HEAD`；P0–P2 修复和定向复验。
 - 真机与实际 WXML 验收不由自动测试替代。
 - 真机关键场景，证据模板见 [manual-acceptance.md](manual-acceptance.md)。无本地设计图与稳定页面 URL，不声明视觉代理验收通过。
 
 ## 状态关闭规则
 
-01–03 按实现和自动集成验证标 done；双轴修复待主代理独立复审，不宣称审查通过。04 与父 issue 的真机关键场景无证据时保持 `labels: [ready-for-human]`、`status: open`，结论为部分完成，不把 mock 测试当真实设备证据。
+01–03 实现、自动集成验证与双轴复审完成，标 done。04 与父 issue 的真机关键场景无证据，保持 `labels: [ready-for-human]`、`status: open`，结论为部分完成，不把 mock 测试当真实设备证据。实现代理 worktree 已清理，仅保留主工作区；未 push 或创建 PR，本地 Markdown tracker 按上述状态关闭实现票。
 ## 双轴统一修复：实际自动验证
 
 基于集成 `86bc5deaf84b6ca81ae795af5055058813b86966` 的隔离 worktree；修复后检查 `git merge --ff-only feat/set-by-set-training` 返回 `Already up to date`，再执行下面两轮测试并实际读取 JSON。
