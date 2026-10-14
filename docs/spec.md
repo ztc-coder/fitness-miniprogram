@@ -3,7 +3,7 @@
 > 本文档合并早期整体定位、动作库接入与非 cardio 可用全量 grilling，作为后续设计与实现的唯一依据。
 > 状态:需求已锁定；发布目录为上游非 cardio 可用全量（减去锁定媒体排除清单），部位筛选为七类训练部位、器械筛选仍使用 `equipment` 原值；计划迁移保持 v5；真实目录与 CloudBase 媒体已发布，剩余微信开发者工具人工验收。
 
-> 2026-10-14 增补：逐组真实打卡与组间倒计时需求已确认，**本轮仅完成方案文档，功能尚未实现**。锁定规则、兼容建议与验收见 [逐组训练 spec](../.scratch/set-by-set-training/spec.md)，任务见 [issue](../.scratch/set-by-set-training/issue.md)。下文标为“原 MVP”的描述用于说明现有代码，不覆盖增补规则。
+> 2026-10-14 增补：逐组真实打卡与组间倒计时需求已确认，**已授权在 `feat/set-by-set-training` 实施，当前尚未完成验收**。锁定规则、兼容建议与验收见 [逐组训练 spec](../.scratch/set-by-set-training/spec.md)，任务见 [issue](../.scratch/set-by-set-training/issue.md)。下文标为“原 MVP”的描述用于说明原有代码，不覆盖增补规则。
 
 ## Problem Statement
 
