@@ -5,7 +5,7 @@
 
   <view class="summary-metrics">
     <view class="metric">
-      <text class="metric-num">{{exercises.length}}</text>
+      <text class="metric-num">{{exerciseCount}}</text>
       <text class="metric-label">动作</text>
     </view>
     <view class="metric">

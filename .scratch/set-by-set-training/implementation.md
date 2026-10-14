@@ -55,3 +55,15 @@
 `computeExerciseCount(session)`：新动作只计含 completed 的项，旧历史仍计非 skipped 项。`computeSummary(session, previousSessions)` 共用上述筛选；有 submittedAt 时用其固定时长，无 submittedAt 保留旧 Date.now() 调用行为，口径包含暂停/间歇真实经过时间。
 
 建议 03 的本地完成封装先 gate/finalize，然后只持久化 final 快照、入队和推进游标；submittedAt 是**本地成立时间**，网络重试不得重写。控制态已清理，不需页面自行拼快照。页面提交锁、本地写入失败回滚/错误提示、队列推进幂等不属于本票，须在 02/03 集成。记录详情/趋势应保留逐组 status，跳过预填不得当成绩展示；历史 records 零升级写入。
+
+## 03 本地完成与同步接口（已实施，02 集成待验）
+
+公开调用 `utils/queue.js`：`complete(session, now = Date.now()) -> Promise<canonicalFinalSession>`；`getCompletedSession(id) -> finalSession | null` 同步只读。门禁使用 domain.finalizeTrainingSession。重复 id 返回最初快照和时间；首次本地写失败 reject，不删草稿、不推进。Promise 本地提交后立即成立，不等待网络；后续网络失败不会撤销完成。
+
+`fitness:completedTraining` 单键数组条目为 `{ session, plan, sessionSynced, planSynced, cloudPlanId? }`。一次同步写保存 final 快照和当时 advanceCursor 结果，是唯一提交点。草稿删除仅 best-effort；历史日志不会在云成功后删除。计划缓存和云读取合并未同步游标，重试只同步保存的结果，不再次 advance。多场完成按日志顺序覆盖到最新游标；无计划时 plan=null，不伪造计划。
+
+`db.fetchSessions()` 合并云端、旧 pendingQueue 与本地完成，按 id（旧数据 fallback _id）去重，本地 canonical 优先；新时间固定。旧历史不升级、不重写。旧队列仍可重试。新云端场次 `sessions.doc(String(id)).set({data})`，剔除 `_id/_openid/training/nextSetId/attempts`，明确 created/updated 全零保留队列。
+
+已完成 local_ 计划同步使用稳定 `completed_<local_id>` 文档 id（仅该完成同步路径），先在同一日志键保存 alias，再幂等 set；计划其它保存沿用既有 add/update。旧 session.planId 保持快照原值，后续 complete 用 alias 查计划，避免失效引用/重复推进。计划读取、种子迁移与同步路径共用该映射。权限仍为仅创建者读写；真实云权限/设备未验证。
+
+新增公开边界回归：`tests/training-submission.test.js`、`tests/training-records.test.js`。测试只替换 wx 存储/网络/云接口，使用 real domain/db/queue/Page。02 尚未合入，03 不修改 training 页面，最终整场页面回归由 04 统一验收。

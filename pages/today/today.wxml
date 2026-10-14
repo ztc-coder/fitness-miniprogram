@@ -137,6 +137,7 @@
 
   <view wx:else class="empty-state">
     <view class="empty-glyph">◔</view>
+    <button wx:if="{{hasDraft}}" class="primary-button" bindtap="onResumeDraft">继续训练</button>
     <view class="empty-title">还没有训练计划</view>
     <view class="empty-desc">创建一个「第 N 天循环」计划，今天该练什么一目了然</view>
     <button

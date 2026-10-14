@@ -10,6 +10,7 @@ const labels = require('../../data/exercise-labels');
 const media = require('../../data/media-root');
 const db = require('../../utils/db');
 const domain = require('../../utils/domain');
+const queue = require('../../utils/queue');
 const paging = require('./library-paging');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
@@ -190,8 +191,7 @@ Page({
     if (!detail) return;
 
     if (pickMode) {
-      this.addToDraft(detail.id);
-      wx.navigateBack();
+      if (this.addToDraft(detail.id)) wx.navigateBack();
       return;
     }
 
@@ -212,8 +212,7 @@ Page({
     if (!id || !lib.findById(id)) return;
 
     if (this.data.pickMode) {
-      this.addToDraft(id);
-      wx.navigateBack();
+      if (this.addToDraft(id)) wx.navigateBack();
       return;
     }
 
@@ -230,15 +229,25 @@ Page({
   addToDraft(exerciseId) {
     const draft = wx.getStorageSync(DRAFT_KEY);
     const item = lib.findById(exerciseId);
-    if (!draft || !item) return;
-    wx.setStorageSync(
-      DRAFT_KEY,
-      domain.addSessionExercise(draft, {
-        exerciseId: item.id,
-        name: item.nameZh,
-        equipment: item.equipment,
-      })
-    );
+    if (!draft || !item) return false;
+    if (queue.getCompletedSession(draft.id)) {
+      wx.showToast({ title: '本场训练已完成', icon: 'none' });
+      return false;
+    }
+    try {
+      wx.setStorageSync(
+        DRAFT_KEY,
+        domain.addSessionExercise(domain.upgradeTrainingDraft(draft), {
+          exerciseId: item.id,
+          name: item.nameZh,
+          equipment: item.equipment,
+        })
+      );
+      return true;
+    } catch (err) {
+      wx.showToast({ title: '草稿保存失败，请重试', icon: 'none' });
+      return false;
+    }
   },
 
   /** 目录动作 → 计划里的默认处方(3 组 10 次;自重 0 负重,其余 20) */

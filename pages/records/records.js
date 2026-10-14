@@ -52,7 +52,7 @@ Page({
       Math.round(((s.submittedAt || Date.now()) - s.startedAt) / 1000)
     );
     return {
-      id: s._id || s.id,
+      id: s.id || s._id,
       date: parts.date,
       month: parts.month,
       name: s.dayName || '训练',
@@ -76,7 +76,7 @@ Page({
     const names = [];
     sessions.forEach((s) => {
       (s.exercises || []).forEach((ex) => {
-        if (ex.name && names.indexOf(ex.name) === -1) names.push(ex.name);
+        if (domain.computeExerciseCount({ exercises: [ex] }) && ex.name && names.indexOf(ex.name) === -1) names.push(ex.name);
       });
     });
     const selected = this.data.selectedExercise && names.indexOf(this.data.selectedExercise) !== -1
@@ -97,7 +97,7 @@ Page({
     let isBodyWeight = false;
     sessions.forEach((s) => {
       (s.exercises || []).forEach((ex) => {
-        if (ex.name !== selectedExercise || ex.skipped) return;
+        if (ex.name !== selectedExercise || !domain.computeExerciseCount({ exercises: [ex] })) return;
         isBodyWeight = domain.isBodyWeight(ex);
         const value = domain.computeVolume(ex);
         if (value > 0) {

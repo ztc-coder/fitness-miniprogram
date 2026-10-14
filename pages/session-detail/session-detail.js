@@ -16,7 +16,7 @@ Page({
 
   onLoad(options) {
     db.fetchSessions(50).then((sessions) => {
-      const s = sessions.find((item) => (item._id || item.id) === options.id);
+      const s = sessions.find((item) => (item.id || item._id) === options.id);
       if (!s) {
         wx.showToast({ title: '记录不存在', icon: 'none' });
         setTimeout(() => wx.navigateBack(), 600);
@@ -25,17 +25,20 @@ Page({
       const durationSec = Math.max(0, Math.round(((s.submittedAt || Date.now()) - s.startedAt) / 1000));
       this.setData({
         session: s,
+        exerciseCount: domain.computeExerciseCount(s),
         dateLine: fmt.formatDateLine(s.submittedAt || s.startedAt),
         totalVolume: fmt.formatNumber(domain.computeSessionTotalVolume(s)),
         duration: fmt.formatDuration(durationSec),
         exercises: (s.exercises || []).map((ex) => ({
           name: ex.name,
-          skipped: !!ex.skipped,
+          skipped: !!ex.skipped && !(ex.flowVersion === 1 || (ex.sets || []).some(set => set.status)),
           isBodyWeight: domain.isBodyWeight(ex),
           volume: domain.computeVolume(ex),
           sets: (ex.sets || []).map((set, i) => ({
             num: i + 1,
-            text: `${set.weight || 0} kg × ${set.reps || 0}`,
+            text: set.status === 'skipped' ? '已跳过' :
+              (ex.flowVersion === 1 || (ex.sets || []).some(s => s.status)) && set.status !== 'completed' ? '未打卡' :
+              `${set.weight || 0} kg × ${set.reps || 0}`,
           })),
         })),
       });

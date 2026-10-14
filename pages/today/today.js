@@ -29,7 +29,7 @@ Page({
   refresh() {
     db.ensureSeedPlans().then((plans) => {
       const plan = plans.find((p) => p.active) || plans[0] || null;
-      const draft = wx.getStorageSync(TRAINING_DRAFT_KEY);
+      const draft = this.readDraft();
       const view = this.buildView(plan);
       this.setData(
         Object.assign({}, view, {
@@ -40,6 +40,15 @@ Page({
         })
       );
     });
+  },
+
+  readDraft() {
+    const draft = wx.getStorageSync(TRAINING_DRAFT_KEY);
+    if (draft && queue.getCompletedSession(draft.id)) {
+      try { wx.removeStorageSync(TRAINING_DRAFT_KEY); } catch (err) { /* retry later */ }
+      return null;
+    }
+    return draft;
   },
 
   /** 组装「当前训练日」视图模型 */
@@ -78,6 +87,7 @@ Page({
 
   /** 开始训练:快照复制当天计划为独立 session 草稿 */
   onStartTraining() {
+    if (this.readDraft()) { this.onResumeDraft(); return; }
     const { plan } = this.data;
     if (!plan) {
       wx.showToast({ title: '请先创建计划', icon: 'none' });
@@ -88,12 +98,21 @@ Page({
       wx.showToast({ title: '当前计划没有训练日', icon: 'none' });
       return;
     }
-    wx.setStorageSync(TRAINING_DRAFT_KEY, session);
+    try { wx.setStorageSync(TRAINING_DRAFT_KEY, session); } catch (err) {
+      wx.showToast({ title: '草稿保存失败，请重试', icon: 'none' });
+      return;
+    }
     wx.navigateTo({ url: '/pages/training/training' });
   },
 
   /** 继续未完成的本地草稿 */
   onResumeDraft() {
+    const draft = this.readDraft();
+    if (!draft) { this.setData({ hasDraft: false }); return; }
+    try { wx.setStorageSync(TRAINING_DRAFT_KEY, domain.upgradeTrainingDraft(draft)); } catch (err) {
+      wx.showToast({ title: '草稿保存失败，请重试', icon: 'none' });
+      return;
+    }
     wx.navigateTo({ url: '/pages/training/training' });
   },
 
