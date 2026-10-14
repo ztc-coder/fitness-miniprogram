@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>动作选择器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">动作选择器</h1>
+    <p class="counts">
+      <span class="count">结果 <strong id="count-result">0</strong></span>
+      <span class="count">总数 <strong id="count-total">0</strong></span>
+      <span class="count">已选 <strong id="count-selected">0</strong></span>
+    </p>
+    <div class="topbar-actions">
+      <button type="button" id="export" disabled>保存 JSON</button>
+      <label class="import">
+        导入数据集
+        <input type="file" id="import-file" accept=".json,application/json">
+      </label>
+    </div>
+  </header>
+
+  <p id="status-ok" class="status" role="status" aria-live="polite"></p>
+  <p id="status-error" class="status status-error" role="alert" aria-live="assertive"></p>
+
+  <main class="layout">
+    <aside class="panel filters" aria-label="筛选">
+      <fieldset class="field group-switch">
+        <legend>分组</legend>
+        <div class="segmented">
+          <label><input type="radio" name="group-field" value="bodyPart" checked>按身体部位</label>
+          <label><input type="radio" name="group-field" value="equipment">按器械</label>
+        </div>
+      </fieldset>
+
+      <p class="field">
+        <label for="keyword">关键词</label>
+        <input type="search" id="keyword" placeholder="名称 / ID / 目标肌群">
+      </p>
+
+      <p class="field">
+        <label for="body-part">身体部位</label>
+        <select id="body-part"></select>
+      </p>
+
+      <p class="field">
+        <label for="equipment">器械</label>
+        <select id="equipment"></select>
+      </p>
+
+      <p class="field actions">
+        <button type="button" id="select-filtered">选择当前结果</button>
+        <button type="button" id="clear-selection">清空选择</button>
+      </p>
+    </aside>
+
+    <section class="browser" aria-label="动作列表">
+      <div id="cards" class="cards"></div>
+      <nav class="pager" aria-label="分页">
+        <button type="button" id="page-prev">上一页</button>
+        <span id="page-info" class="page-info"></span>
+        <button type="button" id="page-next">下一页</button>
+      </nav>
+    </section>
+
+    <aside class="panel summary" aria-label="已选动作">
+      <h2 class="summary-title">已选动作</h2>
+      <ul id="selection-list" class="selection-list"></ul>
+    </aside>
+  </main>
+
+  <footer class="credit">Gym visual 媒体 · hasaneyldrm/exercises-dataset · <span class="local-use">仅用于本地策展</span></footer>
+
+  <script src="core.js"></script>
+  <script src="index-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
