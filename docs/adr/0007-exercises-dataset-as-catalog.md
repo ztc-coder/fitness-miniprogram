@@ -1,5 +1,7 @@
 # ADR-0007：动作库接入 hasaneyldrm/exercises-dataset
 
+> 历史决策：英文 `name` 仍保留在目录并参与检索，但界面不再显示英文副标题；当前展示口径见 `.scratch/library-seven-parts/issue.md`。
+
 - 状态：已采纳；目录范围与筛选口径已被 ADR-0008 取代
 - 日期：2026-09-17
 - 相关文档：`docs/spec.md`、`CONTEXT.md`、ADR-0001（云存储）、ADR-0004（快照不可变）、ADR-0005（离线优先）、ADR-0008（非 cardio 可用全量）

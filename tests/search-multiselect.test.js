@@ -1,21 +1,21 @@
 const catalog = require('../data/exercises');
+const labels = require('../data/exercise-labels');
 const { EXERCISES, search, findById } = catalog;
 const EXCLUDED_IDS = Object.keys(require('../scripts/catalog-exclusions.js'));
 
 const ids = (items) => items.map((item) => item.id);
 
-/** 官方非 cardio 身体部位原值(9 个) */
-const OFFICIAL_BODY_PARTS = [
-  'back', 'chest', 'lower arms', 'lower legs', 'neck',
-  'shoulders', 'upper arms', 'upper legs', 'waist',
-];
+/** 固定七类部位筛选键(英文内部键),顺序即胶囊顺序 */
+const SEVEN_PART_KEYS = ['chest', 'back', 'shoulders', 'arms', 'legs', 'waist', 'glutes'];
 
 /** 期望集一律按目录里的原值推导,不写死条数:目录换成非 cardio 全量后本文件仍成立。 */
 const byEquipment = (key) => EXERCISES.filter((item) => item.equipment === key);
-const byBodyPart = (key) => EXERCISES.filter((item) => item.bodyPart === key);
+const categoryOf = (item) => labels.bodyPartCategory(item);
+const byBodyPart = (key) => EXERCISES.filter((item) => categoryOf(item) === key);
 const rawEquipmentKeys = () => [...new Set(EXERCISES.map((item) => item.equipment))];
+const rawBodyParts = (key) => EXERCISES.filter((item) => item.bodyPart === key);
 
-describe('动作库检索:官方原值多选', () => {
+describe('动作库检索:器械原值与七类部位键多选', () => {
   test('空选返回全部条目,且是目录里的原引用不复制', () => {
     const all = search('', [], []);
 
@@ -31,7 +31,7 @@ describe('动作库检索:官方原值多选', () => {
     expect(search(undefined, undefined, undefined)).toHaveLength(EXERCISES.length);
   });
 
-  test('单键筛选等于按该原值筛选,且结果每条都是该原值', () => {
+  test('单键筛选等于按该键筛选,且结果每条都是该键', () => {
     const equipKeys = rawEquipmentKeys();
     expect(equipKeys.length).toBeGreaterThan(1);
     equipKeys.forEach((key) => {
@@ -41,30 +41,54 @@ describe('动作库检索:官方原值多选', () => {
       expect(result.every((item) => item.equipment === key)).toBe(true);
     });
 
-    const partKeys = [...new Set(EXERCISES.map((item) => item.bodyPart))];
-    expect(partKeys.length).toBeGreaterThan(1);
-    partKeys.forEach((key) => {
+    expect(SEVEN_PART_KEYS).toEqual(labels.BODY_PART_KEYS);
+    SEVEN_PART_KEYS.forEach((key) => {
       const result = search('', [], [key]);
       expect(ids(result)).toEqual(ids(byBodyPart(key)));
       expect(result.length).toBeGreaterThan(0);
-      expect(result.every((item) => item.bodyPart === key)).toBe(true);
+      expect(result.every((item) => categoryOf(item) === key)).toBe(true);
     });
   });
 
-  test('每个官方非 cardio 部位原值筛选非空(该部位在目录中存在时)', () => {
-    OFFICIAL_BODY_PARTS.forEach((key) => {
-      const expected = byBodyPart(key);
-      const result = search('', [], [key]);
-      expect(ids(result)).toEqual(ids(expected));
-      if (expected.length > 0) {
-        expect(result.length).toBeGreaterThan(0);
-        expect(result.every((item) => item.bodyPart === key)).toBe(true);
-      }
+  test('七类键覆盖整个发布目录且互斥:每条动作恰好落入一类', () => {
+    expect(SEVEN_PART_KEYS).toHaveLength(7);
+    // 覆盖:目录每条都属于七类之一
+    expect(EXERCISES.every((item) => SEVEN_PART_KEYS.indexOf(categoryOf(item)) !== -1)).toBe(true);
+    // 互斥:七类收集的条数相加等于目录总数,没有动作被两类同时收集
+    const collected = SEVEN_PART_KEYS.reduce((total, key) => total + byBodyPart(key).length, 0);
+    expect(collected).toBe(EXERCISES.length);
+    expect(new Set(SEVEN_PART_KEYS.flatMap((key) => ids(byBodyPart(key)))).size).toBe(EXERCISES.length);
+  });
+
+  test('glutes 优先归臀,颈归肩,上/下臂归手臂,上/下腿归腿', () => {
+    const glutes = EXERCISES.filter((item) => item.target === 'glutes');
+    expect(glutes.length).toBeGreaterThan(0);
+    glutes.forEach((item) => {
+      expect(categoryOf(item)).toBe('glutes');
+      expect(ids(search('', [], ['glutes']))).toContain(item.id);
+      // 臀和腿互斥:目标肌群 glutes 的动作不进腿分类
+      expect(ids(search('', [], ['legs']))).not.toContain(item.id);
     });
 
-    // 当前夹具覆盖的代表性部位,钉住「部位筛选结果非空」
-    ['chest', 'back', 'shoulders', 'upper arms', 'upper legs', 'lower legs', 'waist'].forEach((key) => {
-      expect(search('', [], [key]).length).toBeGreaterThan(0);
+    // 非 glutes 的上/下腿按腿归类
+    const upperLegs = rawBodyParts('upper legs');
+    const nonGluteUpperLegs = upperLegs.filter((item) => item.target !== 'glutes');
+    expect(nonGluteUpperLegs.length).toBeGreaterThan(0);
+    nonGluteUpperLegs.forEach((item) => expect(categoryOf(item)).toBe('legs'));
+    const lowerLegs = rawBodyParts('lower legs');
+    expect(lowerLegs.length).toBeGreaterThan(0);
+    lowerLegs.forEach((item) => expect(categoryOf(item)).toBe('legs'));
+
+    // 颈归肩
+    const neck = rawBodyParts('neck');
+    expect(neck.length).toBeGreaterThan(0);
+    neck.forEach((item) => expect(categoryOf(item)).toBe('shoulders'));
+
+    // 上臂 + 前臂合并为手臂
+    ['upper arms', 'lower arms'].forEach((key) => {
+      const items = rawBodyParts(key);
+      expect(items.length).toBeGreaterThan(0);
+      items.forEach((item) => expect(categoryOf(item)).toBe('arms'));
     });
   });
 
@@ -79,12 +103,15 @@ describe('动作库检索:官方原值多选', () => {
     expect(equipUnion.some((item) => item.id === '0314')).toBe(true);
 
     const partUnion = search('', [], ['chest', 'shoulders']);
-    expect(ids(partUnion)).toEqual(
-      ids(EXERCISES.filter((item) => item.bodyPart === 'chest' || item.bodyPart === 'shoulders'))
-    );
+    expect(ids(partUnion)).toEqual(ids(EXERCISES.filter((item) => ['chest', 'shoulders'].indexOf(categoryOf(item)) !== -1)));
     expect(partUnion).toHaveLength(byBodyPart('chest').length + byBodyPart('shoulders').length);
     expect(partUnion.some((item) => item.id === '0025')).toBe(true); // 杠铃卧推,chest
     expect(partUnion.some((item) => item.id === '0091')).toBe(true); // 杠铃坐姿过头推举,shoulders
+
+    // 臀与腿互斥,并集不重复
+    const glutesLegs = search('', [], ['glutes', 'legs']);
+    expect(glutesLegs).toHaveLength(byBodyPart('glutes').length + byBodyPart('legs').length);
+    expect(new Set(ids(glutesLegs)).size).toBe(glutesLegs.length);
   });
 
   test('关键词与器械组、部位组之间取交集', () => {
@@ -93,7 +120,7 @@ describe('动作库检索:官方原值多选', () => {
       (item) =>
         (item.nameZh.indexOf('卧推') !== -1 || item.name.toLowerCase().indexOf('卧推') !== -1) &&
         ['barbell', 'dumbbell'].indexOf(item.equipment) !== -1 &&
-        item.bodyPart === 'chest'
+        categoryOf(item) === 'chest'
     );
 
     expect(result.length).toBeGreaterThan(0);
@@ -105,14 +132,14 @@ describe('动作库检索:官方原值多选', () => {
     expect(
       result.every(
         (item) =>
-          item.bodyPart === 'chest' &&
+          categoryOf(item) === 'chest' &&
           ['barbell', 'dumbbell'].indexOf(item.equipment) !== -1
       )
     ).toBe(true);
 
     // 交集任一边为空则结果为空
     expect(search('卧推', ['body weight'], ['chest'])).toEqual([]);
-    expect(search('卧推', ['barbell', 'dumbbell'], ['upper legs'])).toEqual([]);
+    expect(search('卧推', ['barbell', 'dumbbell'], ['legs'])).toEqual([]);
     expect(search('不存在的动作名', ['barbell'], ['chest'])).toEqual([]);
   });
 
@@ -151,9 +178,10 @@ describe('动作库检索:官方原值多选', () => {
     expect(findById('0198').nameZh).toBe('高位下拉');
     expect(findById('0238').nameZh).toBe('绳索直臂下压');
 
-    // 别名搜索与器械、部位原值 AND
-    expect(ids(search('倒蹬', ['sled machine'], ['upper legs']))).toEqual(['0739']);
-    expect(search('倒蹬', ['barbell'], ['upper legs'])).toEqual([]);
+    // 别名搜索与器械、部位键 AND;倒蹬是腿推,目标肌群 glutes,归臀不归腿
+    expect(ids(search('倒蹬', ['sled machine'], ['glutes']))).toEqual(['0739']);
+    expect(search('倒蹬', ['sled machine'], ['legs'])).toEqual([]);
+    expect(search('倒蹬', ['barbell'], ['glutes'])).toEqual([]);
     expect(search('倒蹬', ['sled machine'], ['chest'])).toEqual([]);
   });
 
@@ -198,7 +226,7 @@ describe('动作库检索:官方原值多选', () => {
     });
   });
 
-  test('归并桶与产品标签筛选入口不再存在,检索只认原值', () => {
+  test('归并桶与产品标签筛选入口不再存在,检索只认器械原值与七类部位键', () => {
     [
       'equipmentBucket', 'equipmentLabel', 'bodyPartLabel', 'partTagsLabel',
       'EQUIPMENT_FILTERS', 'PART_FILTERS', 'PART_LABELS', 'TARGET_LABELS', 'BODY_PART_LABELS',
@@ -214,13 +242,20 @@ describe('动作库检索:官方原值多选', () => {
     expect(catalog.targetLabel('pectorals')).toBe('胸大肌');
     expect(catalog.targetLabel('lats')).toBe('背阔肌');
 
-    // 热身/复合/归并桶/「全部」都不是有效的筛选原值
+    // 热身/复合/归并桶/「全部」都不是有效的筛选键
     expect(search('', [], ['warm-up'])).toEqual([]);
     expect(search('', [], ['compound'])).toEqual([]);
     expect(search('', ['全部'], [])).toEqual([]);
     expect(search('', ['other'], [])).toEqual([]);
-    // 具体部位不再按精选标签命中,而是按上游 bodyPart 原值
-    expect(search('', [], ['legs'])).toEqual([]);
-    expect(search('', [], ['upper legs']).length).toBeGreaterThan(0);
+    // 部位第三参是七类筛选键,不再是上游 bodyPart 原值
+    expect(search('', [], ['upper legs'])).toEqual([]);
+    expect(search('', [], ['lower arms'])).toEqual([]);
+    expect(search('', [], ['neck'])).toEqual([]);
+    expect(search('', [], ['legs']).length).toBeGreaterThan(0);
+    expect(search('', [], ['arms']).length).toBeGreaterThan(0);
+    // 部位原值仍可作关键词命中(英文检索保持不变)
+    const rawUpperLegs = ids(rawBodyParts('upper legs'));
+    expect(rawUpperLegs.length).toBeGreaterThan(0);
+    expect(ids(search('upper legs', []))).toEqual(expect.arrayContaining(rawUpperLegs));
   });
 });

@@ -152,11 +152,10 @@ Page({
       detail: {
         id: item.id,
         nameZh: item.nameZh,
-        nameEn: item.name,
-        // 器械与部位显示中文译名(缺译名回退原值)
+        // 器械与部位显示中文译名(部位按七类归类,缺译名回退原值)
         equipmentZh: labels.equipmentLabel(item.equipment),
         targetZh: lib.targetLabel(item.target),
-        bodyPartZh: labels.bodyPartLabel(item.bodyPart),
+        bodyPartZh: labels.bodyPartLabel(labels.bodyPartCategory(item)),
         steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
         gifSrc: media.resolveMedia(item.gifPath),

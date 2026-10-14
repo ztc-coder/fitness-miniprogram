@@ -53,16 +53,17 @@
 | 动作要领 | `instructionSteps` | 中文分步说明（数据集 `instruction_steps.zh`） |
 | 示意图 | `imagePath` | 与演示同构图的 JPEG 静帧。动作库列表与打卡页行内缩略图；演示 GIF 加载失败时的占位。列表不加载 GIF。 |
 | 器械 | `equipment` | 存数据集原值，也是器械筛选的匹配键。界面只翻译，不归并。 |
-| 部位 | `bodyPart` | 存数据集官方 `body_part` 原值，也是部位筛选的匹配键。非 cardio 共 9 类。 |
+| 部位 | `bodyPart` | 存数据集官方 `body_part` 原值（非 cardio 共 9 类）；界面按七类训练部位筛选，原值不改。 |
+| 训练部位 | 部位筛选键 | 胸、背、肩、手臂、腿、腰腹、臀；每个动作仅归入一类，臀部目标肌群优先归臀。 |
 | 媒体排除清单 | 锁定排除 id | 源 JPEG、源 GIF 或中文要领缺失的动作 id；这些 id 不进发布目录。清单外再缺则生成失败。 |
 | 动作展示名 | `nameZh` | 列表主名。闸门是每条非空；允许不同 id 共用同一中文名。_Avoid_: 把中文名唯一当成生成闸门 |
 | 动作别名 | `aliases` | 常见中文称呼、旧译名或健身房俗称（如「倒蹬」「龙门架」「下拉」），参与关键词搜索，不参与部位筛选、不改展示名；未覆盖的新动作可为空 |
 | 目标肌群 | `target` | 存数据集英文值，展示用中文表（未知原值回退英文）。详情不展示次要肌群。 |
 | 媒体 | `imagePath` / `gifPath` | 示意图与动作演示走 CloudBase 按需加载，**不进主包**；须保留 `© Gym visual` 署名。打卡页用 `exerciseId` 反查动作库，**不写入 session 快照**。 |
 
-部位筛选原值（官方 `body_part`，含「全部」）：`back` 背 / `chest` 胸 / `lower arms` 前臂 / `lower legs` 小腿 / `neck` 颈 / `shoulders` 肩 / `upper arms` 上臂 / `upper legs` 大腿 / `waist` 腰腹。
+训练部位筛选（含「全部」）：胸 / 背 / 肩 / 手臂 / 腿 / 腰腹 / 臀。臀部目标肌群优先归臀；颈归肩、上下臂归手臂、上下腿归腿，归类互斥。
 
-器械筛选原值：扫描发布目录得到的实际 `equipment` 集合，稳定排序；缺译名回退英文。`assisted` 与 `body weight` 是不同原值。
+器械筛选原值：扫描发布目录得到的实际 `equipment` 集合，稳定排序；当前目录的标签均有中文展示。`assisted` 与 `body weight` 是不同原值。
 
 注意：**自重动作**（volume 口径）仍只认原值 `body weight`，与筛选选中哪几个器械无关。
 
@@ -152,6 +153,6 @@ npm test        # jest --coverage
 
 - 需求规格：`docs/spec.md`（定位、数据模型、动作库与验收边界）
 - 动作库实现：`data/exercises.js`（离线目录）、`data/media-root.js`（CloudBase 媒体根）、`pages/library/library-paging.js`（分页预热）、生成脚本与媒体同步脚本
-- 动作库当前 spec/验收：`.scratch/full-catalog/issue.md`；历史选择器与精选目录记录见 `.scratch/exercise-selector/`、`.scratch/catalog-quality-fixes/`、`.scratch/catalog-expansion/`，不作为当前目录契约。
-- 架构决策：`docs/adr/`（接入见 ADR-0007，全量范围与筛选见 ADR-0008）
+- 动作库当前筛选/展示 spec：`.scratch/library-seven-parts/issue.md`；全量目录发布记录见 `.scratch/full-catalog/issue.md`，历史选择器与精选目录记录见 `.scratch/exercise-selector/`、`.scratch/catalog-quality-fixes/`、`.scratch/catalog-expansion/`。
+- 架构决策：`docs/adr/`（接入见 ADR-0007，全量范围与器械筛选见 ADR-0008，七类部位筛选见 ADR-0009）
 - Issue 跟踪：`.scratch/<feature>/issue.md`

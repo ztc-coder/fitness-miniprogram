@@ -1,6 +1,6 @@
 /**
  * 动作详情弹层(动作库 / 打卡页复用)。
- * 入参 detail:{nameZh, nameEn, equipmentZh, targetZh, bodyPartZh, steps, glyph,
+ * 入参 detail:{nameZh, equipmentZh, targetZh, bodyPartZh, steps, glyph,
  *              gifSrc, imageSrc, isBodyWeight}
  * 媒体降级链(真实存在于组件内,不依赖上传成功):
  *   分解 GIF → JPEG 示意图 → 首字 glyph;某级 src 为空则直接跳过该级。

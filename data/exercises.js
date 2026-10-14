@@ -5,7 +5,8 @@
  * aliases 是健身房俗称(如「倒蹬」「龙门架」),只参与关键词搜索,不参与筛选、不改展示名。
  * equipment == "body weight" 是判断自重动作、切换 volume/总次数口径的唯一依据。
  * 检索只认官方原值:关键词命中 id / name / nameZh / target / bodyPart / equipment 与 aliases,
- * 器械、部位按目录里实际出现的原值多选筛选(组内 OR、维度间 AND);
+ * 器械按目录里实际出现的原值多选,部位按七类筛选键多选(组内 OR、维度间 AND);
+ * 部位分类定义见 data/exercise-labels.js,不改 bodyPart / target 原值。
  * 不再提供器械归并桶,也不再用精选部位标签 / 热身 / 复合 / 模式参与筛选。
  *
  * 图片与 GIF 走 CloudBase 云存储按需加载,不进主包。
@@ -18,6 +19,7 @@ const EXERCISES_PART_2 = require('./exercises-data-2');
 const EXERCISES_PART_3 = require('./exercises-data-3');
 const EXERCISES = [].concat(EXERCISES_PART_1, EXERCISES_PART_2, EXERCISES_PART_3);
 const SLUG_MAP = require('./slug-map');
+const { bodyPartCategory } = require('./exercise-labels');
 const CURATED_EXERCISES = require('./curated-catalog').CURATED_EXERCISES; // 历史兼容导出，不参与发布目录筛选。
 
 if (!Array.isArray(EXERCISES) || EXERCISES.length === 0) {
@@ -78,10 +80,10 @@ function matchKeyword(item, q) {
 }
 
 /**
- * 离线本地检索:关键词 ∧ 器械原值组 ∧ 部位原值组,三维 AND。
+ * 离线本地检索:关键词 ∧ 器械原值组 ∧ 部位七类键组,三维 AND。
  *  - query:关键词,不区分大小写
  *  - equipmentKeys:器械原值数组(如 ['barbell', 'ez barbell']);空数组或 undefined 表示该维无约束
- *  - bodyPartKeys:官方 bodyPart 原值数组(如 ['chest', 'shoulders']);空数组或 undefined 表示该维无约束
+ *  - bodyPartKeys:七类部位筛选键数组(如 ['chest', 'shoulders']);空数组或 undefined 表示该维无约束
  * 同一维多选为并集(OR),维度之间为交集(AND)。
  * 返回 EXERCISES 中命中的条目原引用,不复制。
  */
@@ -93,7 +95,7 @@ function search(query, equipmentKeys, bodyPartKeys) {
   return EXERCISES.filter((item) => {
     const matchQuery = !q || matchKeyword(item, q);
     const matchEquipment = equipKeys.length === 0 || equipKeys.indexOf(item.equipment) !== -1;
-    const matchPart = partKeys.length === 0 || partKeys.indexOf(item.bodyPart) !== -1;
+    const matchPart = partKeys.length === 0 || partKeys.indexOf(bodyPartCategory(item)) !== -1;
     return matchQuery && matchEquipment && matchPart;
   });
 }

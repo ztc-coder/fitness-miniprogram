@@ -37,12 +37,18 @@ describe('领域文档与最终目录契约一致', () => {
     expect(targets.every((item) => /^exercises\/(images|videos)\//.test(item.cloudPath))).toBe(true);
   });
 
-  test('筛选选项从官方原值和实际目录推导', () => {
-    const bodyParts = new Set(catalog.EXERCISES.map((item) => item.bodyPart));
-    expect(labels.BODY_PART_KEYS).toEqual(expect.arrayContaining([...bodyParts]));
+  test('筛选选项从七类部位键和实际目录器械推导', () => {
+    // 七类部位键覆盖整个发布目录:每条动作恰好归入一类
+    expect(labels.BODY_PART_KEYS).toHaveLength(7);
+    catalog.EXERCISES.forEach((item) => {
+      expect(labels.BODY_PART_KEYS).toContain(labels.bodyPartCategory(item));
+    });
+    labels.BODY_PART_KEYS.forEach((key) => {
+      expect(labels.bodyPartLabel(key)).not.toBe(key);
+      expect(catalog.search('', [], [key]).length).toBeGreaterThan(0);
+    });
     const equipment = labels.equipmentKeys(catalog.EXERCISES);
     expect(equipment).toEqual(expect.arrayContaining([...new Set(catalog.EXERCISES.map((item) => item.equipment))]));
-    expect(labels.BODY_PART_KEYS).toHaveLength(9);
   });
 
   test('扩容不升迁移版本，volume 仍只认 body weight 原值', () => {
@@ -51,17 +57,21 @@ describe('领域文档与最终目录契约一致', () => {
     expect(readDoc('docs/spec.md')).toContain('body weight');
   });
 
-  test('文档已切换到全量原值筛选且保留人工验收声明', () => {
+  test('当前文档指向七类筛选并保留人工验收声明', () => {
     DOCS.forEach((rel) => {
       const text = readDoc(rel);
       expect(text).not.toMatch(/动作库为 125 条精选目录|当前目录为 125 条|筛选行固定顺序 11 项/);
     });
     expect(readDoc('docs/spec.md')).toContain('CloudBase');
     expect(readDoc('docs/spec.md')).toContain('人工');
+    expect(readDoc('docs/spec.md')).toContain('七类部位与器械原值多选筛选');
+    expect(readDoc('docs/adr/README.md')).toContain('0009-seven-part-library-filter.md');
+    expect(readDoc('README.md')).toContain('关键词(含俗称别名)/七类部位/器械原值');
   });
 
-  test('项目索引指向当前 full-catalog 需求', () => {
+  test('项目索引指向当前七类需求且保留全量目录历史', () => {
     const text = readDoc('AGENTS.md');
+    expect(text).toContain('.scratch/library-seven-parts/issue.md');
     expect(text).toContain('.scratch/full-catalog/issue.md');
   });
 });

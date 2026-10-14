@@ -44,15 +44,26 @@ describe('动作库分页 helper', () => {
 });
 
 describe('动作库页面 WXML 绑定(不依赖页面检索实现)', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const wxml = fs.readFileSync(path.join(__dirname, '../pages/library/library.wxml'), 'utf8');
+
   test('WXML 绑定列表 JPEG 懒加载、失败降级和详情组件入口', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const wxml = fs.readFileSync(path.join(__dirname, '../pages/library/library.wxml'), 'utf8');
     expect(wxml).toContain('src="{{item.thumbSrc}}"');
     expect(wxml).toContain('lazy-load="{{true}}"');
     expect(wxml).toContain('binderror="onThumbError"');
     expect(wxml).toContain('<exercise-detail');
     expect(wxml).toContain('preheatItems');
+  });
+
+  test('列表与页头只展示中文:动作名绑中文名,无英文副标题与装饰文案', () => {
+    expect(wxml).toContain('<view class="library-name">{{item.name}}</view>');
+    expect(wxml).not.toContain('item.nameEn');
+    expect(wxml).not.toContain('EXERCISE DOSSIER');
+    // 页头文案与全量目录 + 中文展示一致,不再写「精选」或英文缩略图字样
+    expect(wxml).toContain('全量动作目录 · {{resultCount}} 条');
+    expect(wxml).not.toContain('精选动作目录');
+    expect(wxml).not.toContain('JPEG 缩略图');
   });
 });
 
@@ -93,18 +104,20 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
 
   const pill = (row, key) => page.data[row].find((item) => item.key === key);
 
-  test('两行胶囊来自官方原值:9 个部位中文标签 + 目录实际器械原值', () => {
+  test('两行胶囊来自固定筛选键:7 个部位中文标签 + 目录实际器械原值', () => {
     page.onLoad({});
 
     expect(page.data.bodyPartFilters.map((item) => item.key)).toEqual(['全部'].concat(labels.BODY_PART_KEYS));
     expect(page.data.bodyPartFilters.map((item) => item.label)).toEqual([
-      '全部', '背', '胸', '前臂', '小腿', '颈', '肩', '上臂', '大腿', '腰腹',
+      '全部', '胸', '背', '肩', '手臂', '腿', '腰腹', '臀',
     ]);
 
     const rawKeys = [...new Set(catalog.EXERCISES.map((item) => item.equipment))];
     expect(page.data.equipmentFilters[0]).toEqual({ key: '全部', label: '全部', active: true });
     expect(page.data.equipmentFilters.slice(1).map((item) => item.key).sort()).toEqual(rawKeys.sort());
     expect(page.data.equipmentFilters.every((item) => item.label && item.label !== '')).toBe(true);
+    // 当前目录每个器械标签都是中文展示,不是回退的英文原值
+    expect(page.data.equipmentFilters.slice(1).every((item) => item.label !== item.key)).toBe(true);
     // 器械行按固定序表排,未知原值才追加;barbell / dumbbell / body weight 是独立胶囊
     const ordered = page.data.equipmentFilters.slice(1).map((item) => item.key);
     expect(ordered).toContain('body weight');
@@ -123,6 +136,8 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
     expect(page.data.items.every((item) => item.thumbSrc.indexOf('cloud://') === 0)).toBe(true);
     expect(page.data.items.every((item) => /\.jpg$/.test(item.thumbSrc))).toBe(true);
     expect(page.data.items.every((item) => !Object.prototype.hasOwnProperty.call(item, 'gifSrc'))).toBe(true);
+    // 列表主名是中文展示名,不携带英文副标题
+    expect(page.data.items.every((item) => item.name === catalog.findById(item.id).nameZh)).toBe(true);
   });
 
   test('同行多选:点选加入、再点取消,列表与完整匹配数跟着变', () => {
@@ -152,7 +167,7 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
     expect(page.data.resultCount).toBe(catalog.search('', ['dumbbell'], []).length);
   });
 
-  test('部位行独立多选,与器械行、搜索词取交集', () => {
+  test('部位行独立多选(七类键),与器械行、搜索词取交集', () => {
     page.onLoad({});
 
     page.onBodyPartFilterTap(tapEvent('chest'));
@@ -180,6 +195,23 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
     page.onEquipFilterTap(tapEvent('全部'));
     page.onBodyPartFilterTap(tapEvent('全部'));
     expect(ids(page.data.items)).toEqual(['0739']);
+  });
+
+  test('臀与腿互斥:选臀不出现腿分类动作,并集条数等于两类之和', () => {
+    page.onLoad({});
+
+    page.onBodyPartFilterTap(tapEvent('glutes'));
+    const glutes = catalog.search('', [], ['glutes']);
+    expect(glutes.length).toBeGreaterThan(0);
+    expect(page.data.resultCount).toBe(glutes.length);
+    expect(ids(page.data.items)).toEqual(ids(glutes.slice(0, 24)));
+    expect(glutes.every((item) => item.target === 'glutes')).toBe(true);
+
+    page.onBodyPartFilterTap(tapEvent('legs'));
+    const both = catalog.search('', [], ['glutes', 'legs']);
+    expect(page.data.resultCount).toBe(both.length);
+    expect(both.length).toBe(glutes.length + catalog.search('', [], ['legs']).length);
+    expect(new Set(ids(both)).size).toBe(both.length);
   });
 
   test('点「全部」清空该行,另一行与搜索词不受影响', () => {
@@ -248,7 +280,10 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
     expect(page.data.detail.gifSrc).toMatch(/\.gif$/);
     expect(page.data.detail.imageSrc).toMatch(/\.jpg$/);
     expect(page.data.detail.equipmentZh).toBe(labels.equipmentLabel(catalog.findById(failedId).equipment));
-    expect(page.data.detail.bodyPartZh).toBe(labels.bodyPartLabel(catalog.findById(failedId).bodyPart));
+    expect(page.data.detail.bodyPartZh).toBe(labels.bodyPartLabel(labels.bodyPartCategory(catalog.findById(failedId))));
+    // 详情不携带英文副标题,器械值走中文标签
+    expect(page.data.detail.nameEn).toBeUndefined();
+    expect(/[^\x00-\x7F]/.test(page.data.detail.equipmentZh)).toBe(true);
   });
 
   test('pick=1 加练入口不变:选中后写入训练草稿并返回', () => {

@@ -77,14 +77,6 @@
   word-break: break-all;
 }
 
-.detail-subtitle {
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: var(--ink-dim);
-  line-height: 1.4;
-  word-break: break-all;
-}
-
 .detail-close {
   display: flex !important;
   align-items: center;

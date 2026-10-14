@@ -5,9 +5,8 @@
   <view class="detail-card {{showPick ? 'has-actions' : ''}}" catchtap="noop">
     <view class="detail-head">
       <view class="detail-head-main">
-        <view class="detail-kicker">EXERCISE DOSSIER · {{detail.equipmentZh}}</view>
+        <view class="detail-kicker">{{detail.equipmentZh}}</view>
         <view class="detail-title">{{detail.nameZh}}</view>
-        <view class="detail-subtitle">{{detail.nameEn}}</view>
       </view>
       <button class="detail-close" bindtap="onClose" aria-label="关闭" hover-class="detail-close-hover">×</button>
     </view>

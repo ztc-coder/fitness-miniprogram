@@ -5,7 +5,7 @@
       <view class="page-title">动作检索台</view>
       <view class="station-status-dot"></view>
     </view>
-    <view class="page-subtitle">精选动作目录 · {{resultCount}} 条 · JPEG 缩略图</view>
+    <view class="page-subtitle">全量动作目录 · {{resultCount}} 条</view>
   </view>
 
   <view class="search-row">

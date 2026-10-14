@@ -1,5 +1,5 @@
 /**
- * 动作库:离线浏览发布目录、搜索、官方部位原值 + 器械原值两维胶囊多选
+ * 动作库:离线浏览发布目录、搜索、七类部位键 + 器械原值两维胶囊多选
  * 三种打开方式:
  *  - 普通浏览(从计划 tab 入口进入,可加动作到当前训练日)
  *  - pick=1(训练中临时加练,选中后返回训练页)
@@ -16,7 +16,7 @@ const DRAFT_KEY = 'fitness:trainingDraft';
 /** 每行首项「全部」的 key:不参与检索,点击即清空该行 */
 const ALL_KEY = '全部';
 
-/** 组装一行胶囊:首项「全部」,其余为官方原值;active 由选中集推导,与列表结果同一次提交 */
+/** 组装一行胶囊:首项「全部」,其余为筛选键;active 由选中集推导,与列表结果同一次提交 */
 function filterPills(keys, labelOf, selected) {
   return [{ key: ALL_KEY, label: ALL_KEY, active: selected.length === 0 }].concat(
     keys.map((key) => ({ key, label: labelOf(key), active: selected.indexOf(key) !== -1 }))
@@ -154,10 +154,9 @@ Page({
       detail: {
         id: item.id,
         nameZh: item.nameZh,
-        nameEn: item.name,
         equipmentZh: labels.equipmentLabel(item.equipment),
         targetZh: lib.targetLabel(item.target),
-        bodyPartZh: labels.bodyPartLabel(item.bodyPart),
+        bodyPartZh: labels.bodyPartLabel(labels.bodyPartCategory(item)),
         steps: item.instructionSteps || [],
         glyph: item.nameZh.slice(0, 1),
         gifSrc: media.resolveMedia(item.gifPath),

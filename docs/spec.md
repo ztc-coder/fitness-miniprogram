@@ -1,7 +1,7 @@
 # 健身训练小程序 MVP — 需求规格
 
 > 本文档合并早期整体定位、动作库接入与非 cardio 可用全量 grilling，作为后续设计与实现的唯一依据。
-> 状态:需求已锁定；发布目录为上游非 cardio 可用全量（减去锁定媒体排除清单），筛选为官方 `body_part` 与 `equipment` 原值；计划迁移保持 v5；真实目录与 CloudBase 媒体已发布，剩余微信开发者工具人工验收。
+> 状态:需求已锁定；发布目录为上游非 cardio 可用全量（减去锁定媒体排除清单），部位筛选为七类训练部位、器械筛选仍使用 `equipment` 原值；计划迁移保持 v5；真实目录与 CloudBase 媒体已发布，剩余微信开发者工具人工验收。
 
 ## Problem Statement
 
@@ -50,19 +50,19 @@
 
 ## 动作库
 
-结论来自动作库接入与非 cardio 可用全量 grilling。词汇表见 `CONTEXT.md`，主键与媒体托管见 ADR-0007，目录范围与筛选见 ADR-0008。当前轮次验收记录：`.scratch/full-catalog/issue.md`。
+结论来自动作库接入、非 cardio 可用全量与七类部位筛选需求。词汇表见 `CONTEXT.md`，主键与媒体托管见 ADR-0007，目录范围的历史决策见 ADR-0008。当前筛选与展示口径见 `.scratch/library-seven-parts/issue.md`。
 
 - 数据源:[`hasaneyldrm/exercises-dataset`](https://github.com/hasaneyldrm/exercises-dataset)（MIT 文本 + 媒体单独条款）。中文名映射:[`wangmuerxiao/exercises-dataset-zh`](https://github.com/wangmuerxiao/exercises-dataset-zh) 的 `name_zh.json`。
 - 取值范围:**发布目录 = 上游非 cardio 可用全量**。过滤仅 `body_part === cardio`（及 `category === cardio`）。耸肩、前臂专项、平衡设备、爆发变式、单侧与版本号重复一律放行。缺源 JPEG、源 GIF 或中文要领的 id 写入锁定排除清单，不进发布目录；清单外再缺则生成失败。精确条数以生成结果为准（非 cardio 候选约 1295）。
 - **主键**:数据集 4 位数字字符串（如 `"0025"`）。现有 slug 计划读取时迁移到数字 id。目录迁移版本保持 **v5**：本轮扩容不升版本、不因新目录删除已有计划动作。历史 session 零写入。
-- **中文名**:社区映射打底 + 手译覆盖；英文 `name` 必须等于上游原值，作副标题。自动闸门是 id 唯一且每条 `nameZh` 非空；允许不同 id 共用同一中文名。`aliases` 是目录一等字段，承载已有俗称 / 旧译名，参与关键词搜索，不参与部位筛选、不改展示名；未覆盖的新动作别名为空。
+- **中文名**:社区映射打底 + 手译覆盖；英文 `name` 必须等于上游原值，仅参与检索，不在界面作为副标题。自动闸门是 id 唯一且每条 `nameZh` 非空；允许不同 id 共用同一中文名。`aliases` 是目录一等字段，承载已有俗称 / 旧译名，参与关键词搜索，不参与部位筛选、不改展示名；未覆盖的新动作别名为空。
 - **文本精简后打进主包**,本地分片、离线可读。字段:`id` / `name` / `nameZh` / `equipment` / `bodyPart` / `target` / `imagePath` / `gifPath` / `instructionSteps` / `aliases`（仅中文要领）。丢掉多语言原文与 `muscle_group`。超 2MB 再分包，本轮不把目录放到云数据库。
 - **示意图 + 动作演示走 CloudBase**按需加载，不进主包、不热链 GitHub。动作库列表和打卡页只请求 JPEG 缩略图，详情弹层按 GIF → JPEG → glyph 降级。源文件可访问以 `DATASET_DIR` 下 JPEG/GIF `lstat` 为准，不以 JSON 路径非空为准；无源媒体目录则生成失败。
 - **「标准动作」= 动作演示 GIF + 中文要领**。出现在动作库详情弹层与打卡页详情弹层；列表、今天/计划清单、记录页不自动加载 GIF。自动验收不判断动作语义或译名对错。
-- **筛选**:部位一行 = 9 个官方非 cardio `body_part`（背 / 胸 / 前臂 / 小腿 / 颈 / 肩 / 上臂 / 大腿 / 腰腹）；器械一行 = 发布目录实际出现的 `equipment` 原值，稳定排序，缺译名回退英文。不再使用器械归并桶，也不再使用精选部位标签、热身、复合、模式。胶囊点击切换多选，点「全部」清空该行。匹配为搜索 AND（部位组内 OR）AND（器械组内 OR）。结果首屏 24 条，滚动每次追加 24 条，显示完整匹配数；当前页和下一页最多预热 48 张 JPEG。筛选条件与 items/resultCount 一次提交。
+- **筛选**:部位一行按胸 / 背 / 肩 / 手臂 / 腿 / 腰腹 / 臀固定排序；`target === 'glutes'` 优先归臀，其余颈归肩、上下臂归手臂、上下腿归腿，所有非 cardio 动作各归一类。器械一行仍是目录实际出现的 `equipment` 原值，稳定排序，当前目录全部提供中文标签，不改变器械原值或归并语义。胶囊点击切换多选，点「全部」清空该行。匹配为搜索 AND（部位组内 OR）AND（器械组内 OR）。结果首屏 24 条，滚动每次追加 24 条，显示完整匹配数；当前页和下一页最多预热 48 张 JPEG。筛选条件与 items/resultCount 一次提交。详情显示同一部位归类；英文名及原值仍能搜索，但界面不显示英文动作副标题或英文标签，版权署名与网址保留。
 - **媒体反查**:打卡页用 `exerciseId` 查动作库；不把路径写入 session。
 - **数据版本**:生成锁定数据集 commit、中文映射 commit、排除清单与生成时间；更新上游须重跑生成与闸门。
-- **验收边界**:仓库内 Jest/Page harness 覆盖非 cardio 可用全量目录、官方原值多选筛选、分页窗口、生成闸门和同步脚本按最终目录规划的受管媒体目标；CloudBase 2,590 个对象已完成同步，仍需微信开发者工具确认真实 WXML 渲染/滚动与详情媒体加载。
+- **验收边界**:仓库内 Jest/Page harness 覆盖非 cardio 可用全量目录、七类部位与器械原值多选筛选、分页窗口、生成闸门和同步脚本按最终目录规划的受管媒体目标；CloudBase 2,590 个对象已完成同步，仍需微信开发者工具确认真实 WXML 渲染/滚动与详情媒体加载。
 
 ### ⚠️ 发布前置阻塞项
 
@@ -136,7 +136,7 @@
 41. 作为训练者,我想升级后已有计划动作不被扩库删除,以便训练日保持原样。
 42. 作为目录维护者,我想媒体同步只动 `exercises/images` 与 `exercises/videos` 两个受管前缀,且失败可重试、可报告。
 43. 作为训练者,我想在动作库里浏览上游全部非有氧可用动作,以便加练不受精选白名单限制。
-44. 作为训练者,我想按官方身体部位与器械原值筛选,并可在同一行多选,以便分类与数据集一致。
+44. 作为训练者,我想按七类训练部位与官方器械原值筛选,并可在同一行多选,以便快速找到目标动作。
 45. 作为目录维护者,我想缺源媒体或中文要领的动作进入锁定排除清单,清单外再缺则生成失败,以便坏数据进不了主包。
 
 ## Implementation Decisions
@@ -151,10 +151,10 @@
   - Session(打卡快照):`{id, planId, dayId, startedAt, submittedAt, exercises: [{exerciseId, sets: [{weight, reps}]}]}`,一旦生成即与 plan 解耦,不因后续 plan 编辑而改变。
   - Exercise(动作库条目,只读离线数据):`{id, name, nameZh, equipment, bodyPart, target, imagePath, gifPath, instructionSteps, aliases}`。目录为非 cardio 可用全量（减去锁定排除清单）,`id` 为数据集 4 位数字字符串；`aliases` 承载已有俗称/旧译名并参与关键词搜索；`equipment == "body weight"` 是判断自重动作、切换 volume/总次数口径的唯一依据（筛选原值不改变该判据）。
 - **架构分层**:UI 页面(WXML/WXSS/JS)与云函数入口都是 domain logic 模块之上的薄封装,不重复实现游标推进、快照复制、volume 计算、队列判定这几类核心规则,避免逻辑分散到多处。
-- **动作库交付形式**:文本字段(`id/name/nameZh/equipment/bodyPart/target/imagePath/gifPath/instructionSteps/aliases`)精简后随小程序主包分片发布,本地离线可读;示意图与动作演示走 CloudBase 云存储按需加载,不进主包。筛选为官方部位原值 + 器械原值多选，列表显示 JPEG 缩略图并按 24 条递增分页,详情继续 GIF → JPEG → glyph；主键与媒体托管见 ADR-0007，范围与筛选见 ADR-0008。
+- **动作库交付形式**:文本字段(`id/name/nameZh/equipment/bodyPart/target/imagePath/gifPath/instructionSteps/aliases`)精简后随小程序主包分片发布,本地离线可读;示意图与动作演示走 CloudBase 云存储按需加载,不进主包。筛选为七类部位 + 器械原值多选，列表显示 JPEG 缩略图并按 24 条递增分页,详情继续 GIF → JPEG → glyph；主键与媒体托管见 ADR-0007，历史范围决策见 ADR-0008，当前筛选见七类部位需求票。
 - **动作库生成链**:
   - 发布目录闸门是非 cardio 减去锁定媒体排除清单,不再使用精选白名单或目标肌群粗筛。
-  - 筛选只认上游 `bodyPart` 与 `equipment` 原值；退役热身、复合、模式与器械归并桶。
+  - 发布目录保留上游 `bodyPart` 与 `equipment` 原值；筛选用七类部位与器械原值，退役热身、复合、模式与器械归并桶。
   - `aliases` 仍是生成链的一等字段：既有手译与别名覆盖保留，搜索命中 `aliases`；别名不参与筛选、不改变展示名。
   - 生成锁定数据集与中文映射版本；源 JPEG/GIF 以本地文件存在为准。
   - 本轮扩容不升 v5、不按新目录裁剪已有计划动作。
@@ -169,10 +169,10 @@
   - 打卡快照:验证快照与原 plan 无共享引用(修改快照不影响 plan,反之亦然)、快照允许增删动作。
   - volume 计算:验证常规动作 `Σ(weight×reps)`、自重动作 `Σreps`、空 set 列表返回 0。
   - 提交队列:验证有网络时立即提交、无网络时进入队列、重试后成功从队列移除。
-- 目录测试断言可观察行为：无 cardio；排除清单中的 ID 不存在；其余非 cardio 可 `findById`；每条 `nameZh` 与中文要领非空；id 唯一；官方部位与实际器械原值各自非空；多选为组内 OR、组间与搜索 AND；俗称别名仍能搜到对应 ID。
+- 目录测试断言可观察行为：无 cardio；排除清单中的 ID 不存在；其余非 cardio 可 `findById`；每条 `nameZh` 与中文要领非空；id 唯一；七类部位完整覆盖且互斥、实际器械原值各自非空；多选为组内 OR、组间与搜索 AND；俗称别名仍能搜到对应 ID。
 - 迁移测试保持 v5 版本号；历史裁剪测试仅保留为 skipped 的迁移记录。扩容后新增契约是：已有训练日动作仍可查，不自动删除；Session 零写入。
 - 媒体脚本测试覆盖最终目录规划的受管对象（每条 JPEG+GIF）、路径安全、受管前缀删除边界、最终集合校验与失败重试。
-- 页面级分页测试覆盖全量匹配数、官方原值多选后的渲染窗口、JPEG fileID，以及筛选条件与结果一次提交。
+- 页面级分页测试覆盖全量匹配数、七类部位与器械原值多选后的渲染窗口、JPEG fileID，以及筛选条件与结果一次提交。
 - Jest 是仓库内确定性验证工具：domain、目录、页面级 Page harness、数据库迁移和媒体同步纯函数均可在 Node 中运行；真实 WXML 渲染、微信开发者工具滚动和 CloudBase 远端集合不由 Jest mock 代替。
 
 ## Out of Scope
@@ -206,6 +206,6 @@
 
 ## Further Notes
 
-- Issue tracker 使用仓库内 `.scratch/` Markdown；当前动作库 spec/验收记录在 `.scratch/full-catalog/`，该票已 done，剩余仅微信开发者工具人工验收。
+- Issue tracker 使用仓库内 `.scratch/` Markdown；当前动作库筛选/展示 spec 与验收记录在 `.scratch/library-seven-parts/`。此前全量目录发布记录在 `.scratch/full-catalog/`，该票已 done；仍需微信开发者工具人工验收。
 - 发布目录由生成器按非 cardio 减去锁定排除清单产出，配套链见生成脚本、手译覆盖与媒体排除清单；精选白名单不再是闸门。
 - domain logic 模块的具体函数签名留给实现阶段决定,不在本 spec 中固化,避免文档与代码脱节。
