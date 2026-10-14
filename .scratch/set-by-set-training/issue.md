@@ -9,7 +9,7 @@ created: 2026-10-14
 
 需求已经三轮澄清并确认；方案阶段结束后，用户已授权实施。**当前处于实施阶段，未完成的票不表示已经交付或通过验收。**
 
-集成分支：`feat/set-by-set-training`。实施基线：`0850414189c6ebbf6c4f42469b8ebaa336490fce`。基线全量 Jest：14 个套件通过。TDD 边界已确认：domain 公开函数、Page 用户事件/生命周期、记录与提交/队列公开边界。禁止生产构建。
+集成分支：`feat/set-by-set-training`。实施基线：`0850414189c6ebbf6c4f42469b8ebaa336490fce`。基线全量 Jest：14 个套件通过、1 个套件失败；275 用例通过、29 跳过、1 失败。既有失败为 `tests/catalog.test.js` 的生成器用例，默认源目录 `/tmp/exercises-dataset` 缺少 `exercises.json` 与 `name_zh.json`，`DATASET_DIR` 未设置；不改无关测试掩盖失败。TDD 边界已确认：domain 公开函数、Page 用户事件/生命周期、记录与提交/队列公开边界。禁止生产构建。
 
 Spec：[spec.md](spec.md)。领域术语：根目录 `CONTEXT.md`。
 
