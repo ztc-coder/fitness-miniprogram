@@ -12,3 +12,6 @@ project.private.config.json
 
 # 系统文件
 .DS_Store
+
+# 本地工具产物
+.cortexkit/
