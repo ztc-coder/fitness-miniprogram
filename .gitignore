@@ -15,3 +15,6 @@ project.private.config.json
 
 # 本地工具产物
 .cortexkit/
+
+# 本地视觉验收截图与诊断数据
+.pi/visual-tests/
