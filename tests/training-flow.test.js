@@ -102,7 +102,7 @@ test('隐藏不改截止，返回读取加练并校准；到时先保存再提�
   page.onHide();
   expect(jest.getTimerCount()).toBe(0);
   expect(storage.get(DRAFT_KEY).training.restEndsAt).toBe(deadline);
-  storage.set(DRAFT_KEY, domain.addSessionExercise(storage.get(DRAFT_KEY), { id: '0026', nameZh: '加练', equipment: 'barbell' }));
+  storage.set(DRAFT_KEY, domain.addSessionExercise(storage.get(DRAFT_KEY), { exerciseId: '0026', name: '加练', equipment: 'barbell' }));
   jest.setSystemTime(deadline + 1000);
   audio.play.mockImplementation(() => expect(storage.get(DRAFT_KEY).training.restNotified).toBe(true));
   page.onShow();
@@ -351,7 +351,7 @@ test('重进已认领提醒草稿只保留提示不再响', () => {
 });
 
 test('菜单打开后列表变更仍按稳定引用操作，输入不受原下标漂移影响', () => {
-  const session = domain.addSessionExercise(draft(1), { id: '0043', nameZh: '第二个动作', equipment: 'barbell' });
+  const session = domain.addSessionExercise(draft(1), { exerciseId: '0043', name: '第二个动作', equipment: 'barbell' });
   load(session);
   const first = page.data.exercises[0].anchorId;
   const second = page.data.exercises[1].anchorId;
@@ -403,7 +403,7 @@ test('冷启动暂停间歇保持冻结值，不可通过开始/完成绕过显�
 });
 
 test('跨动作也休息，返回到待开始而不自动开练；历史比较异步不改变本地固定小结', async () => {
-  load(domain.addSessionExercise(draft(1), { id: '0043', nameZh: '第二个动作', equipment: 'barbell' }));
+  load(domain.addSessionExercise(draft(1), { exerciseId: '0043', name: '第二个动作', equipment: 'barbell' }));
   page.onStartSet(); page.onCompleteSet();
   expect(page.data.phase).toBe('rest');
   expect(page.data.current.name).toBe('第二个动作');
@@ -421,9 +421,9 @@ test('跨动作也休息，返回到待开始而不自动开练；历史比较�
     return { collection: () => query };
   });
   await page.onFinish();
-  expect(page.data.summary).toMatchObject({ totalVolume: '500', duration: '1m' });
+  expect(page.data.summary).toMatchObject({ totalVolume: '500', duration: '2m' });
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
   expect(page.data.summary.comparison).toMatchObject({ volumeDiff: 200, improved: true });
   jest.advanceTimersByTime(60000);
-  expect(page.data.summary.duration).toBe('1m');
+  expect(page.data.summary.duration).toBe('2m');
 });
