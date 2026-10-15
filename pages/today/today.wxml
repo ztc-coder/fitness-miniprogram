@@ -12,34 +12,38 @@
       </view>
       <view class="day-mark"><text>DAY</text><text class="day-number mono">{{dayNum}}</text></view>
     </view>
-    <view class="home-caption">
-      <text><text class="caption-number mono">{{exerciseCount}}</text> 个动作</text>
-      <text><text class="caption-number mono">{{totalSets}}</text> 组训练</text>
-      <text>第 {{dayNum * 1}} / {{dayTotal * 1}} 天</text>
+    <view class="cycle-rail">
+      <view class="cycle-step {{item.state}}" wx:for="{{cycleDots}}" wx:key="index">
+        <view wx:if="{{index > 0}}" class="cycle-link" aria-hidden="true"><text>{{item.state === 'current' ? '●' : '›'}}</text></view>
+        <view class="cycle-node mono"><text>{{item.state === 'done' ? '✓' : (index > 8 ? index + 1 : '0' + (index + 1))}}</text></view>
+        <view class="cycle-name">{{plan.cycleDays[index].name}}</view>
+      </view>
     </view>
+    <view class="home-caption"><text><text class="caption-number mono">{{exerciseCount}}</text> 个动作</text><text><text class="caption-number mono">{{totalSets}}</text> 组计划</text></view>
   </block>
 
   <!-- 草稿是独立场次：无当前计划时也保留恢复入口。 -->
   <view wx:if="{{hasDraft}}" class="resume-card">
     <view class="resume-head">
-      <view class="resume-title"><text class="live-dot">●</text>有一场训练正在进行</view>
+      <view class="resume-title"><text class="live-dot">●</text>训练进行中 · {{draftInfo.dayName}}</view>
       <text class="draft-progress mono">{{draftInfo.completed}} / {{draftInfo.total}} 组</text>
     </view>
     <view class="resume-meta">{{draftInfo.planName}} · {{draftInfo.dayName}}</view>
+    <view class="resume-track"><view class="resume-fill" style="width: {{draftInfo.total ? draftInfo.completed / draftInfo.total * 100 : 0}}%"></view></view>
     <button class="action-button" bindtap="onResumeDraft" disabled="{{starting}}" hover-class="cta-press">继续训练 <text class="button-arrow">→</text></button>
-    <button wx:if="{{day}}" class="new-training" bindtap="onStartTraining" disabled="{{starting}}" hover-class="cta-press">按当前计划开始新训练</button>
+    <button wx:if="{{day}}" class="new-training" bindtap="onStartTraining" disabled="{{starting}}" hover-class="cta-press">按当前计划重新开始</button>
   </view>
   <button wx:elif="{{day}}" class="action-button start-button" bindtap="onStartTraining" disabled="{{starting}}" hover-class="cta-press">开始训练 <text class="button-arrow">→</text></button>
 
   <block wx:if="{{day}}">
-    <view class="section-head"><text class="section-title">今天练这些</text><text class="section-note">按你的节奏</text></view>
+    <view class="section-head"><text class="section-title">今天练这些</text><button class="section-note" bindtap="onGoPlan" hover-class="cta-press">查看完整计划 <text aria-hidden="true">›</text></button></view>
     <view class="exercise-list">
       <view class="exercise-row" wx:for="{{exercises}}" wx:key="index">
         <view class="exercise-thumb">
           <image wx:if="{{item.imageSrc}}" src="{{item.imageSrc}}" mode="aspectFit" data-index="{{index}}" binderror="onImageError" class="exercise-image" />
           <text wx:else class="exercise-glyph" aria-hidden="true">↔</text>
         </view>
-        <view class="exercise-main"><view class="exercise-name">{{item.name}}</view><view class="exercise-note">{{item.note}}</view></view>
+        <view class="exercise-main"><view class="exercise-name">{{item.name}}</view><view class="exercise-note"><text class="equipment-pill">{{item.equipmentLabel}}</text><text>{{item.note}}</text></view></view>
         <text class="exercise-target mono">{{item.prescription}}</text>
       </view>
     </view>

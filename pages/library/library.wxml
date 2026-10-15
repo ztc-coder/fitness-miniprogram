@@ -5,14 +5,15 @@
       <view class="page-title">动作检索台</view>
       <view class="station-status-dot"></view>
     </view>
-    <view class="page-subtitle">全量动作目录 · {{resultCount}} 条</view>
+    <view class="page-count" aria-label="全量动作目录 · {{resultCount}} 条">{{resultCount}} 动作</view>
   </view>
 
   <view class="search-row">
+    <view class="search-icon" aria-hidden="true"></view>
     <input
       class="search-input"
       value="{{query}}"
-      placeholder="输入动作名称、肌群或器械检索..."
+      placeholder="搜索动作名称、目标肌群或器械..."
       placeholder-class="search-placeholder"
       bindinput="onSearchInput"
     />
@@ -41,7 +42,7 @@
           hover-class="filter-pill-hover"
           hover-stay-time="80"
         >
-          <text class="filter-pill-label">{{item.label}}</text>
+          <text class="filter-pill-label">{{item.key === '全部' ? '全部器械' : item.label}}</text>
         </view>
         <!-- 末项右侧安全垫块：保证圆角/边框/active 外环可完整滚入视口 -->
         <view class="filter-track-end" aria-hidden="true"></view>
@@ -58,7 +59,7 @@
           hover-class="filter-pill-hover"
           hover-stay-time="80"
         >
-          <text class="filter-pill-label">{{item.label}}</text>
+          <text class="filter-pill-label">{{item.key === '全部' ? '全部部位' : item.label}}</text>
         </view>
         <view class="filter-track-end" aria-hidden="true"></view>
       </view>
@@ -85,8 +86,8 @@
           <view class="library-name">{{item.name}}</view>
         </view>
         <view class="library-meta-row">
-          <text class="library-tag-static">器械</text>
-          <text class="library-meta">{{item.meta}}</text>
+          <text class="library-tag-static">{{item.equipmentText}}</text>
+          <text class="library-meta">{{item.muscleText}}</text>
         </view>
       </view>
       <view class="library-action-col">
@@ -127,6 +128,9 @@
       <view class="empty-desc">请尝试其他器械、部位或检索词</view>
     </view>
   </view>
+
+  <view wx:if="{{pickMode}}" class="library-hint">点击卡片查看动作图解，点击 ＋ 快速加入本次训练</view>
+  <view wx:else class="library-hint">点击卡片查看动作图解，点击 ＋ 快速加入计划</view>
 
   <view class="note-card">动作示意图由 Gym visual 提供。正式上线前需完成书面授权并保留 © Gym visual 署名。</view>
 

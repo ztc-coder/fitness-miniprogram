@@ -40,7 +40,7 @@ Page({
       this.setData(
         Object.assign({}, view, {
           plan,
-          dateLine: fmt.formatDateLine(Date.now()),
+          dateLine: fmt.formatDateLine(Date.now()).replace(/^\d+年0?/, '').replace(/月0/, '月'),
           pendingCount: queue.getQueue().length,
           hasDraft: !!draft,
           draftInfo: this.buildDraftInfo(draft),
@@ -83,6 +83,8 @@ Page({
         index: String(index + 1).padStart(2, '0'),
         imageSrc: resolveMedia(media && media.imagePath),
         name: item.name,
+        equipmentLabel: labels.equipmentLabel(item.equipment),
+        bodyPartLabel: media ? labels.bodyPartLabel(labels.bodyPartCategory(media)) : '',
         note: `${media ? labels.bodyPartLabel(labels.bodyPartCategory(media)) : labels.equipmentLabel(item.equipment)} · ${item.equipment === 'body weight' ? '额外负重 ' : ''}${item.targetWeight || 0} kg`,
         prescription: `${item.sets} × ${item.targetReps}`,
       };

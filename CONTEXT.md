@@ -49,6 +49,7 @@
 | 容量 | volume | 常规动作 `Σ(weight × reps)`；自重动作 `Σreps` |
 | 完成小结 | `computeSummary()` | 整页展示完成组数、动作数、时长、负重容量与自重次数；两种单位分开，并与**上次同类型**（同 `planId` + `dayId`）分别对比 |
 | 提交队列 | pending queue | 本地已完成但未提交成功的 session 列表，无网时排队重试 |
+| 记录统计 | `computeRecordStats()` | 由已有训练场次只读派生：本周训练（周一起算场次）、总容量（仅负重容量）、连续训练（从今天或昨天起向前连续有训练的日历天数）、本月场次与本月训练时长；不写回任何数据 |
 
 ### 动作库侧
 
@@ -103,7 +104,7 @@ tests/             Jest 单测（domain、离线目录、页面级分页、db �
 - 测试边界包括 domain 公开函数、Page 用户事件/生命周期、记录与提交队列公开接口；仅 mock `wx`、云端、时间和存储边界。覆盖率统计收 `utils/domain.js` 与 `data/exercises.js`（`jest.config.js` → `collectCoverageFrom`），不代表真实页面或设备验收。
 - `utils/queue.js` 负责把 domain 的纯判定接上真实网络：`domain.decideSubmission()` 判定 → `db.submitSession()` 执行。
 - `pages/library/library-paging.js` 保持动作库匹配集与渲染窗口分离：首屏/追加页每页 24 条，当前页和下一页最多预热 48 张 JPEG；页面层不预取 GIF。
-- 数据访问统一走 `utils/db.js`；云端失败时降级到 `wx.getStorageSync`，不阻塞本地记录成立。
+- 数据访问统一走 `utils/db.js`；云端失败时降级到 `wx.getStorageSync`，不阻塞本地记录成立。记录／月度统计用 `fetchAllSessions()` 分页读取历史并合并本地记录，不以最近 50 场代替累计数据；读取中断时仅展示已读及本地可用记录。
 
 ## 5. 页面结构
 

@@ -10,6 +10,7 @@ Page({
     activePlan: null,
     cycleTrack: [],
     dayRows: [],
+    nextDay: null,
     editing: false,
   },
 
@@ -28,7 +29,7 @@ Page({
 
   buildCycleView(plan) {
     if (!plan) {
-      return { cycleTrack: [], dayRows: [] };
+      return { cycleTrack: [], dayRows: [], nextDay: null };
     }
     const cycleTrack = (plan.cycleDays || []).map((day, index) => ({
       dayId: day.dayId,
@@ -41,11 +42,15 @@ Page({
       dayId: day.dayId,
       num: String(index + 1).padStart(2, '0'),
       name: day.name,
-      meta: `${(day.exercises || []).length} 个动作`,
+      meta: `${(day.exercises || []).length} 个动作 · ${(day.exercises || []).reduce((total, exercise) => total + (Number(exercise.sets) || 0), 0)} 组`,
+      isCurrent: index === plan.cursor,
       isFirst: index === 0,
       isLast: index === plan.cycleDays.length - 1,
     }));
-    return { cycleTrack, dayRows };
+    // NEXT 指向游标当天（尚待训练），不预先推进计划。
+    const currentDay = cycleTrack.find((day) => day.state === 'current');
+    const nextDay = currentDay ? { num: currentDay.num, name: currentDay.name } : null;
+    return { cycleTrack, dayRows, nextDay };
   },
 
   onToggleEdit() {

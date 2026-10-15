@@ -1,6 +1,12 @@
+---
+title: 动作库页官方原值胶囊多选
+labels: [ready-for-human]
+status: done
+---
+
 # 03: 动作库页官方原值胶囊多选
 
-**状态：implemented；页面测试已通过。**
+**状态：done；页面测试已通过。**
 
 ## 当前契约
 
@@ -18,4 +24,4 @@ npx jest tests/library-paging.test.js tests/library-multiselect.test.js tests/se
 # 通过
 ```
 
-剩余人工项：微信开发者工具确认真实 WXML 渲染、滚动和 CloudBase 图片/GIF 加载。
+按已关闭主票及用户本轮收尾要求归档，不补写未采集的设备证据。原生渲染、滚动和媒体验收范围以 `../../forge-theme-unification/issue.md` 的记录为准；当前界面七类部位筛选见 `../../library-seven-parts/issue.md`。

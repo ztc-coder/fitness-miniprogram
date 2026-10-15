@@ -89,6 +89,8 @@ Page({
           id: item.id,
           name: nameZh,
           meta: `${lib.targetLabel(item.target)} · ${labels.equipmentLabel(item.equipment)}`,
+          equipmentText: labels.equipmentLabel(item.equipment),
+          muscleText: lib.targetLabel(item.target),
           glyph: nameZh.slice(0, 1) || '?',
           thumbSrc: media.resolveMedia(item.imagePath),
           isBodyWeight: item.equipment === 'body weight',

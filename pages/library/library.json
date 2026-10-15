@@ -1,8 +1,8 @@
 {
   "navigationBarTitleText": "动作库",
-  "navigationBarBackgroundColor": "#0c1613",
+  "navigationBarBackgroundColor": "#08110e",
   "navigationBarTextStyle": "white",
-  "backgroundColor": "#0c1613",
+  "backgroundColor": "#08110e",
   "backgroundTextStyle": "light",
   "usingComponents": {
     "exercise-detail": "/components/exercise-detail/exercise-detail"

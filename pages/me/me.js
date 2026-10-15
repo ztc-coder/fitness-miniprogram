@@ -2,6 +2,8 @@
  * 我的 tab:设置、个人信息、存储与网络状态、媒体授权状态
  */
 const queue = require('../../utils/queue');
+const db = require('../../utils/db');
+const domain = require('../../utils/domain');
 
 const SETTINGS_KEY = 'fitness:settings';
 
@@ -12,6 +14,9 @@ Page({
     unit: 'kg',
     openid: '',
     networkStatus: '检测中…',
+    monthSessions: 0,
+    monthHours: '0.0',
+    monthProgress: 0,
   },
 
   onShow() {
@@ -26,9 +31,22 @@ Page({
     wx.getNetworkType({
       success: (res) =>
         this.setData({
-          networkStatus: res.networkType === 'none' ? '当前无网络,提交将排队重试' : '云开发连接正常',
+          networkStatus: res.networkType === 'none' ? '当前无网络，提交将排队重试' : `当前网络：${res.networkType}`,
         }),
       fail: () => this.setData({ networkStatus: '网络状态未知' }),
+    });
+    return db.fetchAllSessions().then((sessions) => {
+      const now = Date.now();
+      const stats = domain.computeRecordStats(sessions, now);
+      const date = new Date(now);
+      const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      const hours = stats.monthDurationSec / 3600;
+      this.setData({
+        monthSessions: stats.monthSessions,
+        monthHours: hours < 10 ? hours.toFixed(1) : hours.toFixed(0),
+        // 展示环：本月场次 / 当月总天数，上限 100%；不是训练目标或出勤率。
+        monthProgress: Math.min(100, stats.monthSessions / daysInMonth * 100),
+      });
     });
   },
 

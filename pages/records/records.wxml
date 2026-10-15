@@ -1,15 +1,12 @@
 <view class="page">
-  <view class="topline">
-    <text class="topline-label">训练记录</text>
-    <text class="topline-hint" wx:if="{{pendingCount > 0}}">{{pendingCount}} 条待提交</text>
-    <text class="topline-hint" wx:else>已提交的训练</text>
+  <view class="archive-header">
+    <view class="page-title">训练档案</view>
+    <text class="sync-status {{pendingCount > 0 ? 'pending' : ''}}">{{pendingCount > 0 ? '● ' + pendingCount + ' 条待同步' : '● 已全部云同步'}}</text>
   </view>
-  <view class="page-title">记录</view>
-  <view class="page-subtitle">记录保留当次训练数据，不受计划修改影响</view>
 
   <view class="record-tabs">
-    <button class="record-tab {{view === 'sessions' ? 'active' : ''}}" data-view="sessions" bindtap="onSwitchView">训练场次</button>
-    <button class="record-tab {{view === 'trend' ? 'active' : ''}}" data-view="trend" bindtap="onSwitchView">动作趋势</button>
+    <button class="record-tab {{view === 'trend' ? 'active' : ''}}" data-view="trend" bindtap="onSwitchView">{{'动作趋势 & 场次'}}</button>
+    <button class="record-tab {{view === 'sessions' ? 'active' : ''}}" data-view="sessions" bindtap="onSwitchView">历史时间线 ({{sessions.length}})</button>
   </view>
 
   <!-- 视图一:session 时间线倒序 -->
@@ -17,14 +14,14 @@
     <view class="record-list" wx:if="{{sessions.length > 0}}">
       <view class="record-item" wx:for="{{sessions}}" wx:key="id" data-id="{{item.id}}" bindtap="onOpenSession">
         <view class="record-date">
-          <text class="record-day">{{item.date}}</text>
+          <text class="record-day mono">{{item.date}}</text>
           <text class="record-month">{{item.month}}</text>
         </view>
         <view class="record-main">
           <view class="record-name">{{item.name}}</view>
           <view class="record-meta">{{item.meta}}</view>
         </view>
-        <text class="record-volume">{{item.volume}}</text>
+        <text class="record-volume mono">{{item.volume}}</text>
       </view>
     </view>
     <view wx:else class="empty-state">
@@ -36,25 +33,33 @@
 
   <!-- 视图二:单动作进步曲线 -->
   <block wx:else>
-    <view class="trend-picker">
-      <picker mode="selector" range="{{exerciseNames}}" bindchange="onSelectExercise">
-        <view class="picker-box">{{selectedExercise || '选择动作'}} ▾</view>
-      </picker>
-      <button class="metric-btn" bindtap="onOpenMetricSheet">指标：{{metric === 'volume' ? '总容量' : (metric === 'topWeight' ? '最高重量' : metricLabel)}}</button>
+    <view class="stats-grid">
+      <view class="stat-card"><view class="stat-icon icon-calendar" aria-hidden="true"></view><text class="stat-label">本周训练</text><view class="stat-number mono">{{stats.weekSessions}} <text>场</text></view></view>
+      <view class="stat-card"><view class="stat-icon icon-weight" aria-hidden="true"></view><text class="stat-label">总容量</text><view class="stat-number mono">{{totalVolumeValue}} <text>{{totalVolumeUnit}}</text></view></view>
+      <view class="stat-card"><view class="stat-icon icon-flame" aria-hidden="true"></view><text class="stat-label">连续训练</text><view class="stat-number mono">{{stats.streakDays}} <text>天</text></view></view>
     </view>
 
-    <view class="chart-wrap" wx:if="{{!trendEmpty}}">
+    <view class="chart-wrap" wx:if="{{exerciseNames.length > 0}}">
       <view class="chart-head">
-        <text class="chart-title">{{selectedExercise}}</text>
-        <text class="chart-sub">{{isBodyWeight ? '纵轴：总次数（自重动作）' : '纵轴：总容量（重量 × 次数）'}}</text>
+        <view class="chart-heading-row">
+          <picker mode="selector" range="{{exerciseNames}}" bindchange="onSelectExercise" aria-label="选择趋势动作"><view class="chart-title">{{selectedExercise}} <text class="picker-arrow">⌄</text></view></picker>
+          <button class="metric-btn" bindtap="onOpenMetricSheet">单场容量 ⌄</button>
+        </view>
+        <text class="chart-sub">{{isBodyWeight ? '单场总次数' : '单场训练总容量 (kg)'}}</text>
       </view>
-      <view class="chart">
+      <view class="chart" wx:if="{{!trendEmpty}}">
+        <view class="chart-tick" wx:for="{{yTicks}}" wx:key="position" style="bottom: {{item.position}}%"><text class="tick-label mono">{{item.label}}</text></view>
         <view class="chart-bars">
-          <view class="chart-bar {{item.last ? 'last' : ''}}" wx:for="{{bars}}" wx:key="label" style="height: {{item.height}}%">
-            <text class="bar-value">{{item.value}}</text>
-            <text class="bar-label">{{item.label}}</text>
+          <view class="chart-bar {{item.last ? 'last' : ''}}" wx:for="{{bars}}" wx:key="index" style="height: {{item.height}}%">
+            <text class="pr-badge" wx:if="{{item.isPR}}">PR</text>
+            <text class="bar-value mono">{{item.value}}</text>
+            <text class="bar-label mono">{{item.label}}</text>
           </view>
         </view>
+      </view>
+      <view wx:else class="empty-state chart-empty">
+        <view class="empty-title">这个动作还没有数据</view>
+        <view class="empty-desc">完成包含该动作的训练后,趋势会出现在这里</view>
       </view>
     </view>
     <view wx:else class="empty-state">
@@ -62,7 +67,18 @@
       <view class="empty-desc">完成包含该动作的训练后,趋势会出现在这里</view>
     </view>
 
-    <view class="record-footnote">负重动作展示总容量（重量 × 次数），自重动作展示总次数。</view>
+    <view class="recent-heading">
+      <view class="section-kicker">近期完成场次</view>
+      <button class="view-all" data-view="sessions" bindtap="onSwitchView">查看全部 ›</button>
+    </view>
+    <view class="record-list" wx:if="{{recentSessions.length > 0}}">
+      <view class="record-item" wx:for="{{recentSessions}}" wx:key="id" data-id="{{item.id}}" bindtap="onOpenSession">
+        <view class="record-date"><text class="record-day mono">{{item.date}}</text><text class="record-month">{{item.month}}</text></view>
+        <view class="record-main"><view class="record-name">{{item.name}}</view><view class="record-meta">{{item.meta}}</view></view>
+        <text class="record-volume mono">{{item.volume}}</text>
+      </view>
+    </view>
+    <view wx:else class="empty-state"><view class="empty-title">还没有训练记录</view><view class="empty-desc">完成一次训练并提交后,这里会出现时间线</view></view>
   </block>
 
   <!-- 指标切换(预留) -->

@@ -1,16 +1,24 @@
-/* FORGE：全站深墨绿、清晰成绩数字与信号绿行动，原生页面共享同一色板。 */
+/* FORGE 3.0：近黑墨绿底、柔和图托卡片、翡翠渐变行动与发光层次，原生页面共享同一色板。 */
 page {
   /* color */
-  --bg: #0c1613;
-  --surface: #14211c;
-  --surface-2: #22352b;
-  --line: #2a3b32;
-  --line-strong: #3c5144;
-  --ink: #eef5f1;
-  --ink-dim: #a2b5aa;
-  --ink-faint: #91a89a;
-  --signal: #3ddc97;
-  --signal-ink: #092518;
+  --bg: #08110e;
+  --surface: #111d18;
+  --surface-2: #1a2a23;
+  --line: #1f3029;
+  --line-strong: #2c4339;
+  --ink: #eef7f2;
+  --ink-dim: #a3b6ac;
+  --ink-faint: #8aa095;
+  --signal: #3ee6a0;
+  --signal-deep: #1fbf83;
+  --signal-ink: #062014;
+  --signal-soft: rgba(62, 230, 160, 0.12);
+  --signal-line: rgba(62, 230, 160, 0.45);
+  --signal-glow: 0 0 32rpx rgba(62, 230, 160, 0.28);
+  --signal-gradient: linear-gradient(180deg, #6ff5bd 0%, #3ee6a0 45%, #1fbf83 100%);
+  --card-gradient: linear-gradient(180deg, #142420 0%, #0f1b17 100%);
+  --card-shadow: 0 12rpx 40rpx rgba(0, 0, 0, 0.35);
+  --thumb-gradient: linear-gradient(145deg, #e9fff5 0%, #b9f3d8 100%);
   --amber: #ffb020;
   --danger: #ff8f7c;
 
@@ -68,23 +76,25 @@ button::after {
   color: var(--ink-dim);
 }
 
-/* 区块标:信号绿短线 + 大写字距 */
+/* 区块标：设计 v3 竖向信号绿短条 + 白色标题 */
 .section-kicker {
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  margin: 52rpx 0 22rpx;
-  font-size: var(--t-kicker);
+  gap: 16rpx;
+  margin: 48rpx 0 22rpx;
+  font-size: 28rpx;
   font-weight: 700;
-  letter-spacing: 0.22em;
-  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  color: var(--ink);
 }
 
 .section-kicker::before {
   content: '';
-  width: 24rpx;
-  height: 4rpx;
+  width: 6rpx;
+  height: 28rpx;
+  border-radius: 3rpx;
   background: var(--signal);
+  box-shadow: 0 0 12rpx rgba(62, 230, 160, 0.6);
 }
 
 /* ===== 通用按钮 ===== */
@@ -96,10 +106,11 @@ button::after {
   min-height: 104rpx;
   padding: 18rpx 28rpx;
   color: var(--signal-ink);
-  background: var(--signal);
+  background: var(--signal-gradient);
+  box-shadow: var(--signal-glow);
   border-radius: 28rpx;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0;
   margin: 0;
   line-height: 1.4;
@@ -117,7 +128,7 @@ button::after {
   min-height: 84rpx;
   padding: 14rpx 24rpx;
   color: var(--ink-dim);
-  background: transparent;
+  background: var(--surface);
   border: 1rpx solid var(--line-strong);
   width: 100%;
   margin: 0;

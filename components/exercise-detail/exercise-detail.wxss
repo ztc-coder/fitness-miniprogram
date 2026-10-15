@@ -1,5 +1,5 @@
 /* ============================================================
-   动作详情弹层 —— FORGE 深色设计，组件内独立 tokens 与基础排版
+   动作详情弹层 —— FORGE 深色设计，共享 v3 色板与组件基础排版
    卡片三段式布局,三段边界明确:
      1. .detail-head    标题区:高度由内容决定,不参与收缩
      2. .detail-scroll  正文区:吸收剩余高度,内容过长时收缩并可滚动
@@ -11,20 +11,7 @@
    ============================================================ */
 
 .detail-mask {
-  /* 默认样式隔离：不依赖 app.wxss 的变量或基础规则。 */
-  --bg: #0c1613;
-  --surface: #14211c;
-  --surface-2: #22352b;
-  --line: #2a3b32;
-  --line-strong: #3c5144;
-  --ink: #eef5f1;
-  --ink-dim: #a2b5aa;
-  --ink-faint: #91a89a;
-  --signal: #3ddc97;
-  --signal-ink: #092518;
-  --amber: #ffb020;
-  --danger: #ff8f7c;
-  --t-kicker: 20rpx;
+  /* 自定义属性沿页面继承，组件仅保留独立基础排版。 */
   color: var(--ink);
   font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   font-size: 28rpx;
@@ -49,10 +36,10 @@
   max-width: 640rpx;
   max-height: 82vh;
   padding: 36rpx 32rpx;
-  background: var(--surface);
-  border: 1rpx solid var(--line);
-  border-radius: 28rpx;
-  box-shadow: 0 24rpx 64rpx rgba(0, 0, 0, 0.4);
+  background: var(--card-gradient);
+  border: 1rpx solid var(--line-strong);
+  border-radius: 32rpx;
+  box-shadow: var(--card-shadow);
   box-sizing: border-box;
 }
 
@@ -78,7 +65,12 @@
 }
 
 .detail-kicker {
-  color: var(--signal);
+  display: inline-flex;
+  padding: 5rpx 12rpx;
+  background: var(--surface-2);
+  border: 1rpx solid var(--line-strong);
+  border-radius: 8rpx;
+  color: var(--ink-dim);
   font-size: var(--t-kicker);
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -110,7 +102,7 @@
   color: var(--ink-dim) !important;
   background: var(--surface-2) !important;
   border: 1rpx solid var(--line-strong) !important;
-  border-radius: 50% !important;
+  border-radius: 20rpx !important;
   font-size: 36rpx !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
@@ -143,6 +135,9 @@
 
 .detail-art-wrap {
   margin-bottom: 24rpx;
+  background: var(--thumb-gradient);
+  border-radius: 28rpx;
+  overflow: hidden;
 }
 
 .detail-media {
@@ -150,9 +145,10 @@
   height: 360rpx;
   margin: 0 auto;
   display: block;
-  background: #ffffff;
+  background: transparent;
+  mix-blend-mode: multiply;
   border: 1rpx solid var(--line-strong);
-  border-radius: 20rpx;
+  border-radius: 28rpx;
   box-sizing: border-box;
 }
 
@@ -161,10 +157,10 @@
   align-items: center;
   justify-content: center;
   height: 180rpx;
-  background: var(--surface-2);
+  background: var(--thumb-gradient);
   border: 1rpx solid var(--line);
-  border-radius: 20rpx;
-  color: var(--signal);
+  border-radius: 28rpx;
+  color: var(--signal-ink);
   font-size: 72rpx;
   font-weight: 800;
   line-height: 1;
@@ -210,8 +206,20 @@
   font-size: 22rpx;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--ink-faint);
-  margin-bottom: 6rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  color: var(--ink);
+  margin-bottom: 12rpx;
+}
+
+.detail-steps-title::before {
+  content: '';
+  width: 5rpx;
+  height: 24rpx;
+  border-radius: 3rpx;
+  background: var(--signal);
+  box-shadow: var(--signal-glow);
 }
 
 .detail-step {
@@ -223,7 +231,12 @@
 
 .detail-step-index {
   flex-shrink: 0;
-  min-width: 34rpx;
+  min-width: 40rpx;
+  padding: 4rpx;
+  background: var(--surface-2);
+  border-radius: 12rpx;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
   color: var(--signal);
   font-size: 24rpx;
   font-weight: 800;
@@ -271,7 +284,7 @@
   flex-shrink: 0;
   padding-top: 24rpx;
   border-top: 1rpx solid var(--line);
-  background: var(--surface);
+  background: transparent;
 }
 
 .detail-primary {
@@ -285,16 +298,16 @@
   margin: 0 !important;
   padding: 18rpx 28rpx !important;
   color: var(--signal-ink) !important;
-  background: var(--signal) !important;
+  background: var(--signal-gradient) !important;
   border: none !important;
-  border-radius: 20rpx !important;
+  border-radius: 28rpx !important;
   font-family: inherit;
   font-size: 30rpx !important;
   font-weight: 800;
   line-height: 1.4 !important;
   letter-spacing: 0.02em;
   white-space: normal;
-  box-shadow: none !important;
+  box-shadow: var(--signal-glow) !important;
   box-sizing: border-box !important;
 }
 

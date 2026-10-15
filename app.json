@@ -10,16 +10,16 @@
     "pages/session-detail/session-detail"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#0c1613",
+    "navigationBarBackgroundColor": "#08110e",
     "navigationBarTitleText": "训练日志",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#0c1613",
+    "backgroundColor": "#08110e",
     "backgroundTextStyle": "light"
   },
   "tabBar": {
     "color": "#9aad9f",
-    "selectedColor": "#3ddc97",
-    "backgroundColor": "#102019",
+    "selectedColor": "#3ee6a0",
+    "backgroundColor": "#0b1612",
     "borderStyle": "black",
     "list": [
       {

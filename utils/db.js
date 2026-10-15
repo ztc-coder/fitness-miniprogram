@@ -300,6 +300,25 @@ function fetchSessions(limit = 50) {
     });
 }
 
+/** 汇总页按小程序端每页 20 条读取历史，再合并本地未同步记录。 */
+async function fetchAllSessions() {
+  const cloud = [];
+  try {
+    const sessions = db().collection(COLLECTIONS.SESSIONS);
+    const pageSize = 20;
+    while (true) {
+      const res = await sessions.orderBy('submittedAt', 'desc')
+        .skip(cloud.length).limit(pageSize).get();
+      const page = res.data || [];
+      cloud.push(...page);
+      if (page.length < pageSize) break;
+    }
+  } catch (err) {
+    console.warn('云端完整历史读取失败，保留已读取和本地记录', err);
+  }
+  return mergeSessions(cloud);
+}
+
 function mergeSessions(cloud) {
   const byId = new Map();
   cloud.concat(wx.getStorageSync('fitness:pendingQueue') || [], log.read().map(e => e.session))
@@ -521,6 +540,7 @@ module.exports = {
   setActivePlan,
   submitSession,
   fetchSessions,
+  fetchAllSessions,
   ensureSeedPlans,
   migratePlansForCatalog,
   isCloudError,

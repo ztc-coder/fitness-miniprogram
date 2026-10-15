@@ -530,6 +530,49 @@ function computeSessionMetrics(session) {
   return metrics;
 }
 
+function startOfDay(timestamp) {
+  const d = new Date(timestamp);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** 按本地日历天偏移（夏令时日不恒为 24 小时）。 */
+function shiftDays(dayStart, offset) {
+  const d = new Date(dayStart);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset).getTime();
+}
+
+/**
+ * 记录页 / 我的页只读统计：本周场次（周一起算）、累计负重容量、连续训练天数、本月场次与时长。
+ * 以 submittedAt（缺省 startedAt）作为训练日期；连续天数从今天或昨天起向前数，同日去重。
+ */
+function computeRecordStats(sessions, now) {
+  const list = Array.isArray(sessions) ? sessions : [];
+  const today = startOfDay(now);
+  const weekStart = shiftDays(today, -((new Date(today).getDay() + 6) % 7));
+  const ref = new Date(today);
+  const stats = { weekSessions: 0, totalWeightedVolume: 0, streakDays: 0, monthSessions: 0, monthDurationSec: 0 };
+  const days = new Set();
+  for (const s of list) {
+    const at = (s && (s.submittedAt || s.startedAt)) || 0;
+    if (!at) continue;
+    const day = startOfDay(at);
+    const date = new Date(at);
+    days.add(day);
+    stats.totalWeightedVolume += computeSessionMetrics(s).weightedVolume;
+    if (day >= weekStart && day <= today) stats.weekSessions += 1;
+    if (date.getFullYear() === ref.getFullYear() && date.getMonth() === ref.getMonth()) {
+      stats.monthSessions += 1;
+      if (s.submittedAt && s.startedAt) stats.monthDurationSec += Math.max(0, Math.round((s.submittedAt - s.startedAt) / 1000));
+    }
+  }
+  let cursor = days.has(today) ? today : shiftDays(today, -1);
+  while (days.has(cursor)) {
+    stats.streakDays += 1;
+    cursor = shiftDays(cursor, -1);
+  }
+  return stats;
+}
+
 /**
  * 新流程仅计含 completed 的动作；旧历史保持非 skipped 动作数口径。
  */
@@ -679,6 +722,7 @@ module.exports = {
   computeVolume,
   computeSessionTotalVolume,
   computeExerciseCount,
+  computeRecordStats,
   computeSummary,
   decideSubmission,
   enqueueSession,

@@ -1,18 +1,17 @@
 <view class="training-page {{restActive ? 'has-rest' : ''}} {{showSummary ? 'show-summary' : ''}}">
   <block wx:if="{{!showSummary}}">
     <view class="session-toolbar">
-      <text class="toolbar-label">本场训练</text>
-      <view class="elapsed mono"><view class="clock-icon"></view>{{elapsedText}}</view>
-      <button class="pause-button" wx:if="{{phase !== 'paused'}}" bindtap="onPause" disabled="{{reloadBlocked || submitting || confirming}}" aria-label="暂停训练"><view class="pause-icon"></view><text>暂停</text></button>
+      <view class="training-heading">
+        <view class="training-title">{{session.dayName || '训练记录'}}</view>
+        <view class="training-subtitle">{{session.planName}}<text wx:if="{{session.dayIndex !== undefined}}"> · 第 {{session.dayIndex + 1}} 天</text></view>
+      </view>
+      <view class="elapsed mono"><text>⏱</text>{{elapsedText}}</view>
+      <button class="pause-button" wx:if="{{phase !== 'paused'}}" bindtap="onPause" disabled="{{reloadBlocked || submitting || confirming}}" aria-label="暂停训练"><text>❚❚ 暂停</text></button>
       <button class="pause-button" wx:else bindtap="onResume" disabled="{{reloadBlocked || submitting || confirming}}">继续</button>
     </view>
     <view class="paused-banner" wx:if="{{phase === 'paused'}}">训练已暂停 · 点击右上角继续</view>
-    <view class="training-heading">
-      <view class="training-title">{{session.dayName || '训练记录'}}</view>
-      <view class="training-subtitle">{{session.planName}}<text wx:if="{{session.dayIndex !== undefined}}"> · 第 {{session.dayIndex + 1}} 天</text></view>
-    </view>
     <view class="progress-section">
-      <view class="progress-labels"><text>已完成 <text class="signal mono">{{progress.completed}}</text> / {{progress.total}} 组<text wx:if="{{progress.skipped}}"> · 跳过 {{progress.skipped}} 组</text></text><text class="signal">{{progress.pending === 0 && progress.completed ? '全部完成' : '稳稳完成每一组'}}</text></view>
+      <view class="progress-labels"><text>已完成 <text class="signal mono">{{progress.completed}}</text> / {{progress.total}} 组<text wx:if="{{progress.skipped}}"> · 跳过 {{progress.skipped}} 组</text></text><text class="signal"><block wx:if="{{current}}">继续完成第 {{current.num}} 组</block><block wx:else>{{progress.pending === 0 && progress.completed ? '全部完成' : ''}}</block></text></view>
       <view class="progress-track"><view class="progress-fill" style="width: {{progressPct}}%"></view></view>
     </view>
     <view class="save-error" wx:if="{{errorText}}" aria-role="alert">{{errorText}}<button wx:if="{{reloadBlocked}}" bindtap="onRetryDraft">重试读取草稿</button></view>
@@ -25,11 +24,11 @@
             <image wx:if="{{ex.thumbSrc}}" class="ex-thumb-img" src="{{ex.thumbSrc}}" mode="aspectFill" binderror="onThumbError" data-ex="{{ex.exIndex}}" />
             <text wx:else>{{ex.glyph}}</text>
           </button>
-          <view class="ex-name-wrap"><view class="ex-name">{{ex.name}}</view><view class="ex-sub">{{ex.completedCount}} / {{ex.sets.length}} 组完成<text wx:if="{{ex.bodyPart}}"> · {{ex.bodyPart}}</text></view></view>
+          <view class="ex-name-wrap"><view class="ex-name">{{ex.name}}</view><view class="ex-sub"><text wx:if="{{ex.equipmentText}}" class="equipment-pill">{{ex.equipmentText}}</text><text wx:if="{{ex.bodyPart}}">{{ex.muscleText || ex.bodyPart}}</text></view></view>
           <button class="btn-more" catchtap="onSkipExercise" data-anchor-id="{{ex.anchorId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}" aria-label="{{ex.name}}更多操作">•••</button>
         </view>
         <view class="set-row set-header"><text class="col-num">组</text><text class="col-input">{{ex.isBodyWeight ? '额外负重 kg' : '重量 kg'}}</text><text class="col-input">次数</text><text class="col-check">完成</text><text class="col-delete"></text></view>
-        <view class="set-row set-{{set.status}}" wx:for="{{ex.sets}}" wx:for-item="set" wx:key="setId">
+        <view class="set-row set-{{set.status}} {{set.isCurrent ? 'is-current' : ''}} {{set.isFuture ? 'is-future' : ''}}" wx:for="{{ex.sets}}" wx:for-item="set" wx:key="setId">
           <text class="col-num mono">{{set.num}}</text>
           <view class="col-input">
             <input wx:if="{{set.status !== 'skipped'}}" class="set-input mono" type="digit" value="{{set.weight}}" placeholder="{{ex.isBodyWeight ? '0' : '—'}}" placeholder-class="input-placeholder" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}" data-set-id="{{set.setId}}" bindinput="onInputWeight" bindblur="onInputBlur" cursor-spacing="160" aria-label="{{ex.name}}第{{set.num}}组{{ex.isBodyWeight ? '额外负重' : '重量'}}" />
@@ -42,15 +41,17 @@
           <button class="col-check check-button" bindtap="onToggleSet" data-set-id="{{set.setId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused' || set.status === 'skipped'}}" aria-label="{{ex.name}}第{{set.num}}组{{set.status === 'completed' ? '取消完成' : '标记完成'}}" aria-role="checkbox" aria-checked="{{set.status === 'completed'}}"><view class="check-box"><view wx:if="{{set.status === 'completed'}}" class="check-mark"></view><text wx:if="{{set.status === 'skipped'}}">−</text></view></button>
           <button wx:if="{{set.canRemove}}" class="col-delete delete-button" catchtap="onRemoveSet" data-set-id="{{set.setId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}" aria-label="删除{{ex.name}}第{{set.num}}组">−</button><view wx:else class="col-delete"></view>
         </view>
-        <button class="add-set" bindtap="onAddSet" data-anchor-id="{{ex.anchorId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">＋ 增加一组</button>
-        <button class="rest-launch" wx:if="{{ex.completedCount && !restActive}}" bindtap="onStartRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}"><view class="clock-icon"></view><text>开始间歇</text><text class="mono">{{restSeconds}} 秒</text></button>
+        <view class="exercise-actions">
+          <button class="add-set" bindtap="onAddSet" data-anchor-id="{{ex.anchorId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">＋ 增加一组</button>
+          <button class="rest-launch" wx:if="{{ex.completedCount && !restActive}}" bindtap="onStartRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}"><text>⏱ 间歇</text><text class="mono">{{restSeconds}}s</text></button>
+        </view>
         <view wx:if="{{ex.skipped}}" class="skip-note">本动作已跳过，可在更多操作中恢复</view>
       </view>
       <view class="empty-state" wx:if="{{!exercises.length && !reloadBlocked}}"><view class="empty-title">从一个动作开始</view><view class="empty-desc">点击下方“加练动作”，添加今天想练的动作。</view></view>
     </view>
     <view class="media-credit" wx:if="{{exercises.length}}">© Gym visual</view>
     <view class="bottom-bar">
-      <button wx:if="{{restActive}}" class="mini-timer" bindtap="onExpandRest" aria-label="展开组间间歇"><view class="clock-icon"></view><view class="mini-timer-body"><view class="mini-label">{{restPaused ? '间歇已暂停' : '组间休息'}}</view><view class="mini-time mono">{{restText}}</view></view><text class="mini-expand">展开⌄</text></button>
+      <button wx:if="{{restActive}}" class="mini-timer" bindtap="onExpandRest" aria-label="展开组间间歇"><view class="clock-icon"></view><view class="mini-timer-body"><view class="mini-label">{{restPaused ? '间歇已暂停' : '组间休息倒计时'}}</view><view class="mini-time mono">{{restText}}</view></view><text class="mini-expand">展开 ⌃</text></button>
       <view class="bottom-actions"><button class="secondary-button" bindtap="onAddExercise" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">＋ 加练动作</button><button class="primary-button" bindtap="onFinish" disabled="{{reloadBlocked || !canFinish || submitting || confirming}}">{{submitting ? '保存中…' : '结束训练'}}</button></view>
     </view>
   </block>
@@ -76,18 +77,26 @@
   <view wx:if="{{restExpanded && restActive && !showSummary}}" class="rest-backdrop" catchtouchmove="onBlockTouch">
     <view class="rest-sheet" role="dialog" aria-label="组间休息">
       <view class="sheet-handle"></view>
-      <view class="sheet-heading"><view><view class="sheet-title">组间休息</view><view class="sheet-subtitle">调整呼吸，准备下一组。</view></view><button class="collapse-button" bindtap="onCollapseRest">收起⌄</button></view>
+      <view class="sheet-heading"><view><view class="sheet-title">组间休息</view><view class="sheet-subtitle">调整呼吸，恢复力量迎接下一组</view></view><button class="collapse-button" bindtap="onCollapseRest">收起 ⌄</button></view>
+      <scroll-view class="rest-body" scroll-y="{{true}}" show-scrollbar="{{false}}">
       <view class="timer-ring">
+        <view class="ring-ticks"><view wx:for="{{restTicks}}" wx:key="*this" class="ring-tick" style="transform: rotate({{item}}deg)"></view></view>
         <view class="ring-track"></view>
         <view class="ring-half ring-right"><view class="ring-arc" style="transform: rotate({{ringRight}}deg)"></view></view>
         <view class="ring-half ring-left"><view class="ring-arc" style="transform: rotate({{ringLeft}}deg)"></view></view>
-        <view class="timer-center"><view class="rest-clock mono">{{restText}}</view><view class="clock-label">{{restPaused ? '计时已暂停' : '留一点时间，恢复力量'}}</view></view>
+        <block wx:if="{{ringRight + ringLeft > 0}}"><view class="ring-cap"></view><view class="ring-cap" style="transform: rotate({{ringRight + ringLeft}}deg)"></view></block>
+        <view class="timer-center"><view class="rest-clock mono">{{restText}}</view><view class="clock-label">{{restPaused ? '● 计时已暂停' : '● 恢复力量中'}}</view></view>
       </view>
-      <view class="rest-presets"><button wx:for="{{restPresets}}" wx:key="*this" class="preset {{restSeconds === item ? 'selected' : ''}}" bindtap="onRestPreset" data-seconds="{{item}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">{{item}} 秒</button></view>
-      <view class="rest-controls"><button bindtap="onAdjustRest" data-delta="-15" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">−15 秒</button><button class="pause-rest" wx:if="{{!restPaused}}" bindtap="onPauseRest" disabled="{{reloadBlocked || submitting || confirming}}">暂停计时</button><button class="pause-rest" wx:else bindtap="onResumeRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">继续计时</button><button bindtap="onAdjustRest" data-delta="15" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">＋15 秒</button></view>
-      <button class="primary-button end-rest" bindtap="onSkipRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">结束休息</button>
+      <view class="rest-presets"><button wx:for="{{restPresets}}" wx:key="*this" class="preset {{restSeconds === item ? 'selected' : ''}}" bindtap="onRestPreset" data-seconds="{{item}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">{{item}}s</button></view>
+      <view class="rest-controls"><button bindtap="onAdjustRest" data-delta="-15" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">- 15 秒</button><button class="pause-rest" wx:if="{{!restPaused}}" bindtap="onPauseRest" disabled="{{reloadBlocked || submitting || confirming}}">❚❚ 暂停计时</button><button class="pause-rest" wx:else bindtap="onResumeRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">继续计时</button><button bindtap="onAdjustRest" data-delta="15" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">+ 15 秒</button></view>
+      <view wx:if="{{nextSetPreview}}" class="next-set-card">
+        <view class="next-set-heading"><text>下一组预告</text><text class="signal">第 {{nextSetPreview.num}} 组</text></view>
+        <view class="next-set-row"><view class="preview-thumb"><image wx:if="{{nextSetPreview.thumbSrc}}" class="preview-image" src="{{nextSetPreview.thumbSrc}}" mode="aspectFill" /><text wx:else>{{nextSetPreview.glyph}}</text></view><text class="preview-name">{{nextSetPreview.name}}</text><text wx:if="{{nextSetPreview.prescription}}" class="preview-prescription mono">{{nextSetPreview.prescription}}</text></view>
+      </view>
       <button class="restart-rest" bindtap="onStartRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">重新开始 {{restSeconds}} 秒</button>
       <view class="sheet-foot">{{phase === 'paused' ? '整场训练已暂停，收起后可继续训练' : '收起后可继续填写和勾选训练记录'}}</view>
+      </scroll-view>
+      <view class="rest-footer"><button class="primary-button end-rest" bindtap="onSkipRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">{{nextSetPreview ? '结束休息，继续下一组' : '结束休息'}}</button></view>
     </view>
   </view>
   <exercise-detail wx:if="{{detail}}" detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />

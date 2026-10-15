@@ -30,6 +30,7 @@ Page({
     canFinish: false,
     progress: { completed: 0, pending: 0, skipped: 0, total: 0 },
     current: null,
+    nextSetPreview: null,
     phase: 'ready',
     restText: '00:00',
     errorText: '',
@@ -39,6 +40,7 @@ Page({
     restPaused: false,
     restSeconds: 90,
     restPresets: [60, 90, 120, 180],
+    restTicks: Array.from({ length: 60 }, (_, index) => index * 6),
     ringRight: 0,
     ringLeft: 0,
     confirming: false,
@@ -188,10 +190,15 @@ Page({
         skipped: ex.sets.every((set) => set.status === 'skipped'),
         volume: domain.computeVolume(ex),
         completedCount: ex.sets.filter(set => set.status === 'completed').length,
+        equipmentText: labels.equipmentLabel((item && item.equipment) || ex.equipment),
+        muscleText: item && item.target ? lib.targetLabel(item.target) : '',
         bodyPart: item ? labels.bodyPartLabel(labels.bodyPartCategory(item)) : labels.equipmentLabel(ex.equipment),
         sets: ex.sets.map((set, setIndex) => {
-          if (set.id === session.training.currentSetId) current = { name: ex.name, num: setIndex + 1, count: ex.sets.length, setId: set.id };
+          const isCurrent = set.id === session.training.currentSetId;
+          if (isCurrent) current = { name: ex.name, num: setIndex + 1, count: ex.sets.length, setId: set.id, exIndex, setIndex };
           return {
+            isCurrent,
+            isFuture: set.status === 'pending' && !isCurrent,
             setId: set.id,
             status: set.status,
             statusText: set.status === 'completed' ? '已完成' : set.status === 'skipped' ? '已跳过' : '待练',
@@ -204,8 +211,20 @@ Page({
         }),
       };
     });
+    // 展示预告只跟随领域游标，不寻找/推进下一组，也不写回草稿。
+    let nextSetPreview = null;
+    if (current) {
+      const exercise = exercises[current.exIndex];
+      const set = exercise.sets[current.setIndex];
+      const hasWeight = set.weight !== '' && set.weight !== null && set.weight !== undefined && Number.isFinite(Number(set.weight)) && Number(set.weight) >= 0;
+      const hasReps = Number.isInteger(Number(set.reps)) && Number(set.reps) > 0;
+      nextSetPreview = {
+        name: exercise.name, num: current.num, thumbSrc: exercise.thumbSrc, glyph: exercise.glyph,
+        prescription: hasWeight && hasReps ? `${set.weight} kg × ${set.reps}` : '',
+      };
+    }
     const progress = domain.getTrainingProgress(session);
-    this.setData({ exercises, current, progress, progressPct: Math.round(progress.ratio * 100),
+    this.setData({ exercises, current, nextSetPreview, progress, progressPct: Math.round(progress.ratio * 100),
       canFinish: domain.canFinishTraining(session),
     });
     this.renderClock();

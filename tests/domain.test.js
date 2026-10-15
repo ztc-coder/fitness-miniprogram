@@ -355,3 +355,48 @@ test('shared exercise compatibility selectors safely handle null and preserve le
   expect(domain.isTrainingExercise(marked)).toBe(true);
   expect(domain.actualSets(marked)).toEqual([{status:'completed',weight:10,reps:2}]);
 });
+
+describe('记录统计（只读派生）', () => {
+  const at = (y, m, d, h = 10) => new Date(y, m - 1, d, h).getTime();
+  const session = (day, overrides = {}) => Object.assign({
+    startedAt: day - 30 * 60 * 1000, submittedAt: day,
+    exercises: [{ equipment: 'barbell', sets: [{ status: 'completed', weight: 50, reps: 10 }] }],
+  }, overrides);
+  const now = at(2026, 10, 14, 20); // 周三
+
+  test('本周场次按周一起算，本月场次与时长只计当月，负重容量不混入自重次数', () => {
+    const sessions = [
+      session(at(2026, 10, 14)), session(at(2026, 10, 12)), // 本周
+      session(at(2026, 10, 11)),                            // 上周日，本月
+      session(at(2026, 9, 30)),                             // 上月
+      session(at(2026, 10, 13), { exercises: [{ equipment: 'body weight', sets: [{ status: 'completed', weight: 0, reps: 20 }] }] }),
+    ];
+    expect(domain.computeRecordStats(sessions, now)).toEqual({
+      weekSessions: 3, totalWeightedVolume: 2000, streakDays: 4, monthSessions: 4, monthDurationSec: 4 * 1800,
+    });
+  });
+
+  test('连续训练从今天或昨天向前数同日去重，断档即停；空输入安全', () => {
+    const yesterdayRun = [session(at(2026, 10, 13)), session(at(2026, 10, 13, 18)), session(at(2026, 10, 12)), session(at(2026, 10, 10))];
+    expect(domain.computeRecordStats(yesterdayRun, now).streakDays).toBe(2);
+    expect(domain.computeRecordStats([session(at(2026, 10, 11))], now).streakDays).toBe(0);
+    expect(domain.computeRecordStats(null, now)).toEqual({
+      weekSessions: 0, totalWeightedVolume: 0, streakDays: 0, monthSessions: 0, monthDurationSec: 0,
+    });
+  });
+});
+
+test('连续训练与本周起点按日历天计算，夏令时切换日不漏算', () => {
+  const prevTz = process.env.TZ;
+  process.env.TZ = 'America/New_York';
+  try {
+    const at = (m, d, h = 10) => new Date(2026, m - 1, d, h).getTime();
+    const s = (t) => ({ startedAt: t - 1000, submittedAt: t, exercises: [] });
+    // 2026-03-08 夏令时开始（当日 23 小时）；今天 03-09 未练，昨天 03-08 与 03-07 练过
+    const stats = domain.computeRecordStats([s(at(3, 8)), s(at(3, 7))], at(3, 9, 20));
+    expect(stats.streakDays).toBe(2);
+    expect(stats.weekSessions).toBe(0); // 03-09 周一为本周起点，03-08 属上周
+  } finally {
+    if (prevTz === undefined) delete process.env.TZ; else process.env.TZ = prevTz;
+  }
+});
