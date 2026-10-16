@@ -141,9 +141,9 @@
 }
 
 .remove-btn text {
-  background: rgba(255, 143, 124, 0.08);
+  background: var(--danger-soft, rgba(255, 143, 124, 0.08));
   color: var(--danger);
-  border-color: rgba(255, 143, 124, 0.3);
+  border-color: var(--danger-line, rgba(255, 143, 124, 0.3));
 }
 
 /* ===== 确保全局按钮宽度不被微信 184px 限制且支持弹性伸缩 ===== */
@@ -158,10 +158,10 @@ button.primary-button {
   padding: 18rpx 24rpx !important;
   line-height: 1.4 !important;
   border-radius: 28rpx !important;
-  background: var(--signal-gradient) !important;
+  background: var(--action-background, var(--signal-gradient)) !important;
   border: 1rpx solid var(--signal-line) !important;
   box-shadow: var(--signal-glow);
-  color: var(--signal-ink) !important;
+  color: var(--action-ink, var(--signal-ink)) !important;
   font-size: 30rpx !important;
   font-weight: 800 !important;
   letter-spacing: 0;
@@ -201,7 +201,7 @@ button.primary-button {
 }
 
 .thumb-glyph { display: flex; align-items: center; justify-content: center; }
-.thumb-glyph view { position: relative; width: 60rpx; height: 6rpx; background: #126548; }
+.thumb-glyph view { position: relative; width: 60rpx; height: 6rpx; background: var(--placeholder-ink, #126548); }
 .thumb-glyph view::before, .thumb-glyph view::after {
   content: '';
   position: absolute;
@@ -209,10 +209,27 @@ button.primary-button {
   width: 8rpx;
   height: 34rpx;
   border-radius: 4rpx;
-  background: #126548;
+  background: var(--placeholder-ink, #126548);
 }
 .thumb-glyph view::before { left: 7rpx; }
 .thumb-glyph view::after { right: 7rpx; }
 .exercise-tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 8rpx; }
 .exercise-tags text { padding: 2rpx 8rpx; border-radius: 6rpx; color: var(--ink-dim); background: var(--surface-2); font-size: 22rpx; }
 .image-credit { margin-top: 24rpx; text-align: center; color: var(--ink-faint); font-size: 20rpx; }
+
+.theme-light .exercise-thumb image {
+  background: #FFFFFF;
+  mix-blend-mode: normal;
+}
+.theme-light .exercise-thumb.has-media {
+  background: #FFFFFF;
+}
+.theme-light .exercise-thumb {
+  background: var(--surface-2);
+}
+
+.theme-light {
+  --placeholder-ink: var(--signal);
+  --danger-soft: rgba(190, 68, 56, 0.08);
+  --danger-line: rgba(190, 68, 56, 0.3);
+}

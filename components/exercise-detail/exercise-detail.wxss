@@ -1,3 +1,5 @@
+@import "../../styles/theme.wxss";
+
 /* ============================================================
    动作详情弹层 —— FORGE 深色设计，共享 v3 色板与组件基础排版
    卡片三段式布局,三段边界明确:
@@ -23,7 +25,7 @@
   align-items: center;
   justify-content: center;
   padding: 36rpx 32rpx calc(36rpx + env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, 0.68);
+  background: var(--overlay, rgba(0, 0, 0, 0.68));
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   box-sizing: border-box;
@@ -297,8 +299,8 @@
   min-height: 96rpx !important;
   margin: 0 !important;
   padding: 18rpx 28rpx !important;
-  color: var(--signal-ink) !important;
-  background: var(--signal-gradient) !important;
+  color: var(--action-ink, var(--signal-ink)) !important;
+  background: var(--action-background, var(--signal-gradient)) !important;
   border: none !important;
   border-radius: 28rpx !important;
   font-family: inherit;
@@ -318,4 +320,12 @@
 
 .detail-primary-hover {
   opacity: 0.82;
+}
+
+.theme-light .detail-media {
+  background: #FFFFFF;
+  mix-blend-mode: normal;
+}
+.theme-light .detail-art-wrap.has-media {
+  background: #FFFFFF;
 }

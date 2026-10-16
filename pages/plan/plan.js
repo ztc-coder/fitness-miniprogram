@@ -4,7 +4,9 @@
 const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 
-Page({
+const { themePage } = require('../../utils/theme');
+
+Page(themePage({
   data: {
     plans: [],
     activePlan: null,
@@ -76,6 +78,7 @@ Page({
     const { dayid } = e.currentTarget.dataset;
     const plan = this.data.activePlan;
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
       title: '删除训练日',
       content: '删除后不影响已提交的历史记录(快照独立)。',
       confirmColor: '#d96a5b',
@@ -98,6 +101,7 @@ Page({
   onAddDay() {
     const plan = this.data.activePlan;
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
       title: '新建训练日',
       editable: true,
       placeholderText: '胸/背/肩/腿',
@@ -117,6 +121,7 @@ Page({
 
   onNewPlan() {
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
       title: '新建计划',
       editable: true,
       placeholderText: '计划名称,例如:力量循环',
@@ -147,6 +152,7 @@ Page({
   onDeletePlan(e) {
     const { id } = e.currentTarget.dataset;
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
       title: '删除计划',
       content: '删除后不可恢复;历史记录不受影响。',
       confirmColor: '#d96a5b',
@@ -187,4 +193,4 @@ Page({
       .catch((err) => wx.showToast({ title: '保存失败', icon: 'none' }))
       .then(() => this.refresh());
   },
-});
+}));

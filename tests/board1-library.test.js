@@ -11,13 +11,17 @@ describe('board1 动作库展示', () => {
   beforeEach(() => {
     jest.resetModules();
     global.Page = (definition) => { page = definition; };
+    global.wx = { getStorageSync: () => null };
     require('../pages/library/library');
     page.data = JSON.parse(JSON.stringify(page.data));
     page.setData = (patch) => { page.data = Object.assign({}, page.data, patch); };
     page.onLoad({});
   });
 
-  afterEach(() => { delete global.Page; });
+  afterEach(() => {
+    delete global.Page;
+    delete global.wx;
+  });
 
   test('器械标签和肌群只取目录真实译名，不增加不存在的次要肌群', () => {
     const checkItems = () => page.data.items.forEach((item) => {

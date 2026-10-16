@@ -12,6 +12,7 @@ const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 const queue = require('../../utils/queue');
 const paging = require('./library-paging');
+const { themePage } = require('../../utils/theme');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
 /** 每行首项「全部」的 key:不参与检索,点击即清空该行 */
@@ -31,7 +32,7 @@ function toggleKey(selected, key) {
     : selected.filter((item) => item !== key);
 }
 
-Page({
+Page(themePage({
   data: {
     query: '',
     equipmentKeys: [],
@@ -354,4 +355,4 @@ Page({
   onClosePicker() {
     this.setData({ pickerVisible: false });
   },
-});
+}));
