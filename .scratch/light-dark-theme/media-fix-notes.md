@@ -6,7 +6,7 @@
 
 - 起点 `d33968f`，开始确认 clean 且该提交为 HEAD 祖先；分支 `feat/light-dark-theme-media-fix`。
 - 已读取主线原生定向报告 `/Users/ztc/fitness-miniprogram/.pi/visual-tests/light-dark-native-targeted-20261016-1033/report.md` 及 `10-dark-detail.png`：真实 0001 GIF 已加载，但白底区域呈 mint 绿色，为 P2 验收偏差。
-- 不是本次新增的 dark 回归：主题实施前基线 `088e49a` 的 `.detail-media` 已有 transparent + multiply；`d33968f` 沿用同值。原图托与 multiply 合成会染色。本次是兑现 spec「真实动作媒体保留原样／原白底」要求。
+- 不是本次新增的 dark 回归：产品基线 `ab4826f` 的 `.detail-media` 已有 transparent + multiply；`088e49a` 与 `d33968f` 沿用同值。原图托与 multiply 合成会染色。本次是兑现 spec「真实动作媒体保留原样／原白底」要求。
 - **真实示意图、动作演示及其有媒体外图托，是“深色颜色保持不变”的明确例外**。除此以外深色 token、卡片、占位、按钮、几何均保持。
 
 ## 修改范围
@@ -30,6 +30,6 @@
 5. 完成前 `git merge feat/light-dark-theme`：fast-forward 到 `b496af0`（仅集成主线文档更新，未编辑 acceptance / issues / 其他 notes）；祖先检查成功。合入后重跑全量结果同上。
 6. `git diff --check` 与相关页面、组件、改动测试 `node --check` 均通过；diff 确认无产品 JS 修改，无布局属性修改。未安装依赖、未生产构建、未访问模拟器。
 
-## 未验
+## 后续原生复验
 
-未取得修复后的原生截图或真机证据，**不声称 native 已通过**。待主线统一原生复验：深浅真实 JPEG/GIF 白底不染色、有媒体外图托白底，GIF→JPEG→glyph 最终失败回到主题占位，以及其余深色区域/几何保持。静态与 Jest 通过不替代该视觉确认。
+修复后已在 `183d5a2` 完成指定模拟器媒体场景复验，结果 **Passed**：0001、0025 两色真实 GIF 与有媒体外图托白区均为 `#FFFFFF`，最终失败 glyph 仍主题图托，P2 已关闭。报告 `.pi/visual-tests/light-dark-media-retest-20261016-105348/report.md`，真实六项存储指纹不变且全部 mock 恢复。GIF→JPEG 降级由前轮真实 error 证据覆盖。真机和组件内部 computed 数值未验，静态与 Jest 不替代这些边界。

@@ -1,6 +1,6 @@
 # Ticket 01 实施与验证记录
 
-状态：代码与可运行自动回归完成，**原生验收待协调者/真机补证，不标 done**。
+状态：已集成并关闭。下文保留实施代理当时的验证范围；后续原生闭环、定向补验与媒体修正结果以 [acceptance.md](acceptance.md) 为准，真机仍未验。
 
 - 任务：01；独立 worktree，分支 `feat/light-dark-theme-01`。
 - 开始 HEAD `d365e6d`，已确认基于 `feat/light-dark-theme`，工作区 clean。

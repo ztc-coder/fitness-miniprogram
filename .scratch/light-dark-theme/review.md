@@ -18,4 +18,13 @@
 
 ## 独立证据与未关闭边界
 
-全局状态为代码／auto／review 完成、原生补验进行中。自动验证、01 原生通过项及第二轮 Partial 报告见 [acceptance.md](./acceptance.md)。第三轮 02 深浅流程、共享详情媒体与 picker、03 running deadline 跨主题及到时补验尚无结果，保持 pending；不关闭 tickets。系统 modal/actionSheet/picker 底板及键盘不能独立主题化，真机未验。sandbox／展示 fixture 不等于真实训练记录提交。
+全局状态为实施与指定模拟器验收完成，四票已关闭。原生各轮范围及最终媒体复验见 [acceptance.md](./acceptance.md)。系统 modal/actionSheet/picker 底板及键盘不能独立主题化，真机未验；sandbox／展示 fixture 不等于真实训练记录提交。
+
+## 媒体修正补审
+
+原生定向验收发现基线 multiply 将深色真实 GIF 白底染绿，与媒体保真要求冲突。仅将真实媒体及有媒体图托提升为双主题 white/normal，主题占位和其余深色色板、几何、业务保持。范围 `b496af0...0e7c31a`，合入 `183d5a2`。
+
+- **Standards：APPROVE / No findings / P0–P2 = 0**，自动 quick 聚焦审查。核对全部 12 个 CSS／测试／说明文件，浅深优先级及占位区分正确，没有删除行为断言。
+- **Spec：APPROVE / No findings / P0–P2 = 0**，自动 medium 聚焦审查。符合 spec 的真实媒体原白底要求，是深色保持条款的明确媒体例外，无业务／几何／色板扩展。
+
+两名补审 reviewer 均未运行测试或模拟器；最终 497 项可运行回归和原生媒体白底复验由独立证据提供。媒体 P2 复验后已关闭，无已知未修复 P0–P2。
