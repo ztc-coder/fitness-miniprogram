@@ -4,8 +4,9 @@
 const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 const fmt = require('../../utils/format');
+const { themePage } = require('../../utils/theme');
 
-Page({
+Page(themePage({
   data: {
     session: null,
     exercises: [],
@@ -48,4 +49,4 @@ Page({
       });
     });
   },
-});
+}));

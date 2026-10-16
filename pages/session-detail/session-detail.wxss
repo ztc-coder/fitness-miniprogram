@@ -122,3 +122,6 @@
   background: var(--card-gradient);
   border: 1rpx solid var(--line);
 }
+
+/* 与档案统计一致：浅色合计用炭黑，组成绩仍以深绿和浅绿承接。 */
+.theme-light .metric-num { color: var(--ink); }

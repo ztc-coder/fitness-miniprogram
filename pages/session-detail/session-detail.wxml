@@ -1,4 +1,4 @@
-<view class="page" wx:if="{{session}}">
+<view class="page theme-{{theme}}" wx:if="{{session}}">
   <view class="kicker">当次训练记录</view>
   <view class="page-title">{{session.dayName}}</view>
   <view class="page-subtitle">{{dateLine}} · {{session.planName}}</view>
