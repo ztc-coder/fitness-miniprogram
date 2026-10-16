@@ -533,7 +533,13 @@ test('首次升级保存失败可显式重试，不开放未保存草稿；读�
   wx.setStorageSync.mockImplementationOnce(() => { throw Error('full'); }); page.onLoad(); page.onShow();
   expect(page.data.session).toBeNull(); expect(page.data.errorText).toMatch(/保存/);
   page.onRetryDraft(); expect(page.data.phase).toBe('ready'); expect(page.data.session.flowVersion).toBe(2);
-  wx.getStorageSync.mockImplementationOnce(() => { throw Error('storage'); }); page.onShow();
+  wx.getStorageSync.mockImplementation((key) => {
+    if (key === DRAFT_KEY) {
+      wx.getStorageSync.mockImplementation((nextKey) => storage.get(nextKey));
+      throw Error('storage');
+    }
+    return storage.get(key);
+  }); page.onShow();
   expect(page.data.errorText).toMatch(/读取/); expect(page.data.session.flowVersion).toBe(2);
 });
 
@@ -573,7 +579,13 @@ test.each(['read', 'upgrade-write'])('reload %s失败阻塞陈旧写入，显式
   const added = domain.addSessionExercise(storage.get(DRAFT_KEY), { exerciseId: '0001', name: '加练', equipment: 'body weight' });
   if (mode === 'upgrade-write') { delete added.flowVersion; delete added.training; }
   storage.set(DRAFT_KEY, added);
-  if (mode === 'read') wx.getStorageSync.mockImplementationOnce(() => { throw Error('read'); });
+  if (mode === 'read') wx.getStorageSync.mockImplementation((key) => {
+    if (key === DRAFT_KEY) {
+      wx.getStorageSync.mockImplementation((nextKey) => storage.get(nextKey));
+      throw Error('read');
+    }
+    return storage.get(key);
+  });
   else wx.setStorageSync.mockImplementationOnce(() => { throw Error('full'); });
   page.onShow(); expect(page.data.reloadBlocked).toBe(true); expect(page.data.canFinish).toBe(false);
   wx.setStorageSync.mockClear(); const [first, second] = setIds();

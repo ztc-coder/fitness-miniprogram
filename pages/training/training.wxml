@@ -1,4 +1,4 @@
-<view class="training-page {{restActive ? 'has-rest' : ''}} {{showSummary ? 'show-summary' : ''}}">
+<view class="training-page theme-{{theme}} {{restActive ? 'has-rest' : ''}} {{showSummary ? 'show-summary' : ''}}">
   <block wx:if="{{!showSummary}}">
     <view class="session-toolbar">
       <view class="training-heading">
@@ -99,5 +99,5 @@
       <view class="rest-footer"><button class="primary-button end-rest" bindtap="onSkipRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">{{nextSetPreview ? '结束休息，继续下一组' : '结束休息'}}</button></view>
     </view>
   </view>
-  <exercise-detail wx:if="{{detail}}" detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />
+  <exercise-detail theme="{{theme}}" wx:if="{{detail}}" detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />
 </view>
