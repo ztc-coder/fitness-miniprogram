@@ -7,6 +7,7 @@ const db = require('../../utils/db');
 const queue = require('../../utils/queue');
 const domain = require('../../utils/domain');
 const fmt = require('../../utils/format');
+const { themePage } = require('../../utils/theme');
 
 const METRICS = [
   { key: 'volume', label: 'volume' },
@@ -14,7 +15,7 @@ const METRICS = [
   { key: 'e1rm', label: '估算 1RM · 预留' },
 ];
 
-Page({
+Page(themePage({
   data: {
     view: 'trend',
     sessions: [],
@@ -154,4 +155,4 @@ Page({
     }
     this.setData({ metric: key, metricLabel: label, showMetricSheet: false });
   },
-});
+}));
