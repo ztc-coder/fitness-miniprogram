@@ -1,13 +1,13 @@
 # Ticket 02 实施与验证记录
 
-状态：页面和组件适配已落地；本票回归通过。**旧测试兼容性与原生验收待协调者处理，不关闭票，暂未提交。**
+状态：页面和组件适配、既有测试兼容修复及相关回归已完成并提交；票保持 open，原生验收待主线，不关闭票。
 
 ## 分支与范围
 
-- 独立 worktree：`feat/light-dark-theme-02`；起点 `088e49a`。
+- 独立 worktree：`feat/light-dark-theme-02-complete`；起点 `088e49a`。恢复前代理保存分支 `pi-agent-c90dc4fe-5bcc-497` 的 tip `0ede8f710dd9804b78ded15110ad6e71dac1a1ad`（cherry-pick 为 `4617814`），完整保留产品改动、独立测试及记录。
 - 开始确认工作区 clean，`git merge-base --is-ancestor 088e49a HEAD` 成功；HEAD 与 integration 一致，无需重置或对齐。
 - 完成前 `git merge feat/light-dark-theme` → Already up to date（tip `088e49a`）。
-- 仅修改 `pages/plan`、`pages/plan-day`、`pages/library`、`components/exercise-detail`、独立 `tests/theme-plan-browsing.test.js` 与本记录。未修改共享样式/工具、training、records 或既有测试。
+- 修改范围：`pages/plan`、`pages/plan-day`、`pages/library`、`components/exercise-detail`、独立 `tests/theme-plan-browsing.test.js`、获授权的两份既有测试与本记录。未修改共享样式/工具、training、records。
 
 ## 逐文件实现
 
@@ -31,14 +31,17 @@
 - `node --check`：三页、library-paging、组件和本票测试通过；`git diff --check` 通过。
 - 未安装依赖、未跑生产构建、未重复全套 Jest 的 catalog 缺源已知失败。
 
-## 未决旧测试兼容性（提交阻塞，未越界修改）
+## 既有测试兼容修复与最终回归
 
-另运行本票+既有计划/动作库/详情 9 suites 时：7 passed / 2 failed，109 passed / 3 failed。
+已获授权仅适配既有测试，不改生产共享主题或移除主题生命周期。
 
-1. `tests/board1-library.test.js` 两项：`ReferenceError: wx is not defined`，该旧 Page 测试未提供 wx；接入装饰器后 onLoad 必须访问平台 API。
-2. `tests/library-paging.test.js` 一项：`setDataCalls` 期待总长 2，实为 3；新增的一次是 onLoad 的 `{theme:'dark'}`，并非重复筛选/分页提交。
-
-这两文件不属于用户授权的“本票独立测试”，未修改。候选方案：协调者授权最小调整测试夹具（补 wx 平台边界；只比较 onReachBottom 前后增量/业务数据提交，而非整个生命周期调用总数），或由协调者集成时另行调整。不得为通过测试取消主题生命周期或在生产逻辑中规避平台调用。遵守验证失败不提交约定，当前变更保留未提交，commit SHA 尚无；待上述范围许可后重跑并提交 Conventional Commit。
+- Red：运行 `tests/board1-library.test.js tests/library-paging.test.js --runInBand --coverage=false`，稳定复现 **2 suites failed，3 failed / 12 passed**。board1 两项缺少 wx 平台边界；paging 一项把主题 onLoad 的 setData 计入分页业务调用总数（期待 2，实际 3）。
+- `tests/board1-library.test.js`：补最小 `wx.getStorageSync` 空存储 fixture；afterEach 同时清理 `global.Page` 与 `global.wx`，原行为断言不变。
+- `tests/library-paging.test.js`：记录 onReachBottom 前调用数，仅检查事件提交增量为 1；断言 patch 只含窗口字段、完整前 48 条匹配项及总数，保留无重复、首屏前缀、筛选重置和详情行为断言，不因主题生命周期误报。
+- Green：相同两文件 **2 suites passed，15 passed**。
+- 最终命令：`node /Users/ztc/fitness-miniprogram/node_modules/jest/bin/jest.js --runInBand --coverage=false --testPathPattern='(library|plan|exercise-detail|exercise-selector|search-multiselect).*\.test\.js$'`。
+- 最终结果：**11 suites passed，175 passed / 3 skipped**，覆盖所有 library、plan、exercise-detail、新 theme-plan-browsing 及直接相关选择器回归。
+- 完成前再次 `git merge feat/light-dark-theme`，Already up to date（tip `088e49a`）。相关 JS `node --check` 与 `git diff --check` 通过。未构建、未访问模拟器、未运行无关全套测试；使用现有 Jest，未安装依赖。
 
 ## 原生待验（不关闭票）
 
