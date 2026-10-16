@@ -217,15 +217,15 @@ button.primary-button {
 .exercise-tags text { padding: 2rpx 8rpx; border-radius: 6rpx; color: var(--ink-dim); background: var(--surface-2); font-size: 22rpx; }
 .image-credit { margin-top: 24rpx; text-align: center; color: var(--ink-faint); font-size: 20rpx; }
 
-.theme-light .exercise-thumb image {
+.exercise-thumb image {
   background: #FFFFFF;
   mix-blend-mode: normal;
 }
-.theme-light .exercise-thumb.has-media {
-  background: #FFFFFF;
-}
 .theme-light .exercise-thumb {
   background: var(--surface-2);
+}
+.exercise-thumb.has-media {
+  background: #FFFFFF;
 }
 
 .theme-light {

@@ -294,8 +294,8 @@
 
 .library-art-image {
   display: block;
-  background: transparent;
-  mix-blend-mode: multiply;
+  background: #FFFFFF;
+  mix-blend-mode: normal;
   border-color: transparent;
 }
 
@@ -730,11 +730,7 @@
   border-color: var(--signal);
 }
 
-.theme-light .library-art-image {
-  background: #FFFFFF;
-  mix-blend-mode: normal;
-}
-.theme-light .library-art-wrap.has-media {
+.library-art-wrap.has-media {
   background: #FFFFFF;
 }
 

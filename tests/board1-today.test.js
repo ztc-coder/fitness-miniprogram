@@ -81,9 +81,9 @@ test('计划入口复用既有导航，展示模板保留草稿和启动条件',
   expect(JSON.parse(fs.readFileSync('pages/today/today.json', 'utf8')).navigationBarTitleText).toBe('FORGE');
 });
 
-test('加载后的动作图片沿用动作库的混合模式，保留薄荷图托', () => {
+test('加载后的真实动作图片白底 normal，不染色', () => {
   const style = fs.readFileSync('pages/today/today.wxss', 'utf8');
-  expect(style).toMatch(/\.exercise-image\s*\{[^}]*mix-blend-mode:\s*multiply/);
+  expect(style).toMatch(/\.exercise-image\s*\{[^}]*mix-blend-mode:\s*normal;[^}]*background:\s*#FFFFFF;/);
 });
 
 test('同名训练日保留草稿所属计划，并展示当前动作数、总组数和目标重量', () => {

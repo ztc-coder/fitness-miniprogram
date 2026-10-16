@@ -125,9 +125,9 @@ test('休息弹层内容独立滚动，继续按钮固定在滚动区外且保�
   expect(wxml).toContain('bindtap="onSkipRest" disabled="{{reloadBlocked || submitting || confirming || phase === \'paused\'}}"');
 });
 
-test('缩略图保留薄荷底，只有聚焦输入高亮而不同时强调整行两列', () => {
+test('真实缩略图白底且占位保留薄荷底，只有聚焦输入高亮而不同时强调整行两列', () => {
   const wxss = fs.readFileSync('pages/training/training.wxss', 'utf8');
-  expect(wxss).toMatch(/\.ex-thumb-img\s*\{[^}]*mix-blend-mode:\s*multiply/);
-  expect(wxss).toMatch(/\.preview-image\s*\{[^}]*mix-blend-mode:\s*multiply/);
+  expect(wxss).toMatch(/\.ex-thumb-img\s*\{[^}]*mix-blend-mode:\s*normal;[^}]*background:\s*#FFFFFF;/);
+  expect(wxss).toMatch(/\.preview-image\s*\{[^}]*mix-blend-mode:\s*normal;[^}]*background:\s*#FFFFFF;/);
   expect(wxss).not.toContain('.is-current .set-input,');
 });
