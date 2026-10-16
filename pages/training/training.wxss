@@ -46,12 +46,12 @@ button[disabled] { opacity: .4; color: inherit; }
 .col-delete { width: 88rpx; flex-shrink: 0; }
 .set-input { width: 100%; height: 88rpx; min-height: 88rpx; min-width: 88rpx; border: 1rpx solid transparent; border-radius: 16rpx; background: transparent; font-size: 30rpx; color: var(--ink); text-align: center; padding: 0 4rpx; box-sizing: border-box; }
 .input-placeholder { color: var(--ink-faint); }
-.set-completed { background: transparent; border-radius: 16rpx; border-top-color: transparent; }
+.set-completed { background: var(--completed-background, transparent); border-radius: 16rpx; border-top-color: transparent; }
 .set-completed + .set-row { border-top-color: transparent; }
 .set-completed .set-input { background: transparent; border-color: transparent; color: var(--ink); }
 .training-page .check-button { width: 88rpx; min-width: 88rpx; flex: 0 0 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; }
 .check-box { width: 40rpx; height: 40rpx; border: 2rpx solid var(--line-strong); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.set-completed .check-box { width: 52rpx; height: 52rpx; border-radius: 15rpx; background: var(--signal-gradient); border-color: var(--signal); color: var(--signal-ink); box-shadow: var(--signal-glow); }
+.set-completed .check-box { width: 52rpx; height: 52rpx; border-radius: 15rpx; background: var(--signal-gradient); border-color: var(--energy, var(--signal)); color: var(--signal-ink); box-shadow: var(--signal-glow); }
 .check-mark { width: 22rpx; height: 13rpx; border-left: 4rpx solid currentColor; border-bottom: 4rpx solid currentColor; transform: translateY(-3rpx) rotate(-45deg); }
 .training-page .delete-button { width: 88rpx; min-width: 88rpx; flex: 0 0 88rpx; min-height: 88rpx; font-size: 34rpx; color: var(--ink-dim); display: flex; align-items: center; justify-content: center; }
 .skipped-value { font-size: 22rpx; color: var(--ink-dim); }
@@ -92,7 +92,7 @@ button[disabled] { opacity: .4; color: inherit; }
 .rest-controls { display: flex; gap: 14rpx; margin-bottom: 18rpx; }
 .training-page .rest-controls button { flex: 1; width: 0; min-width: 0; min-height: 88rpx; border: 1rpx solid var(--line-strong); border-radius: 22rpx; background: var(--surface); font-size: 26rpx; display: flex; align-items: center; justify-content: center; }
 .rest-controls .pause-rest { flex: 1.3; background: var(--surface-2); border-color: var(--surface-2); }
-.training-page .end-rest { width: 100%; background: var(--signal-gradient); color: var(--signal-ink); box-shadow: var(--signal-glow); }
+.training-page .end-rest { width: 100%; background: var(--action-background, var(--signal-gradient)); color: var(--action-ink, var(--signal-ink)); box-shadow: var(--signal-glow); }
 .training-page .restart-rest { width: 100%; font-size: 23rpx; color: var(--ink-dim); min-height: 88rpx; display: flex; align-items: center; justify-content: center; }
 .sheet-foot { text-align: center; color: var(--ink-faint); font-size: 21rpx; }
 .summary-page { padding-top: 34rpx; }
@@ -123,7 +123,7 @@ button[disabled] { opacity: .4; color: inherit; }
 /* style:v2 原生按钮 width=184px，行内控制必须显式覆盖，避免挤没输入列。 */
 .training-page button { margin-left: 0; margin-right: 0; padding: 0; line-height: 1.4; font-weight: 500; }
 .training-page .ex-thumb { width: 104rpx; min-width: 0; }
-.training-page .primary-button { width: 100%; font-weight: 600; }
+.training-page .primary-button { width: 100%; font-weight: 600; background: var(--action-background, var(--signal-gradient)); color: var(--action-ink, var(--signal-ink)); }
 .training-page .bottom-actions > button { width: 0; }
 .training-page .preset.selected { background: var(--signal-soft); color: var(--signal); font-weight: 700; }
 .training-page .rest-controls .pause-rest { flex: 1.3; background: var(--surface-2); border-color: var(--surface-2); }
@@ -161,3 +161,13 @@ button[disabled] { opacity: .4; color: inherit; }
   .rest-sheet { padding-left: 28rpx; padding-right: 28rpx; }
   .rest-presets, .rest-controls { gap: 10rpx; }
 }
+
+/* 精修 C：只覆盖浅色颜色，深色与原产品逐值一致。 */
+.theme-light .paused-banner, .theme-light .save-error { background: #FFF4DF; color: #805307; }
+.theme-light .rest-backdrop { background: var(--overlay); }
+.theme-light .ex-thumb, .theme-light .preview-thumb { color: var(--ink-dim); }
+/* 真正媒体保留白底，不把解剖图染成图托颜色；占位 glyph 仍用次表面。 */
+.theme-light .ex-thumb-img, .theme-light .preview-image { background: #FFFFFF; mix-blend-mode: normal; }
+.theme-light .mini-timer, .theme-light .equipment-pill, .theme-light .pause-button { border-color: var(--line); }
+.theme-light .elapsed, .theme-light .mini-time, .theme-light .stat-number { color: var(--ink); }
+.theme-light .progress-track { background: var(--ink); }

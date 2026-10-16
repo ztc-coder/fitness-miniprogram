@@ -9,6 +9,7 @@ const fmt = require('../../utils/format');
 const lib = require('../../data/exercises');
 const labels = require('../../data/exercise-labels');
 const media = require('../../data/media-root');
+const { themePage } = require('../../utils/theme');
 
 const DRAFT_KEY = 'fitness:trainingDraft';
 const clockText = seconds => {
@@ -16,7 +17,7 @@ const clockText = seconds => {
   return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
 };
 
-Page({
+Page(themePage({
   data: {
     session: null,
     reloadBlocked: true,
@@ -364,6 +365,7 @@ Page({
     const { anchorId } = e.currentTarget.dataset;
     if (!this.findSet(anchorId)) return;
     wx.showActionSheet({
+      ...(this.data.theme === 'light' ? { itemColor: '#20262B' } : {}),
       itemList: ['跳过剩余组', '恢复跳过组', '移除未练动作'],
       success: (res) => {
         if (!this.canRecord()) return;
@@ -507,6 +509,7 @@ Page({
     this.setData({ confirming: true });
     return new Promise(resolve => {
       wx.showModal({
+        ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
         title: '结束本次训练？',
         content: `已完成 ${progress.completed} 组，剩余 ${progress.pending} 组将跳过。保存实际成绩后，计划进入下一训练日。`,
         confirmText: '保存结束', cancelText: '继续记录',
@@ -607,4 +610,4 @@ Page({
   onSummaryViewRecords() {
     wx.switchTab({ url: '/pages/records/records' });
   },
-});
+}));
