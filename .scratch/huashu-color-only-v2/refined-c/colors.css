@@ -1,0 +1,21 @@
+/* C 精修：炭黑承接操作，亮绿标识反馈，历史数据回归灰阶。 */
+.native-page[data-theme="light"] {
+  --signal: #3E5429;
+  --signal-deep: #3E5429;
+  --signal-soft: #F2F6E8;
+  --signal-line: #A7B68F;
+}
+
+.native-page[data-theme="light"] .avatar {
+  background-color: var(--ink);
+  border-color: var(--ink);
+  color: var(--energy);
+}
+
+.native-page[data-theme="light"] .chart-bar:not(.last) {
+  background-color: #879197;
+}
+
+.native-page[data-theme="light"] .set-row.set-completed {
+  background-color: #F7F8F4;
+}
