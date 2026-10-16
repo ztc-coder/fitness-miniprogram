@@ -7,6 +7,7 @@ const db = require('../../utils/db');
 const queue = require('../../utils/queue');
 const domain = require('../../utils/domain');
 const fmt = require('../../utils/format');
+const { themePage } = require('../../utils/theme');
 
 const METRICS = [
   { key: 'volume', label: 'volume' },
@@ -14,10 +15,15 @@ const METRICS = [
   { key: 'e1rm', label: '估算 1RM · 预留' },
 ];
 
-Page({
+Page(themePage({
   data: {
-    view: 'sessions',
+    view: 'trend',
     sessions: [],
+    recentSessions: [],
+    stats: { weekSessions: 0, streakDays: 0 },
+    totalVolumeValue: '0',
+    totalVolumeUnit: 'kg',
+    yTicks: [],
     pendingCount: 0,
     exerciseNames: [],
     selectedExercise: '',
@@ -35,11 +41,19 @@ Page({
   },
 
   refresh() {
-    db.fetchSessions(50).then((sessions) => {
+    // 待提交队列在本地，先同步读取，避免云查询期间误显示「已全部云同步」。
+    this.setData({ pendingCount: queue.getQueue().length });
+    db.fetchAllSessions().then((sessions) => {
       this.allSessions = sessions;
+      const stats = domain.computeRecordStats(this.allSessions, Date.now());
+      const rows = sessions.map((s) => this.toSessionRow(s));
       this.setData({
+        stats,
+        totalVolumeValue: stats.totalWeightedVolume < 1000 ? fmt.formatNumber(stats.totalWeightedVolume) : (stats.totalWeightedVolume / 1000).toFixed(1),
+        totalVolumeUnit: stats.totalWeightedVolume < 1000 ? 'kg' : 't',
+        recentSessions: rows.slice(0, 2),
         pendingCount: queue.getQueue().length,
-        sessions: sessions.map((s) => this.toSessionRow(s)),
+        sessions: rows,
       });
       this.buildTrend();
     });
@@ -52,7 +66,7 @@ Page({
       Math.round(((s.submittedAt || Date.now()) - s.startedAt) / 1000)
     );
     return {
-      id: s._id || s.id,
+      id: s.id || s._id,
       date: parts.date,
       month: parts.month,
       name: s.dayName || '训练',
@@ -76,7 +90,7 @@ Page({
     const names = [];
     sessions.forEach((s) => {
       (s.exercises || []).forEach((ex) => {
-        if (ex.name && names.indexOf(ex.name) === -1) names.push(ex.name);
+        if (domain.computeExerciseCount({ exercises: [ex] }) && ex.name && names.indexOf(ex.name) === -1) names.push(ex.name);
       });
     });
     const selected = this.data.selectedExercise && names.indexOf(this.data.selectedExercise) !== -1
@@ -97,12 +111,12 @@ Page({
     let isBodyWeight = false;
     sessions.forEach((s) => {
       (s.exercises || []).forEach((ex) => {
-        if (ex.name !== selectedExercise || ex.skipped) return;
+        if (ex.name !== selectedExercise || !domain.computeExerciseCount({ exercises: [ex] })) return;
         isBodyWeight = domain.isBodyWeight(ex);
         const value = domain.computeVolume(ex);
         if (value > 0) {
           const parts = fmt.formatDateParts(s.submittedAt || s.startedAt);
-          points.push({ label: parts.date, value });
+          points.push({ label: `${parts.month.slice(0, -1)}/${parts.date}`, value });
         }
       });
     });
@@ -112,9 +126,14 @@ Page({
       value: fmt.formatNumber(p.value),
       height: max > 0 ? Math.max(8, Math.round((p.value / max) * 100)) : 8,
       last: i === arr.length - 1,
+      isPR: i === arr.length - 1 && p.value === max,
     }));
     this.setData({
       bars,
+      yTicks: [3, 2, 1, 0].map((step) => {
+        const value = max * step / 3;
+        return { label: value >= 1000 ? `${(value / 1000).toFixed(1)}k` : fmt.formatNumber(value), position: step * 100 / 3 };
+      }),
       isBodyWeight,
       trendEmpty: points.length === 0,
     });
@@ -136,4 +155,4 @@ Page({
     }
     this.setData({ metric: key, metricLabel: label, showMetricSheet: false });
   },
-});
+}));

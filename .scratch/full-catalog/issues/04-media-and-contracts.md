@@ -1,6 +1,12 @@
+---
+title: 媒体目标规划与文档契约
+labels: [ready-for-human]
+status: done
+---
+
 # 04: 媒体目标规划与文档契约
 
-**状态：implemented；真实发布已完成。**
+**状态：done；真实发布已完成。**
 
 ## 当前结果
 

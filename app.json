@@ -10,17 +10,17 @@
     "pages/session-detail/session-detail"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#dff0eb",
+    "navigationBarBackgroundColor": "#08110e",
     "navigationBarTitleText": "训练日志",
-    "navigationBarTextStyle": "black",
-    "backgroundColor": "#dff0eb",
-    "backgroundTextStyle": "dark"
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#08110e",
+    "backgroundTextStyle": "light"
   },
   "tabBar": {
-    "color": "#6f8780",
-    "selectedColor": "#0b8f82",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "white",
+    "color": "#9aad9f",
+    "selectedColor": "#3ee6a0",
+    "backgroundColor": "#0b1612",
+    "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/today/today",

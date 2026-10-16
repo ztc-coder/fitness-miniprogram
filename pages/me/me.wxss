@@ -1,15 +1,20 @@
 .page {
   min-height: 100vh;
-  padding: 30rpx 32rpx 48rpx;
+  padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
   background: var(--bg);
 }
 
-/* ===== 档案区:无边框开放式 ===== */
+/* ===== 档案卡片 ===== */
 .profile {
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  padding: 40rpx 0 10rpx;
+  gap: 16rpx;
+  padding: 24rpx;
+  background: var(--card-gradient);
+  border: 1rpx solid var(--signal-line);
+  border-radius: 30rpx;
+  box-shadow: var(--card-shadow);
 }
 
 .avatar {
@@ -18,10 +23,13 @@
   justify-content: center;
   width: 104rpx;
   height: 104rpx;
-  color: var(--ink);
-  background: var(--amber);
-  border-radius: 50%;
-  font-size: 42rpx;
+  flex-shrink: 0;
+  color: var(--signal);
+  background: var(--signal-soft);
+  border: 1rpx solid var(--signal-line);
+  border-radius: 28rpx;
+  box-shadow: var(--signal-glow), inset 0 0 24rpx var(--signal-soft);
+  font-size: 54rpx;
   font-weight: 800;
 }
 
@@ -31,7 +39,7 @@
 }
 
 .profile-name {
-  font-size: 38rpx;
+  font-size: 34rpx;
   font-weight: 800;
 }
 
@@ -42,37 +50,69 @@
 }
 
 .login-pill {
-  display: flex;
+  display: inline-flex !important;
+  justify-content: center;
+  flex-shrink: 0;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+  background: transparent !important;
   align-items: center;
   gap: 10rpx;
-  padding: 10rpx 22rpx;
-  border: 1rpx solid var(--line);
-  border-radius: 999rpx;
-  color: var(--signal);
-  font-size: var(--t-kicker);
+  min-height: 88rpx;
+  padding: 14rpx 0 !important;
+  border: 0 !important;
+  border-radius: 16rpx !important;
+  color: var(--ink) !important;
+  font-size: var(--t-kicker) !important;
 }
 
 .login-dot {
-  width: 10rpx;
-  height: 10rpx;
+  width: 16rpx;
+  height: 16rpx;
+  box-shadow: var(--signal-glow);
   border-radius: 50%;
   background: var(--signal);
 }
 
-/* ===== 设置列表:细线分隔 ===== */
+/* ===== Inset Grouped 设置卡片 ===== */
 .setting-list {
   display: flex;
   flex-direction: column;
-  border-top: 1rpx solid var(--line);
+  padding: 0 24rpx;
+  background: var(--card-gradient);
+  border: 1rpx solid var(--line);
+  border-radius: 28rpx;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
 }
 
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 104rpx;
-  padding: 18rpx 4rpx;
+  gap: 14rpx;
+  min-height: 94rpx;
+  padding: 8rpx 0;
+  box-sizing: border-box;
   border-bottom: 1rpx solid var(--line);
+}
+
+.setting-row:last-child {
+  border-bottom: 0;
+}
+
+.setting-row > .setting-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-chevron {
+  flex-shrink: 0;
+  color: var(--signal);
+  font-size: 36rpx;
+  line-height: 1;
 }
 
 .setting-main {
@@ -81,7 +121,7 @@
 }
 
 .setting-name {
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: 700;
 }
 
@@ -102,17 +142,181 @@
 }
 
 .setting-value.warn {
-  color: #b0851c;
+  color: var(--amber);
   font-weight: 700;
 }
 
 .queue-note {
-  margin-top: 24rpx;
-  padding: 22rpx;
-  background: rgba(255, 216, 74, 0.16);
-  border: 1rpx dashed rgba(217, 200, 121, 0.9);
-  border-radius: 16rpx;
+  margin: 10rpx 12rpx 0;
   font-size: var(--t-kicker);
-  line-height: 1.6;
-  color: var(--ink-dim);
+  line-height: 1.5;
+  color: var(--ink-faint);
 }
+
+.login-pill::after {
+  display: none !important;
+}
+
+.setting-row switch,
+.setting-value {
+  flex-shrink: 0;
+}
+
+.section-kicker {
+  margin: 24rpx 0 12rpx;
+}
+
+.profile-sub {
+  font-size: 19rpx;
+  white-space: nowrap;
+}
+
+.login-pending {
+  background: var(--amber);
+  box-shadow: none;
+}
+
+.month-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 44rpx;
+  padding: 24rpx 34rpx;
+  background: var(--card-gradient);
+  border: 1rpx solid var(--line-strong);
+  border-radius: 26rpx;
+  box-shadow: var(--card-shadow);
+}
+
+.month-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 214rpx;
+  height: 214rpx;
+  border-radius: 50%;
+  background: var(--line-strong);
+  box-shadow: 0 0 28rpx var(--signal-soft);
+}
+
+.ring-center {
+  width: 174rpx;
+  height: 174rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--card-gradient);
+  box-shadow: inset 0 0 24rpx rgba(0, 0, 0, 0.35);
+}
+
+.ring-count {
+  font-size: 58rpx;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.ring-unit {
+  color: var(--ink-dim);
+  font-size: 26rpx;
+}
+
+.month-stats {
+  flex: 1;
+  min-width: 0;
+}
+
+.month-stat + .month-stat {
+  margin-top: 10rpx;
+  padding-top: 10rpx;
+  border-top: 1rpx solid var(--line-strong);
+}
+
+.stat-label {
+  color: var(--ink-dim);
+  font-size: 22rpx;
+}
+
+.stat-value {
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.stat-unit {
+  margin-left: 10rpx;
+  font-size: 24rpx;
+}
+
+.icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 68rpx;
+  height: 68rpx;
+  border: 1rpx solid var(--line-strong);
+  border-radius: 18rpx;
+  background: linear-gradient(145deg, var(--surface-2), var(--signal-soft));
+  color: var(--signal);
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.icon-weight {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.icon-trend {
+  gap: 5rpx;
+}
+
+.icon-trend text {
+  width: 7rpx;
+  height: 20rpx;
+  margin-top: 14rpx;
+  border-radius: 3rpx;
+  background: var(--signal);
+}
+
+.icon-trend text:nth-child(2) {
+  height: 34rpx;
+  margin-top: 0;
+}
+
+.icon-trend text:nth-child(3) {
+  height: 26rpx;
+  margin-top: 8rpx;
+}
+
+.switch-hit {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 88rpx;
+}
+
+.switch-hit switch {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+}
+
+.about-list .icon-tile {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 14rpx;
+}
+
+/* 精修 C：头像黑底亮绿，圆环/状态深绿；不改布局。 */
+.theme-light .profile { border-color: var(--line); }
+.theme-light .avatar { background: var(--ink); border-color: var(--ink); color: var(--energy); }
+.theme-light .avatar,
+.theme-light .month-ring,
+.theme-light .ring-center { box-shadow: none; }
+.theme-light .icon-tile { background: var(--surface-2); color: var(--ink-dim); }
+.theme-light .icon-trend text { background: var(--ink-dim); }
+.theme-light .setting-chevron { color: var(--ink-dim); }

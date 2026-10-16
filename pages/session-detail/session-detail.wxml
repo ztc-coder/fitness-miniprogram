@@ -1,19 +1,19 @@
-<view class="page" wx:if="{{session}}">
-  <view class="kicker">训练快照 · 独立副本</view>
+<view class="page theme-{{theme}}" wx:if="{{session}}">
+  <view class="kicker">当次训练记录</view>
   <view class="page-title">{{session.dayName}}</view>
   <view class="page-subtitle">{{dateLine}} · {{session.planName}}</view>
 
   <view class="summary-metrics">
     <view class="metric">
-      <text class="metric-num">{{exercises.length}}</text>
+      <text class="metric-num mono">{{exerciseCount}}</text>
       <text class="metric-label">动作</text>
     </view>
     <view class="metric">
-      <text class="metric-num">{{totalVolume}}</text>
+      <text class="metric-num mono">{{totalVolume}}</text>
       <text class="metric-label">kg 容量</text>
     </view>
     <view class="metric">
-      <text class="metric-num">{{duration}}</text>
+      <text class="metric-num mono">{{duration}}</text>
       <text class="metric-label">时长</text>
     </view>
   </view>
@@ -22,13 +22,13 @@
   <view class="exercise-card {{item.skipped ? 'skipped' : ''}}" wx:for="{{exercises}}" wx:key="name">
     <view class="exercise-head">
       <view class="exercise-name">{{item.name}}</view>
-      <text class="exercise-volume">{{item.isBodyWeight ? item.volume + ' 次' : item.volume + ' kg'}}</text>
+      <text class="exercise-volume mono">{{item.isBodyWeight ? item.volume + ' 次' : item.volume + ' kg'}}</text>
     </view>
     <view class="set-chips" wx:if="{{!item.skipped}}">
-      <text class="set-chip" wx:for="{{item.sets}}" wx:for-item="set" wx:key="num">{{set.num}} · {{set.text}}</text>
+      <text class="set-chip mono" wx:for="{{item.sets}}" wx:for-item="set" wx:key="num">{{set.num}} · {{set.text}}</text>
     </view>
     <view wx:else class="skipped-note">当次已跳过</view>
   </view>
 
-  <view class="note-card">这条记录来自当次 session 的独立副本。之后编辑计划不会改写这里的动作和数据。</view>
+  <view class="note-card">这里保留当次训练的动作和数据，之后编辑计划不会改变这条记录。</view>
 </view>

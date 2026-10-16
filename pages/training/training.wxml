@@ -1,181 +1,103 @@
-<view class="training-container">
-  <!-- 顶部精简状态栏 -->
-  <view class="top-bar">
-    <button class="btn-pause" bindtap="onPause" aria-label="暂停训练">
-      <view class="icon-pause">||</view>
-      暂停
-    </button>
-    <view class="status-pill">
-      <view class="status-dot"></view>
-      <text class="mono">计时中 {{elapsedText}}</text>
+<view class="training-page theme-{{theme}} {{restActive ? 'has-rest' : ''}} {{showSummary ? 'show-summary' : ''}}">
+  <block wx:if="{{!showSummary}}">
+    <view class="session-toolbar">
+      <view class="training-heading">
+        <view class="training-title">{{session.dayName || '训练记录'}}</view>
+        <view class="training-subtitle">{{session.planName}}<text wx:if="{{session.dayIndex !== undefined}}"> · 第 {{session.dayIndex + 1}} 天</text></view>
+      </view>
+      <view class="elapsed mono"><text>⏱</text>{{elapsedText}}</view>
+      <button class="pause-button" wx:if="{{phase !== 'paused'}}" bindtap="onPause" disabled="{{reloadBlocked || submitting || confirming}}" aria-label="暂停训练"><text>❚❚ 暂停</text></button>
+      <button class="pause-button" wx:else bindtap="onResume" disabled="{{reloadBlocked || submitting || confirming}}">继续</button>
     </view>
-  </view>
-
-  <!-- 开放式标题与进度 -->
-  <view class="header-section">
-    <!-- 巨型描边游标数字作为设计签名 -->
-    <view class="hero-day-mark">{{session.dayName}}</view>
-    
-    <view class="page-title">{{session.planName}}</view>
-    <view class="page-subtitle">当前训练：{{session.dayName}} · 全程本地缓存</view>
-    
+    <view class="paused-banner" wx:if="{{phase === 'paused'}}">训练已暂停 · 点击右上角继续</view>
     <view class="progress-section">
-      <view class="progress-labels">
-        <text class="progress-kicker">完成进度</text>
-        <text class="mono progress-val">{{progressPct}}%</text>
-      </view>
-      <view class="progress-track">
-        <view class="progress-fill" style="width: {{progressPct}}%"></view>
-      </view>
+      <view class="progress-labels"><text>已完成 <text class="signal mono">{{progress.completed}}</text> / {{progress.total}} 组<text wx:if="{{progress.skipped}}"> · 跳过 {{progress.skipped}} 组</text></text><text class="signal"><block wx:if="{{current}}">继续完成第 {{current.num}} 组</block><block wx:else>{{progress.pending === 0 && progress.completed ? '全部完成' : ''}}</block></text></view>
+      <view class="progress-track"><view class="progress-fill" style="width: {{progressPct}}%"></view></view>
     </view>
-  </view>
+    <view class="save-error" wx:if="{{errorText}}" aria-role="alert">{{errorText}}<button wx:if="{{reloadBlocked}}" bindtap="onRetryDraft">重试读取草稿</button></view>
+    <view class="rest-message" wx:if="{{restMessage}}">{{restMessage}}</view>
 
-  <!-- 动作列表 -->
-  <view class="exercise-list">
-    <view class="ex-card {{ex.skipped ? 'is-skipped' : ''}}" wx:for="{{exercises}}" wx:key="exIndex" wx:for-item="ex">
-      
-      <view class="ex-header">
-        <view class="ex-info">
-          <view class="ex-index-mark mono">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</view>
-          <button
-            class="ex-thumb"
-            wx:if="{{!ex.skipped}}"
-            catchtap="onExerciseTap"
-            data-ex="{{ex.exIndex}}"
-            aria-label="查看{{ex.name}}动作要领"
-            hover-class="ex-thumb-hover"
-            hover-stay-time="80"
-          >
-            <!-- 行内缩略图只用示意图,不用 GIF:避免一行多个 GIF 同播 -->
+    <view class="exercise-list">
+      <view class="ex-card {{ex.skipped ? 'is-skipped' : ''}}" wx:for="{{exercises}}" wx:key="anchorId" wx:for-item="ex">
+        <view class="ex-header">
+          <button class="ex-thumb" catchtap="onExerciseTap" data-ex="{{ex.exIndex}}" data-anchor-id="{{ex.anchorId}}" aria-label="查看{{ex.name}}动作要领" hover-class="pressed">
             <image wx:if="{{ex.thumbSrc}}" class="ex-thumb-img" src="{{ex.thumbSrc}}" mode="aspectFill" binderror="onThumbError" data-ex="{{ex.exIndex}}" />
-            <block wx:else>{{ex.glyph}}</block>
+            <text wx:else>{{ex.glyph}}</text>
           </button>
-          <view class="ex-thumb ex-thumb-disabled" wx:else aria-hidden="true">{{ex.glyph}}</view>
-          <view class="ex-name-wrap">
-            <view class="ex-name">{{ex.name}}</view>
-            <view class="ex-sub">{{ex.isBodyWeight ? '自重 · 容量按总次数计' : '容量 ' + ex.volume + ' kg'}}</view>
-          </view>
+          <view class="ex-name-wrap"><view class="ex-name">{{ex.name}}</view><view class="ex-sub"><text wx:if="{{ex.equipmentText}}" class="equipment-pill">{{ex.equipmentText}}</text><text wx:if="{{ex.bodyPart}}">{{ex.muscleText || ex.bodyPart}}</text></view></view>
+          <button class="btn-more" catchtap="onSkipExercise" data-anchor-id="{{ex.anchorId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}" aria-label="{{ex.name}}更多操作">•••</button>
         </view>
-        <button class="btn-more" catchtap="onSkipExercise" data-ex="{{ex.exIndex}}" aria-label="更多动作操作">
-          <view class="more-dot"></view>
-          <view class="more-dot"></view>
-          <view class="more-dot"></view>
-        </button>
-      </view>
-
-      <view class="ex-body" wx:if="{{!ex.skipped}}">
-        <view class="set-row set-header">
-          <text class="col-num">组</text>
-          <text class="col-input">重量 kg</text>
-          <text class="col-input">次数</text>
-          <text class="col-action"></text>
-        </view>
-
-        <view class="set-row" wx:for="{{ex.sets}}" wx:for-item="set" wx:key="setIndex">
-          <view class="col-num">
-            <view class="set-num-badge mono">{{set.num}}</view>
+        <view class="set-row set-header"><text class="col-num">组</text><text class="col-input">{{ex.isBodyWeight ? '额外负重 kg' : '重量 kg'}}</text><text class="col-input">次数</text><text class="col-check">完成</text><text class="col-delete"></text></view>
+        <view class="set-row set-{{set.status}} {{set.isCurrent ? 'is-current' : ''}} {{set.isFuture ? 'is-future' : ''}}" wx:for="{{ex.sets}}" wx:for-item="set" wx:key="setId">
+          <text class="col-num mono">{{set.num}}</text>
+          <view class="col-input">
+            <input wx:if="{{set.status !== 'skipped'}}" class="set-input mono" type="digit" value="{{set.weight}}" placeholder="{{ex.isBodyWeight ? '0' : '—'}}" placeholder-class="input-placeholder" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}" data-set-id="{{set.setId}}" bindinput="onInputWeight" bindblur="onInputBlur" cursor-spacing="160" aria-label="{{ex.name}}第{{set.num}}组{{ex.isBodyWeight ? '额外负重' : '重量'}}" />
+            <text wx:else class="skipped-value">—</text>
           </view>
           <view class="col-input">
-            <input
-              class="set-input mono"
-              type="digit"
-              value="{{set.weight}}"
-              placeholder="{{ex.isBodyWeight ? '自重' : '-'}}"
-              placeholder-class="ph-color"
-              data-ex="{{ex.exIndex}}"
-              data-set="{{set.setIndex}}"
-              bindinput="onInputWeight"
-            />
+            <input wx:if="{{set.status !== 'skipped'}}" class="set-input mono" type="number" value="{{set.reps}}" placeholder="—" placeholder-class="input-placeholder" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}" data-set-id="{{set.setId}}" bindinput="onInputReps" bindblur="onInputBlur" cursor-spacing="160" aria-label="{{ex.name}}第{{set.num}}组次数" />
+            <text wx:else class="skipped-value">已跳过</text>
           </view>
-          <view class="col-input">
-            <input
-              class="set-input mono"
-              type="number"
-              value="{{set.reps}}"
-              placeholder="-"
-              placeholder-class="ph-color"
-              data-ex="{{ex.exIndex}}"
-              data-set="{{set.setIndex}}"
-              bindinput="onInputReps"
-            />
-          </view>
-          <view class="col-action">
-            <button class="btn-del" wx:if="{{set.canRemove}}" catchtap="onRemoveSet" data-ex="{{ex.exIndex}}" data-set="{{set.setIndex}}" aria-label="删除本组">
-              <view class="del-icon">×</view>
-            </button>
-            <view class="del-placeholder" wx:else></view>
-          </view>
+          <button class="col-check check-button" bindtap="onToggleSet" data-set-id="{{set.setId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused' || set.status === 'skipped'}}" aria-label="{{ex.name}}第{{set.num}}组{{set.status === 'completed' ? '取消完成' : '标记完成'}}" aria-role="checkbox" aria-checked="{{set.status === 'completed'}}"><view class="check-box"><view wx:if="{{set.status === 'completed'}}" class="check-mark"></view><text wx:if="{{set.status === 'skipped'}}">−</text></view></button>
+          <button wx:if="{{set.canRemove}}" class="col-delete delete-button" catchtap="onRemoveSet" data-set-id="{{set.setId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}" aria-label="删除{{ex.name}}第{{set.num}}组">−</button><view wx:else class="col-delete"></view>
         </view>
-
-        <button class="btn-add-set" catchtap="onAddSet" data-ex="{{ex.exIndex}}">
-          <text class="add-icon">+</text> 记录新一组
-        </button>
+        <view class="exercise-actions">
+          <button class="add-set" bindtap="onAddSet" data-anchor-id="{{ex.anchorId}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">＋ 增加一组</button>
+          <button class="rest-launch" wx:if="{{ex.completedCount && !restActive}}" bindtap="onStartRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}"><text>⏱ 间歇</text><text class="mono">{{restSeconds}}s</text></button>
+        </view>
+        <view wx:if="{{ex.skipped}}" class="skip-note">本动作已跳过，可在更多操作中恢复</view>
       </view>
-      <view wx:else class="ex-skipped-msg">
-        <text class="skip-icon">⊘</text>
-        本动作已跳过，不计入本次容量
-      </view>
-
+      <view class="empty-state" wx:if="{{!exercises.length && !reloadBlocked}}"><view class="empty-title">从一个动作开始</view><view class="empty-desc">点击下方“加练动作”，添加今天想练的动作。</view></view>
     </view>
-
-    <!-- 空状态 -->
-    <view class="empty-area" wx:if="{{!exercises.length}}">
-      <view class="empty-state">
-        <view class="empty-glyph">+</view>
-        <view class="empty-title">等待动作录入</view>
-        <view class="empty-desc">当前训练还没有动作，可从下方添加临时加练动作。</view>
-      </view>
+    <view class="media-credit" wx:if="{{exercises.length}}">© Gym visual</view>
+    <view class="bottom-bar">
+      <button wx:if="{{restActive}}" class="mini-timer" bindtap="onExpandRest" aria-label="展开组间间歇"><view class="clock-icon"></view><view class="mini-timer-body"><view class="mini-label">{{restPaused ? '间歇已暂停' : '组间休息倒计时'}}</view><view class="mini-time mono">{{restText}}</view></view><text class="mini-expand">展开 ⌃</text></button>
+      <view class="bottom-actions"><button class="secondary-button" bindtap="onAddExercise" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">＋ 加练动作</button><button class="primary-button" bindtap="onFinish" disabled="{{reloadBlocked || !canFinish || submitting || confirming}}">{{submitting ? '保存中…' : '结束训练'}}</button></view>
     </view>
+  </block>
+
+  <view wx:if="{{showSummary}}" class="summary-page">
+    <view class="success-symbol"><view class="check-mark"></view></view>
+    <view class="summary-title">今天，练到了。</view>
+    <view class="summary-subtitle">{{session.dayName}} · {{summary.date}}</view>
+    <view class="summary-stats">
+      <view class="summary-stat"><view class="stat-number mono">{{summary.duration}}</view><text class="stat-label">训练时长</text></view>
+      <view class="summary-stat"><view><text class="stat-number mono">{{summary.completedSets}}</text><text class="stat-unit">组</text></view><text class="stat-label">实际完成</text></view>
+      <view class="summary-stat"><view><text class="stat-number mono">{{summary.weightedVolume}}</text><text class="stat-unit">kg</text></view><text class="stat-label">负重训练容量</text></view>
+      <view class="summary-stat"><view><text class="stat-number mono">{{summary.exerciseCount}}</text><text class="stat-unit">个</text></view><text class="stat-label">完成动作</text></view>
+    </view>
+    <view wx:if="{{summary.hasBodyWeight}}" class="bodyweight-stat"><text>自重动作总次数</text><text><text class="mono">{{summary.bodyWeightReps}}</text> 次</text></view>
+    <view wx:if="{{summary.comparisons.length}}" class="comparison-card"><view class="comparison-caption">对比上次同训练日</view><view wx:for="{{summary.comparisons}}" wx:key="label" class="comparison-row"><text>{{item.label}}</text><text class="mono {{item.improved ? 'signal' : ''}}">{{item.diffText}}</text></view></view>
+    <view class="recap-heading"><text>这次的积累</text><text class="recap-meta">{{summary.completedSets}} 组已记录</text></view>
+    <view wx:for="{{summary.exercises}}" wx:key="key" class="recap-row"><view class="recap-name"><view>{{item.name}}</view><view class="recap-meta">{{item.completed}} 组完成</view></view><text class="recap-volume mono">{{item.volumeText}}</text></view>
+    <view class="summary-saved">本次训练已保存</view>
+    <view class="bottom-bar summary-bottom"><button class="primary-button" bindtap="onSummaryBackToday">回到今天</button><button class="text-button" bindtap="onSummaryViewRecords">查看训练记录</button></view>
   </view>
 
-  <!-- 固定底栏 -->
-  <view class="bottom-bar">
-    <view class="offline-note" wx:if="{{false}}">结束提交时需要网络。若当前无网，记录会进入待重试队列，不影响本地保存。</view>
-    <view class="bottom-actions">
-      <button class="btn-add-ex" bindtap="onAddExercise">
-        <view class="add-ex-icon">+</view>
-        <text>加练动作</text>
-      </button>
-      <button class="primary-button" bindtap="onFinish" disabled="{{submitting}}">
-        {{submitting ? '提交中...' : '提交'}}
-      </button>
+  <view wx:if="{{restExpanded && restActive && !showSummary}}" class="rest-backdrop" catchtouchmove="onBlockTouch">
+    <view class="rest-sheet" role="dialog" aria-label="组间休息">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading"><view><view class="sheet-title">组间休息</view><view class="sheet-subtitle">调整呼吸，恢复力量迎接下一组</view></view><button class="collapse-button" bindtap="onCollapseRest">收起 ⌄</button></view>
+      <scroll-view class="rest-body" scroll-y="{{true}}" show-scrollbar="{{false}}">
+      <view class="timer-ring">
+        <view class="ring-ticks"><view wx:for="{{restTicks}}" wx:key="*this" class="ring-tick" style="transform: rotate({{item}}deg)"></view></view>
+        <view class="ring-track"></view>
+        <view class="ring-half ring-right"><view class="ring-arc" style="transform: rotate({{ringRight}}deg)"></view></view>
+        <view class="ring-half ring-left"><view class="ring-arc" style="transform: rotate({{ringLeft}}deg)"></view></view>
+        <block wx:if="{{ringRight + ringLeft > 0}}"><view class="ring-cap"></view><view class="ring-cap" style="transform: rotate({{ringRight + ringLeft}}deg)"></view></block>
+        <view class="timer-center"><view class="rest-clock mono">{{restText}}</view><view class="clock-label">{{restPaused ? '● 计时已暂停' : '● 恢复力量中'}}</view></view>
+      </view>
+      <view class="rest-presets"><button wx:for="{{restPresets}}" wx:key="*this" class="preset {{restSeconds === item ? 'selected' : ''}}" bindtap="onRestPreset" data-seconds="{{item}}" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">{{item}}s</button></view>
+      <view class="rest-controls"><button bindtap="onAdjustRest" data-delta="-15" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">- 15 秒</button><button class="pause-rest" wx:if="{{!restPaused}}" bindtap="onPauseRest" disabled="{{reloadBlocked || submitting || confirming}}">❚❚ 暂停计时</button><button class="pause-rest" wx:else bindtap="onResumeRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">继续计时</button><button bindtap="onAdjustRest" data-delta="15" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">+ 15 秒</button></view>
+      <view wx:if="{{nextSetPreview}}" class="next-set-card">
+        <view class="next-set-heading"><text>下一组预告</text><text class="signal">第 {{nextSetPreview.num}} 组</text></view>
+        <view class="next-set-row"><view class="preview-thumb"><image wx:if="{{nextSetPreview.thumbSrc}}" class="preview-image" src="{{nextSetPreview.thumbSrc}}" mode="aspectFill" /><text wx:else>{{nextSetPreview.glyph}}</text></view><text class="preview-name">{{nextSetPreview.name}}</text><text wx:if="{{nextSetPreview.prescription}}" class="preview-prescription mono">{{nextSetPreview.prescription}}</text></view>
+      </view>
+      <button class="restart-rest" bindtap="onStartRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">重新开始 {{restSeconds}} 秒</button>
+      <view class="sheet-foot">{{phase === 'paused' ? '整场训练已暂停，收起后可继续训练' : '收起后可继续填写和勾选训练记录'}}</view>
+      </scroll-view>
+      <view class="rest-footer"><button class="primary-button end-rest" bindtap="onSkipRest" disabled="{{reloadBlocked || submitting || confirming || phase === 'paused'}}">{{nextSetPreview ? '结束休息，继续下一组' : '结束休息'}}</button></view>
     </view>
   </view>
-
-  <!-- 训练总结弹窗 -->
-  <view class="modal-backdrop" wx:if="{{showSummary}}">
-    <view class="modal-card">
-      <view class="modal-kicker">SESSION COMPLETE</view>
-      <view class="page-title">今天做得很稳。</view>
-      <view class="modal-subtitle">本次训练已在本机保存。提交成功后，计划将自动前进到下一个训练日。</view>
-
-      <view class="stats-grid">
-        <view class="stat-item">
-          <text class="stat-val mono">{{summary.exerciseCount}}</text>
-          <text class="stat-label">动作</text>
-        </view>
-        <view class="stat-item">
-          <text class="stat-val mono">{{summary.totalVolume}}</text>
-          <text class="stat-label">kg 容量</text>
-        </view>
-        <view class="stat-item">
-          <text class="stat-val mono">{{summary.duration}}</text>
-          <text class="stat-label">时长</text>
-        </view>
-      </view>
-
-      <view wx:if="{{summary.comparison}}" class="compare-card {{summary.comparison.improved ? 'improved' : 'declined'}}">
-        <text class="compare-icon">{{summary.comparison.improved ? '↑' : '↓'}}</text>
-        对比上次同类型训练：{{summary.comparison.diffText}}
-      </view>
-
-      <view class="modal-actions">
-        <button class="primary-button" bindtap="onSummaryBackToday">回到今天</button>
-        <button class="ghost-button" bindtap="onSummaryViewRecords">查看记录</button>
-      </view>
-    </view>
-  </view>
-  <!-- 动作详情弹层(与动作库同一套组件,打卡页只读) -->
-  <exercise-detail wx:if="{{detail}}" detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />
-
+  <exercise-detail theme="{{theme}}" wx:if="{{detail}}" detail="{{detail}}" show-pick="{{false}}" bind:close="onCloseDetail" />
 </view>

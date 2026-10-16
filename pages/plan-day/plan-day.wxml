@@ -1,19 +1,36 @@
-<view class="page">
-  <view class="page-title">{{dayName}} · 训练日</view>
-  <view class="page-subtitle">动作使用统一目标(组数 × 次数 × 重量);打卡时逐组自由填写</view>
+<view class="page theme-{{theme}}">
+  <view class="day-kicker">{{kicker}}</view>
+  <view class="page-title">{{dayName}}</view>
+  <view class="page-subtitle">调整动作顺序、组数、次数与重量</view>
 
-  <view class="section-kicker">动作列表</view>
+  <view class="section-heading">
+    <view class="section-kicker">动作顺序 ({{exercises.length}})</view>
+    <text class="order-hint">使用 ↑ ↓ 调整顺序</text>
+  </view>
   <view class="exercise-list" wx:if="{{exercises.length > 0}}">
-    <view class="exercise-row" wx:for="{{exercises}}" wx:key="exerciseId">
+    <view class="exercise-row" wx:for="{{exercises}}" wx:key="index">
+      <view class="exercise-grip" aria-hidden="true">
+        <view></view><view></view><view></view>
+        <view></view><view></view><view></view>
+      </view>
+      <view class="exercise-thumb {{item.imageSrc ? 'has-media' : ''}}" aria-hidden="true">
+        <image wx:if="{{item.imageSrc}}" src="{{item.imageSrc}}" mode="aspectFit" binderror="onImageError" data-index="{{item.index}}" />
+        <view wx:else class="thumb-glyph"><view></view></view>
+      </view>
       <view class="exercise-main">
         <view class="exercise-name">{{item.name}}</view>
-        <view class="exercise-target">{{item.prescription}}</view>
+        <view class="exercise-tags">
+          <text wx:if="{{item.bodyPartLabel}}">{{item.bodyPartLabel}}</text>
+          <text wx:if="{{item.equipmentLabel}}">{{item.equipmentLabel}}</text>
+        </view>
+        <button class="exercise-target" bindtap="onEditTarget" data-index="{{item.index}}" aria-label="编辑{{item.name}}目标：{{item.prescription}}">
+          <text class="target-capsule">{{item.prescription}} <text aria-hidden="true">✎</text></text>
+        </button>
       </view>
+      <button class="tool-btn remove-btn" catchtap="onRemove" data-index="{{item.index}}" aria-label="移除{{item.name}}"><text>✕</text></button>
       <view class="exercise-tools">
-        <button class="tool-btn" catchtap="onMove" data-index="{{item.index}}" data-dir="up" disabled="{{item.isFirst}}">↑</button>
-        <button class="tool-btn" catchtap="onMove" data-index="{{item.index}}" data-dir="down" disabled="{{item.isLast}}">↓</button>
-        <button class="tool-btn" catchtap="onEditTarget" data-index="{{item.index}}">改</button>
-        <button class="tool-btn danger" catchtap="onRemove" data-index="{{item.index}}">删</button>
+        <button class="tool-btn" catchtap="onMove" data-index="{{item.index}}" data-dir="up" disabled="{{item.isFirst}}" aria-label="上移{{item.name}}"><text>↑</text></button>
+        <button class="tool-btn" catchtap="onMove" data-index="{{item.index}}" data-dir="down" disabled="{{item.isLast}}" aria-label="下移{{item.name}}"><text>↓</text></button>
       </view>
     </view>
   </view>
@@ -23,5 +40,6 @@
     <view class="empty-desc">从动作库挑选动作加入</view>
   </view>
 
-  <button class="primary-button add-btn" bindtap="onAddExercise">＋ 从动作库添加</button>
+  <button class="primary-button add-btn" bindtap="onAddExercise">＋ 从动作库添加动作</button>
+  <view wx:if="{{exercises.length > 0}}" class="image-credit">© Gym visual</view>
 </view>

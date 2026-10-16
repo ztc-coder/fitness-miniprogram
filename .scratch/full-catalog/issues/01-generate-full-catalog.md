@@ -1,6 +1,12 @@
+---
+title: 生成非 cardio 可用全量目录
+labels: [ready-for-human]
+status: done
+---
+
 # 01: 生成非 cardio 可用全量目录
 
-**状态：implemented；当前发布已完成。**
+**状态：done；当前发布已完成。**
 
 ## 当前结果
 

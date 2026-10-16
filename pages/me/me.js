@@ -2,16 +2,23 @@
  * 我的 tab:设置、个人信息、存储与网络状态、媒体授权状态
  */
 const queue = require('../../utils/queue');
+const db = require('../../utils/db');
+const domain = require('../../utils/domain');
+
+const { themePage, setTheme, applyTheme } = require('../../utils/theme');
 
 const SETTINGS_KEY = 'fitness:settings';
 
-Page({
+Page(themePage({
   data: {
     pendingCount: 0,
     offlineMode: true,
     unit: 'kg',
     openid: '',
     networkStatus: '检测中…',
+    monthSessions: 0,
+    monthHours: '0.0',
+    monthProgress: 0,
   },
 
   onShow() {
@@ -26,10 +33,28 @@ Page({
     wx.getNetworkType({
       success: (res) =>
         this.setData({
-          networkStatus: res.networkType === 'none' ? '当前无网络,提交将排队重试' : '云开发连接正常',
+          networkStatus: res.networkType === 'none' ? '当前无网络，提交将排队重试' : `当前网络：${res.networkType}`,
         }),
       fail: () => this.setData({ networkStatus: '网络状态未知' }),
     });
+    return db.fetchAllSessions().then((sessions) => {
+      const now = Date.now();
+      const stats = domain.computeRecordStats(sessions, now);
+      const date = new Date(now);
+      const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      const hours = stats.monthDurationSec / 3600;
+      this.setData({
+        monthSessions: stats.monthSessions,
+        monthHours: hours < 10 ? hours.toFixed(1) : hours.toFixed(0),
+        // 展示环：本月场次 / 当月总天数，上限 100%；不是训练目标或出勤率。
+        monthProgress: Math.min(100, stats.monthSessions / daysInMonth * 100),
+      });
+    });
+  },
+
+  onToggleTheme(e) {
+    if (setTheme(e.detail.value ? 'light' : 'dark')) applyTheme(this);
+    else this.setData({ theme: this.data.theme });
   },
 
   saveSettings(patch) {
@@ -56,6 +81,7 @@ Page({
 
   onShowLoginInfo() {
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429' } : {}),
       title: '登录状态',
       content: this.data.openid
         ? `已使用静默 openid 登录:${this.data.openid.slice(0, 12)}…`
@@ -66,9 +92,10 @@ Page({
 
   onShowLicense() {
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429' } : {}),
       title: '媒体授权状态',
       content: '动作示意图版权归 Gym visual。正式上线前必须取得书面授权、保留 © Gym visual — https://gymvisual.com/ 署名,并遵守 180×180 分辨率限制。',
       showCancel: false,
     });
   },
-});
+}));

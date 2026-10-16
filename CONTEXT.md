@@ -34,21 +34,22 @@
 | 术语 | 代码字段 | 含义 |
 |---|---|---|
 | 开始训练 | — | 把当天计划快照复制成独立训练场次；目标预填不表示实际完成 |
-| 逐组打卡 | — | 训练者实际完成一组后显式确认；按动作内组序推进，完成确认与重量、次数填写分开 |
-| 组间间歇 | — | 一组完成后的休息阶段，提供可调整的倒计时；结束时声音、振动与页面提示 |
-| 整场完成 | — | 至少一组已打卡，且所有未跳过的组均已显式打卡，再由训练者确认结束；预填目标不算完成 |
+| 逐组打卡 | `set.status` | 实际练完后直接勾选任意组；无需开始本组，可随时修改成绩或取消完成，预填不算完成 |
+| 组间间歇 | — | 完成组后手动开启的休息倒计时；可独立暂停、收起、调整或重启；记录操作不打断间歇，到时声音、振动与页面提示 |
+| 整场完成 | — | 至少一组已打卡，由训练者结束；仍有待练组时先确认跳过剩余，只保存实际完成成绩并推进计划 |
 | 训练场次 | `Session` | 一次实际训练记录，生成后与 plan **解耦** |
 | 快照 | `snapshotSession()` | 深拷贝当前游标指向的训练日；不与 plan 共享引用 |
-| 组 | `set` | 一次实际力量训练的单位，以重量与次数记录成绩；打卡状态与成绩分开，不做有氧/计时类 |
+| 组 | `set` | 一次实际力量训练的单位，新流程用场次内稳定 `id` 引用、`status` 区分待练/已打卡/跳过；以重量与次数记录成绩，不做有氧/计时类 |
 | 自重动作 | `equipment === 'body weight'` | 复用同一 set 模型，`weight` 表示**额外负重**（徒手为 0 或空） |
 | 跳过剩余 | — | 显式放弃一个动作尚未打卡的组；已打卡的实际训练保留，完全没练的动作不计动作数与容量 |
-| 待开始 | — | 当前组尚未开始；间歇结束仅回到待开始，不代表训练者已开练 |
-| 训练中 | — | 训练者已显式开始当前组，尚未确认完成 |
-| 暂停训练 | — | 暂时中断本场训练，冻结未结束的组间间歇；与切后台但真实时间继续流逝不同 |
-| 撤销最近组 | — | 下一组开始前撤回最近一组的完成确认，回到该组训练中；保留已填实际数据 |
+| 待练组 | `pending` | 尚未勾选完成的组，可自由选择、编辑或删除；每个动作至少保留一组 |
+| 训练中 | — | 本场训练尚未结束，可记录任意组，不再表示某一组独占进行状态 |
+| 暂停训练 | — | 暂时中断本场训练，冻结未结束的间歇并禁用记录；继续整场不会误启动先前已独立暂停的间歇 |
+| 取消完成 | — | 取消任意已完成组的勾选，保留数值，不改变间歇；需要删除已完成组时先取消完成 |
 | 容量 | volume | 常规动作 `Σ(weight × reps)`；自重动作 `Σreps` |
-| 完成小结 | `computeSummary()` | 结束后展示 动作数 / 总容量 / 时长，并与**上次同类型**（同 `planId` + `dayId`）对比 |
+| 完成小结 | `computeSummary()` | 整页展示完成组数、动作数、时长、负重容量与自重次数；两种单位分开，并与**上次同类型**（同 `planId` + `dayId`）分别对比 |
 | 提交队列 | pending queue | 本地已完成但未提交成功的 session 列表，无网时排队重试 |
+| 记录统计 | `computeRecordStats()` | 由已有训练场次只读派生：本周训练（周一起算场次）、总容量（仅负重容量）、连续训练（从今天或昨天起向前连续有训练的日历天数）、本月场次与本月训练时长；不写回任何数据 |
 
 ### 动作库侧
 
@@ -76,6 +77,8 @@
 
 ## 3. 关键规则（改代码时不可破坏）
 
+> 当前训练交互与验收边界见 `.scratch/training-checklist-redesign/spec.md`。原生实现、自动回归、代码复审与模拟器布局复验完成，用户已确认本轮验收并授权提交推送。代理证据范围见 `acceptance.md`，不以浏览器原型或用户整体确认代替未记录的逐项真机证据。
+
 1. **完成驱动推进**：只有打卡完成才 `cursor + 1`；到 `cycleDays` 末尾回到开头；漏练（未完成）**不改变游标**。
 2. **游标属于计划**：`cursor` 是 `Plan` 的字段，不是全局状态；切换计划不共享游标。
 3. **记录不可变**：session 一旦生成即与 plan 解耦，改 plan 不影响历史记录。
@@ -91,18 +94,17 @@ pages/*            UI 页面(WXML/WXSS/JS)  —— 薄封装
 cloudfunctions/    login —— 静默 openid 登录
 utils/queue.js     提交队列执行器(注入真实网络请求 + 网络恢复监听)
 utils/db.js        CloudBase 数据访问层(仓库模式 + 本地存储降级)
-utils/domain.js    ★ domain logic —— 唯一测试 seam(纯函数,无运行时依赖)
+utils/domain.js    ★ domain logic —— 核心规则 seam(纯函数,无运行时依赖)
 utils/format.js    展示层格式化纯函数
 data/exercises.js  离线动作库
 tests/             Jest 单测（domain、离线目录、页面级分页、db 迁移、媒体根与同步脚本）
 ```
 
 - `utils/domain.js` 不依赖 `wx.*`、CloudBase SDK 或 WXML，可直接用标准 Jest 测试。
-- `tests/db.test.js` 通过 mock `wx` 验证数据访问层“云端不可用时写穿到本地缓存”的降级行为；
-  但覆盖率统计只收 `utils/domain.js`（`jest.config.js` → `collectCoverageFrom`）。
+- 测试边界包括 domain 公开函数、Page 用户事件/生命周期、记录与提交队列公开接口；仅 mock `wx`、云端、时间和存储边界。覆盖率统计收 `utils/domain.js` 与 `data/exercises.js`（`jest.config.js` → `collectCoverageFrom`），不代表真实页面或设备验收。
 - `utils/queue.js` 负责把 domain 的纯判定接上真实网络：`domain.decideSubmission()` 判定 → `db.submitSession()` 执行。
 - `pages/library/library-paging.js` 保持动作库匹配集与渲染窗口分离：首屏/追加页每页 24 条，当前页和下一页最多预热 48 张 JPEG；页面层不预取 GIF。
-- 数据访问统一走 `utils/db.js`；云端失败时降级到 `wx.getStorageSync`，不阻塞本地记录成立。
+- 数据访问统一走 `utils/db.js`；云端失败时降级到 `wx.getStorageSync`，不阻塞本地记录成立。记录／月度统计用 `fetchAllSessions()` 分页读取历史并合并本地记录，不以最近 50 场代替累计数据；读取中断时仅展示已读及本地可用记录。
 
 ## 5. 页面结构
 
@@ -119,30 +121,40 @@ tests/             Jest 单测（domain、离线目录、页面级分页、db �
 
 ## 6. 数据模型速查
 
-以下为当前运行时代码的模型；逐组状态扩展尚未实施，技术建议见逐组训练 spec。
+以下为当前领域模型。旧已提交历史不迁移；无逐组状态的历史按旧口径读取。进行中的 v1 草稿升级到 v2 时保留完成成绩、稳定组 ID、暂停与间歇；更早无状态草稿的目标预填仍为待练。
 
 ```js
 Plan    = { id, name, cycleDays: [{ dayId, name, exercises: [{ exerciseId, name, equipment, sets, targetReps, targetWeight }] }], cursor, active }
-Session = { id, planId, planName, dayId, dayName, dayIndex, startedAt, submittedAt, exercises: [{ exerciseId, name, equipment, skipped, sets: [{ weight, reps }] }] }
+Session = { id, planId, planName, dayId, dayName, dayIndex, startedAt, submittedAt, flowVersion: 2, exercises: [{ exerciseId, name, equipment, skipped, flowVersion: 2, sets: [{ id, status: 'pending' | 'completed' | 'skipped', weight, reps }] }] }
+// 进行中草稿另有 nextSetId 和 training；finalize 后移除，不写入最终场次。
+training = { phase: 'ready' | 'rest' | 'finished' | 'paused', currentSetId, restSeconds, restEndsAt, restRemainingSec, restPaused, restNotified, restSkipped, resumePhase }
 Exercise= { id, name, nameZh, equipment, bodyPart, target, imagePath, gifPath, instructionSteps, aliases }
 ```
 
 CloudBase 集合：`plans`、`sessions`（权限：仅创建者可读写）。
 
-## 7. 设计系统：FORGE
+## 7. 设计系统：FORGE 与手动主题
 
-深色运动编辑风，全局深墨绿，签名元素是「今天」页的巨型描边游标数字（DAY 01）。
+全站以 FORGE 深色运动风为默认，增加 C 方向精修 v2 浅色外观。页面、动作详情、自绘弹层和图表使用同一套主题语义；导航栏与 tabBar 通过原生 API 切换。今天页 DAY 只表达循环位置，训练页以紧凑组表和勾选为主，间歇用可收起的大数字圆环面板。主题只改变颜色，保留既有布局和训练交互。
 
 | 角色 | 色值 | 用途 |
 |---|---|---|
-| 底色 | `#0c1613` | 全局背景 |
-| 浮层 | `#14211c` / `#1b2b24` | 卡片、输入框 |
-| 信号绿 | `#3ddc97` | 行动按钮、完成态、数据强调 |
+| 底色 | `#08110e` | 全局背景 |
+| 浮层 | `#111d18` / `#1a2a23` | 卡片、输入框；卡片渐变 `#142420 → #0f1b17` |
+| 信号绿 | `#3ee6a0` | 行动按钮、完成态、数据强调；原 tabBar 选中位图保持 `#3ddc97` |
 | 琥珀 | `#ffb020` | 游标/进行中标记、状态章、头像 |
-| 墨色 | `#eef5f1` | 主文字（55% / 32% 两级弱化） |
+| 墨色 | `#eef7f2` | 主文字；次文 `#a3b6ac`、弱文 `#8aa095` |
+
+浅色页面底色 `#F5F6F7`、白色卡片，炭黑 `#20262B` 文字与主按钮，亮绿 `#C3ED42` 按钮文字与完成反馈；状态及选中导航使用深绿 `#3E5429`，选中底色 `#F2F6E8`、边框 `#A7B68F`，完成行 `#F7F8F4`，历史柱 `#879197`。
+
+- 「我的 → 训练偏好 → 浅色模式」即时切换，选择合并保存到 `fitness:settings.theme`；无记录默认 `dark`，不自动跟随系统，不写训练数据。
+- `utils/theme.js` 提供 `getTheme/setTheme/applyTheme/themePage`。页面装饰器在原 `onLoad/onShow` 前同步外观，保留原钩子的 this、参数和返回值；没有全局 Page 劫持或主题监听器。
+- 根节点 `theme-{{theme}}` 使用 `styles/theme.wxss` 的浅色变量；隔离组件显式接收 `theme` 并自行引入色板。状态、主按钮、完成反馈分别使用不同语义变量，深色值保留原回退。
+- 系统 modal/actionSheet 底板、picker 弹出面板和键盘不能独立手动配色，保留原控件；可控能力及原生验收边界见 `.scratch/light-dark-theme/platform-limits.md`、`acceptance.md`。
 
 - 数字一律等宽（SF Mono / `tabular-nums`），与中文黑体形成字体张力。
-- 结构编码：字标 `01 02 03` = 第 N 天循环顺序；琥珀点 = 当前游标。
+- 结构编码：DAY = 第 N 天循环顺序；行号 = 动作内组序。已完成使用绿色与勾号，间歇使用柔和黄绿色。
+- 原生按钮：`style: v2` 默认宽度会覆盖低优先级规则。行内按钮与底栏需要明确尺寸、flex、居中和页面作用域选择器；完成行之间保留间距，不合并为整块背景。动作详情组件有独立色板；真实动作媒体在浅深主题均为白底、`mix-blend-mode: normal`，有媒体外图托同白底，失败占位保留主题图托，不反相或染色。
 
 ## 8. 命令
 
@@ -156,13 +168,14 @@ npm test        # jest --coverage
 - **媒体版权**：数据层 MIT 可用；示意图/GIF 版权归 Gym visual（与 ExerciseDB 权利主张冲突，克隆仓库 ≠ 授权）。个人自用可加载真实媒体并署名；商用上线前必须取得书面授权，且不得把仓库媒体镜像再分发。分辨率限制 180×180。
 - **包体积**：动作库文本裁成 `id/name/nameZh/equipment/bodyPart/target/imagePath/gifPath/instructionSteps` 后打进主包；超 2MB 再分包。示意图与 GIF 不进包。
 - **环境配置**：`app.js` 顶部 `ENV_ID` 为云开发环境 ID；云数据库需建集合 `plans`、`sessions`；首次进入自动种入「胸三 / 背二 / 肩腿」演示计划。
-- **逐组训练与组间计时**：需求已确认、功能待实现；方案见 `.scratch/set-by-set-training/spec.md`，不再属于后期可选项。
+- **训练清单改版与间歇**：用户已确认规则并验收视觉稿，领域与页面接入采用 v2；当前规格见 `.scratch/training-checklist-redesign/spec.md`。上一轮先开始本组、顺序推进和自动休息规则已被替代。微信原生关键场景无证据时不能标整体验收完成。
 - **MVP 不做**：趋势曲线的 top weight / 估算 1RM 指标（仅预留切换入口）。
 
 ## 10. 相关文档
 
 - 需求规格：`docs/spec.md`（定位、数据模型、动作库与验收边界）
-- 逐组训练方案与待实施任务：`.scratch/set-by-set-training/spec.md`、`.scratch/set-by-set-training/issue.md`
+- 当前训练规格与验收任务：`.scratch/training-checklist-redesign/spec.md`、`.scratch/training-checklist-redesign/issue.md`；上一轮记录：`.scratch/set-by-set-training/`
+- 全站主题与原生布局修复：`.scratch/forge-theme-unification/issue.md`；只读量测脚本 `.scratch/forge-theme-unification/check-native-layout.py`
 - 动作库实现：`data/exercises.js`（离线目录）、`data/media-root.js`（CloudBase 媒体根）、`pages/library/library-paging.js`（分页预热）、生成脚本与媒体同步脚本
 - 动作库当前筛选/展示 spec：`.scratch/library-seven-parts/issue.md`；全量目录发布记录见 `.scratch/full-catalog/issue.md`，历史选择器与精选目录记录见 `.scratch/exercise-selector/`、`.scratch/catalog-quality-fixes/`、`.scratch/catalog-expansion/`。
 - 架构决策：`docs/adr/`（接入见 ADR-0007，全量范围与器械筛选见 ADR-0008，七类部位筛选见 ADR-0009）

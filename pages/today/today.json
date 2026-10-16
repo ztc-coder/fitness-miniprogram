@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "今天"
+  "navigationBarTitleText": "FORGE",
+  "navigationBarBackgroundColor": "#08110e",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#08110e",
+  "backgroundTextStyle": "light"
 }

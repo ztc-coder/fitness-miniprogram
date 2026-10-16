@@ -1,6 +1,12 @@
+---
+title: 离线检索改为官方原值多选
+labels: [ready-for-human]
+status: done
+---
+
 # 02: 离线检索改为官方原值多选
 
-**状态：implemented；已在真实 1,295 条目录上复跑。**
+**状态：done；已在真实 1,295 条目录上复跑。**
 
 ## 当前契约
 
@@ -19,3 +25,5 @@ npx jest tests/search-multiselect.test.js tests/catalog.test.js --runInBand
 ```
 
 页面胶囊交互由 03 票维护；媒体发布由 04 票维护。
+
+本票保留全量目录发布时的历史口径；当前界面七类部位筛选见 `../../library-seven-parts/issue.md`。

@@ -1,11 +1,19 @@
 ---
 title: 媒体同步计划与最终集合核对
 labels: [ready-for-human]
-status: open
+status: done
 created: 2026-09-19
 ---
 
 # 04: 媒体同步计划与最终集合核对
+
+## 历史票收口
+
+用户已确认验收并授权关闭剩余票，本次同步此历史票的 done 状态。关闭依据是后续交付取代旧范围，不新增媒体上传／删除操作或测试结论。
+
+本票已被 [全量目录发布](../../full-catalog/issue.md) 与 [媒体发布记录](../../full-catalog/issues/04-media-and-contracts.md) 取代，按父 issue 的历史票表同步为 done。当前发布为 1,295 条 / 2,590 个对象；后续发布记录已记载 118 个补传成功、0 个删除、最终集合一致。
+
+此关闭表示历史范围被后续交付取代，**不表示本轮重新执行 272 对象上传或把旧人工验收补写为通过**。下文保留当时结果；当前微信页面验收按 [七类筛选规格](../../library-seven-parts/issue.md) 与 [现有人工验收票](../../set-by-set-training/issues/04-integration-acceptance.md) 跟踪，不再重复执行已退役目录方案。
 
 **What to build:** 动作媒体同步脚本以最终 136 条目录为唯一白名单，
 产出可复核的同步计划：需要上传 272 个受管对象（136 条 × JPEG + GIF）、

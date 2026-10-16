@@ -3,6 +3,7 @@
  * UI 与 domain logic 之上的薄封装,统一处理云数据库读写与本地存储降级。
  */
 const domain = require('./domain');
+const log = require('./training-log');
 const catalog = require('../data/exercises');
 
 const COLLECTIONS = {
@@ -47,11 +48,11 @@ function isCloudPlanId(id) {
 
 /** 只读取云端计划;不写本地缓存,供迁移在合并 local_ 计划前安全使用。 */
 function readCloudPlans() {
-  return db()
+  return Promise.resolve().then(() => db()
     .collection(COLLECTIONS.PLANS)
     .orderBy('createdAt', 'asc')
     .get()
-    .then((res) => (res.data || []).map(normalizePlan));
+    .then((res) => log.overlayPlans((res.data || []).map(normalizePlan))));
 }
 
 /** 拉取云端计划并写穿本地缓存;云失败时抛出,由调用方决定降级。 */
@@ -68,7 +69,7 @@ function fetchCloudPlans() {
 function fetchPlans() {
   return fetchCloudPlans().catch((err) => {
     console.warn('云端计划读取失败,使用本地缓存', err);
-    return (wx.getStorageSync(LOCAL_KEYS.PLANS) || []).map(normalizePlan);
+    return readLocalPlans().map(normalizePlan);
   });
 }
 
@@ -106,7 +107,7 @@ function normalizePlan(raw) {
 // ===== 本地缓存(写穿真相来源,无网/未开通云时保证可用) =====
 
 function readLocalPlans() {
-  return wx.getStorageSync(LOCAL_KEYS.PLANS) || [];
+  return log.overlayPlans(wx.getStorageSync(LOCAL_KEYS.PLANS) || []);
 }
 
 function upsertLocalPlan(plan) {
@@ -141,7 +142,36 @@ function savePlan(plan) {
   });
 }
 
+function syncCompletedPlan(plan) {
+  if (log.isPlanDeleted(plan.id)) return Promise.resolve(null);
+  let id = log.resolvePlanId(plan.id);
+  if (!isCloudPlanId(id)) {
+    id = 'completed_' + id;
+    log.write(log.read().map(e => e.plan && e.plan.id === plan.id
+      ? Object.assign({}, e, { cloudPlanId: id }) : e));
+  }
+  const latest = readLocalPlans().find(p => p.id === id) || plan;
+  const data = Object.assign({}, latest, { id });
+  return Promise.resolve().then(() => {
+    if (log.isPlanDeleted(plan.id)) return null;
+    return db().collection(COLLECTIONS.PLANS).doc(id).set({ data });
+  })
+    .then(res => {
+      if (log.isPlanDeleted(plan.id)) {
+        return Promise.resolve().then(() => removePlanFromCloud(id)).catch(() => {}).then(() => null);
+      }
+      if (res.stats && res.stats.created === 0 && res.stats.updated === 0) throw new Error('计划未写入');
+      removeLocalPlan(plan.id);
+      upsertLocalPlan(data);
+      return data;
+    });
+}
+
 function syncPlanToCloud(plan) {
+  if (log.isPlanDeleted(plan.id)) return Promise.resolve(null);
+  if (log.read().some(e => e.plan && (e.plan.id === plan.id || e.cloudPlanId === plan.id) && !e.planSynced)) {
+    return syncCompletedPlan(plan);
+  }
   const doc = {
     name: plan.name,
     cursor: plan.cursor,
@@ -155,7 +185,9 @@ function syncPlanToCloud(plan) {
       .collection(COLLECTIONS.PLANS)
       .doc(plan.id)
       .update({ data: doc })
-      .then(() => plan);
+      .then(() => log.isPlanDeleted(plan.id)
+        ? Promise.resolve().then(() => removePlanFromCloud(plan.id)).catch(() => {}).then(() => null)
+        : plan);
   }
   return db()
     .collection(COLLECTIONS.PLANS)
@@ -163,6 +195,15 @@ function syncPlanToCloud(plan) {
     .then((res) => {
       // 云端分配了正式 _id,本地记录用新 id 替换旧的 local_ 记录
       const saved = Object.assign({}, plan, { id: res._id });
+      // Persist the alias before repairable cache writes, including earlier completions.
+      const entries = log.read();
+      if (entries.some(e => e.plan && e.plan.id === plan.id)) {
+        log.write(entries.map(e => e.plan && e.plan.id === plan.id
+          ? Object.assign({}, e, { cloudPlanId: saved.id }) : e));
+      }
+      if (log.isPlanDeleted(plan.id)) {
+        return Promise.resolve().then(() => removePlanFromCloud(saved.id)).catch(() => {}).then(() => null);
+      }
       removeLocalPlan(plan.id);
       upsertLocalPlan(saved);
       return saved;
@@ -180,9 +221,11 @@ function removePlanFromCloud(planId) {
  * 删除计划:本地立即删除,云端 best-effort 删除(local_ 计划从未上云,跳过)。
  */
 function deletePlan(planId) {
+  const id = log.resolvePlanId(planId);
+  log.deletePlan(planId); // durable cancellation precedes repairable cache cleanup
   removeLocalPlan(planId);
-  if (isCloudPlanId(planId)) {
-    return removePlanFromCloud(planId).catch((err) => {
+  if (isCloudPlanId(id)) {
+    return Promise.resolve().then(() => removePlanFromCloud(id)).catch((err) => {
       console.warn('计划云端删除失败,已本地删除', err);
     });
   }
@@ -229,27 +272,58 @@ function setActivePlan(plans, activeId) {
  * 提交一条完成的 session 到云端。
  */
 function submitSession(session) {
-  const doc = Object.assign({}, session, { submittedAt: Date.now() });
+  const doc = Object.assign({}, session, { submittedAt: session.submittedAt == null ? Date.now() : session.submittedAt });
+  ['_id', '_openid', 'training', 'nextSetId', 'attempts'].forEach(key => delete doc[key]);
   return db()
     .collection(COLLECTIONS.SESSIONS)
-    .add({ data: doc })
-    .then(() => doc);
+    .doc(String(session.id))
+    .set({ data: doc })
+    .then(res => {
+      if (res.stats && res.stats.created === 0 && res.stats.updated === 0) throw new Error('场次未写入');
+      return doc;
+    });
 }
 
 /**
  * 拉取已提交 session(时间线倒序)。
  */
 function fetchSessions(limit = 50) {
-  return db()
+  return Promise.resolve().then(() => db()
     .collection(COLLECTIONS.SESSIONS)
     .orderBy('submittedAt', 'desc')
     .limit(limit)
     .get()
-    .then((res) => res.data || [])
+    .then((res) => mergeSessions(res.data || [])))
     .catch((err) => {
       console.warn('云端记录读取失败', err);
-      return [];
+      return mergeSessions([]);
     });
+}
+
+/** 汇总页按小程序端每页 20 条读取历史，再合并本地未同步记录。 */
+async function fetchAllSessions() {
+  const cloud = [];
+  try {
+    const sessions = db().collection(COLLECTIONS.SESSIONS);
+    const pageSize = 20;
+    while (true) {
+      const res = await sessions.orderBy('submittedAt', 'desc')
+        .skip(cloud.length).limit(pageSize).get();
+      const page = res.data || [];
+      cloud.push(...page);
+      if (page.length < pageSize) break;
+    }
+  } catch (err) {
+    console.warn('云端完整历史读取失败，保留已读取和本地记录', err);
+  }
+  return mergeSessions(cloud);
+}
+
+function mergeSessions(cloud) {
+  const byId = new Map();
+  cloud.concat(wx.getStorageSync('fitness:pendingQueue') || [], log.read().map(e => e.session))
+    .forEach(s => byId.set(String(s.id || s._id), s));
+  return Array.from(byId.values()).sort((a, b) => (b.submittedAt || b.startedAt) - (a.submittedAt || a.startedAt));
 }
 
 // ===== 目录裁剪迁移(版本化、幂等,一次性) =====
@@ -457,6 +531,8 @@ function buildSeedPlan() {
 }
 
 module.exports = {
+  getLocalPlans: readLocalPlans,
+  syncCompletedPlan,
   fetchPlans,
   savePlan,
   deletePlan,
@@ -464,6 +540,7 @@ module.exports = {
   setActivePlan,
   submitSession,
   fetchSessions,
+  fetchAllSessions,
   ensureSeedPlans,
   migratePlansForCatalog,
   isCloudError,

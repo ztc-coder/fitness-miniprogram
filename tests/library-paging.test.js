@@ -260,13 +260,18 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
     const total = catalog.search('', [], []).length;
     page.onLoad({});
     const firstIds = ids(page.data.items);
+    const callsBeforePaging = setDataCalls.length;
 
     page.onReachBottom();
     expect(page.data.items).toHaveLength(Math.min(48, total));
     expect(new Set(ids(page.data.items)).size).toBe(page.data.items.length);
     expect(ids(page.data.items).slice(0, firstIds.length)).toEqual(firstIds);
-    // 追加不重算筛选,不产生新的 setData 提交
-    expect(setDataCalls).toHaveLength(2);
+    // 追加只提交一次新窗口,不重复提交筛选条件或加载首屏
+    const pagingCalls = setDataCalls.slice(callsBeforePaging);
+    expect(pagingCalls).toHaveLength(1);
+    expect(Object.keys(pagingCalls[0]).sort()).toEqual(['hasMore', 'items', 'preheatItems', 'resultCount']);
+    expect(ids(pagingCalls[0].items)).toEqual(ids(catalog.search('', [], []).slice(0, 48)));
+    expect(pagingCalls[0].resultCount).toBe(total);
 
     page.onEquipFilterTap(tapEvent('barbell'));
     expect(page.data.items).toHaveLength(Math.min(24, catalog.search('', ['barbell'], []).length));

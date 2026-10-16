@@ -9,6 +9,7 @@
  */
 Component({
   properties: {
+    theme: { type: String, value: 'dark' },
     detail: { type: Object, value: null },
     /** 动作库入口带「加入」按钮;打卡页只看不选 */
     showPick: { type: Boolean, value: false },

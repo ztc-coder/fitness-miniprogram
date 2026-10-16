@@ -1,149 +1,58 @@
-<view class="page">
-  <!-- 顶栏：日期台 + 同步状态 -->
-  <view class="page-header">
-    <view class="topline">
-      <view class="topline-left">
-        <text class="topline-kicker">TODAY BOARD</text>
-        <view class="topline-live"></view>
-      </view>
-      <view class="sync-pill {{pendingCount > 0 ? 'warn' : ''}}">
-        <view class="sync-dot"></view>
-        <text class="sync-text">{{pendingCount > 0 ? '待提交 ' + pendingCount : '已同步'}}</text>
-      </view>
-    </view>
-    <view class="date-line mono">{{dateLine}}</view>
+<view class="page theme-{{theme}}">
+  <view class="date-row">
+    <text class="date-line">{{dateLine}}</text>
+    <text class="status-pill {{pendingCount > 0 ? 'pending' : ''}}">{{pendingCount > 0 ? '待提交 ' + pendingCount : (day ? '训练日' : '今天')}}</text>
   </view>
 
   <block wx:if="{{day}}">
-    <!--
-      开放式主视觉（非硬边舞台）
-      主次：DAY 签名 → 当前训练日 → 开始训练
-      装饰：角标 / 刻度 / 分区线，无 orb
-    -->
-    <view class="hero">
-      <view class="hero-top">
-        <view class="hero-day-block">
-          <view class="hero-day-frame" aria-hidden="true">
-            <view class="hero-day-corner tl"></view>
-            <view class="hero-day-corner tr"></view>
-            <view class="hero-day-corner bl"></view>
-            <view class="hero-day-corner br"></view>
-            <view class="hero-day-ticks">
-              <view class="hero-day-tick long"></view>
-              <view class="hero-day-tick"></view>
-              <view class="hero-day-tick"></view>
-              <view class="hero-day-tick mid"></view>
-              <view class="hero-day-tick"></view>
-              <view class="hero-day-tick"></view>
-              <view class="hero-day-tick long"></view>
-            </view>
-          </view>
-          <text class="hero-day-label">DAY</text>
-          <view class="hero-day-rule" aria-hidden="true"></view>
-          <view class="hero-day-row">
-            <text class="hero-day-num">{{dayNum}}</text>
-            <view class="hero-day-meta">
-              <text class="hero-day-slash">/</text>
-              <text class="hero-day-total mono">{{dayTotal}}</text>
-              <text class="hero-day-unit">CYCLE</text>
-            </view>
-          </view>
-        </view>
-        <view class="hero-cursor-chip">
-          <view class="hero-cursor-dot"></view>
-          <text class="hero-cursor-text">游标 {{plan.cursor + 1}}</text>
-        </view>
+    <view class="day-line">
+      <view class="day-heading">
+        <view class="day-name">{{day.name}}</view>
+        <view class="plan-name">{{plan.name}}</view>
       </view>
-
-      <!-- 主内容：今天练什么 -->
-      <view class="hero-name">{{day.name}}</view>
-
-      <view class="hero-plan-row">
-        <view class="hero-plan-badge">
-          <text class="hero-plan-badge-label">PLAN</text>
-          <text class="hero-plan-badge-name">{{plan.name}}</text>
-        </view>
-        <text class="hero-rule">完成打卡后前进 · 未练不跳过</text>
-      </view>
-
-      <!-- 主操作：紧随训练日，形成首屏终点 -->
-      <view class="cta-wrap {{hasDraft ? 'resume' : ''}}">
-        <button
-          wx:if="{{hasDraft}}"
-          class="primary-button start-btn resume-btn"
-          bindtap="onResumeDraft"
-          hover-class="cta-press"
-          hover-stay-time="80"
-        >继续训练</button>
-        <button
-          wx:else
-          class="primary-button start-btn"
-          bindtap="onStartTraining"
-          hover-class="cta-press"
-          hover-stay-time="80"
-        >开始训练</button>
-        <view wx:if="{{hasDraft}}" class="cta-hint">本地草稿未提交 · 可接着上次组数继续</view>
-      </view>
-
-      <!-- 循环点轨：done / current / pending -->
-      <view class="cycle-rail">
-        <view class="cycle-rail-head">
-          <text class="cycle-rail-label">循环进度</text>
-          <text class="cycle-rail-hint mono">{{dayNum}} / {{dayTotal}}</text>
-        </view>
-        <view class="cycle-dots">
-          <view class="cycle-dot-wrap" wx:for="{{cycleDots}}" wx:key="index">
-            <view class="cycle-dot {{item.state}}"></view>
-            <view wx:if="{{index < cycleDots.length - 1}}" class="cycle-seg {{item.state === 'done' ? 'done' : ''}}"></view>
-          </view>
-        </view>
-      </view>
-
-      <!-- 数据指标：横向仪表条 -->
-      <view class="hero-stats">
-        <view class="hero-stat">
-          <text class="hero-stat-num mono">{{exerciseCount}}</text>
-          <text class="hero-stat-label">动作</text>
-        </view>
-        <view class="hero-stat-divider" aria-hidden="true"></view>
-        <view class="hero-stat">
-          <text class="hero-stat-num mono">{{plan.cycleDays.length}}</text>
-          <text class="hero-stat-label">训练日</text>
-        </view>
-        <view class="hero-stat-divider" aria-hidden="true"></view>
-        <view class="hero-stat">
-          <text class="hero-stat-num mono">{{plan.cursor + 1}}</text>
-          <text class="hero-stat-label">当前游标</text>
-        </view>
+      <view class="day-mark"><text>DAY</text><text class="day-number mono">{{dayNum}}</text></view>
+    </view>
+    <view class="cycle-rail">
+      <view class="cycle-step {{item.state}}" wx:for="{{cycleDots}}" wx:key="index">
+        <view wx:if="{{index > 0}}" class="cycle-link" aria-hidden="true"><text>{{item.state === 'current' ? '●' : '›'}}</text></view>
+        <view class="cycle-node mono"><text>{{item.state === 'done' ? '✓' : (index > 8 ? index + 1 : '0' + (index + 1))}}</text></view>
+        <view class="cycle-name">{{plan.cycleDays[index].name}}</view>
       </view>
     </view>
-
-    <view class="section-kicker">动作清单</view>
-    <view class="exercise-list">
-      <view class="exercise-row" wx:for="{{exercises}}" wx:key="index">
-        <view class="exercise-index-wrap">
-          <text class="exercise-index mono">{{item.index}}</text>
-        </view>
-        <view class="exercise-main">
-          <view class="exercise-name">{{item.name}}</view>
-          <view class="exercise-note">{{item.note}}</view>
-        </view>
-        <view class="exercise-target-wrap">
-          <text class="exercise-target mono">{{item.prescription}}</text>
-        </view>
-      </view>
-    </view>
+    <view class="home-caption"><text><text class="caption-number mono">{{exerciseCount}}</text> 个动作</text><text><text class="caption-number mono">{{totalSets}}</text> 组计划</text></view>
   </block>
 
+  <!-- 草稿是独立场次：无当前计划时也保留恢复入口。 -->
+  <view wx:if="{{hasDraft}}" class="resume-card">
+    <view class="resume-head">
+      <view class="resume-title"><text class="live-dot">●</text>训练进行中 · {{draftInfo.dayName}}</view>
+      <text class="draft-progress mono">{{draftInfo.completed}} / {{draftInfo.total}} 组</text>
+    </view>
+    <view class="resume-meta">{{draftInfo.planName}} · {{draftInfo.dayName}}</view>
+    <view class="resume-track"><view class="resume-fill" style="width: {{draftInfo.total ? draftInfo.completed / draftInfo.total * 100 : 0}}%"></view></view>
+    <button class="action-button" bindtap="onResumeDraft" disabled="{{starting}}" hover-class="cta-press">继续训练 <text class="button-arrow">→</text></button>
+    <button wx:if="{{day}}" class="new-training" bindtap="onStartTraining" disabled="{{starting}}" hover-class="cta-press">按当前计划重新开始</button>
+  </view>
+  <button wx:elif="{{day}}" class="action-button start-button" bindtap="onStartTraining" disabled="{{starting}}" hover-class="cta-press">开始训练 <text class="button-arrow">→</text></button>
+
+  <block wx:if="{{day}}">
+    <view class="section-head"><text class="section-title">今天练这些</text><button class="section-note" bindtap="onGoPlan" hover-class="cta-press">查看完整计划 <text aria-hidden="true">›</text></button></view>
+    <view class="exercise-list">
+      <view class="exercise-row" wx:for="{{exercises}}" wx:key="index">
+        <view class="exercise-thumb">
+          <image wx:if="{{item.imageSrc}}" src="{{item.imageSrc}}" mode="aspectFit" data-index="{{index}}" binderror="onImageError" class="exercise-image" />
+          <text wx:else class="exercise-glyph" aria-hidden="true">↔</text>
+        </view>
+        <view class="exercise-main"><view class="exercise-name">{{item.name}}</view><view class="exercise-note"><text class="equipment-pill">{{item.equipmentLabel}}</text><text>{{item.note}}</text></view></view>
+        <text class="exercise-target mono">{{item.prescription}}</text>
+      </view>
+    </view>
+    <view class="media-credit">© Gym visual</view>
+    <view class="next-day">完成本次训练后，进入{{nextDayName}}。</view>
+  </block>
   <view wx:else class="empty-state">
-    <view class="empty-glyph">◔</view>
     <view class="empty-title">还没有训练计划</view>
-    <view class="empty-desc">创建一个「第 N 天循环」计划，今天该练什么一目了然</view>
-    <button
-      class="primary-button empty-btn"
-      bindtap="onGoPlan"
-      hover-class="cta-press"
-      hover-stay-time="80"
-    >去创建计划</button>
+    <view class="empty-desc">创建一个循环计划，今天该练什么一目了然</view>
+    <button class="action-button" bindtap="onGoPlan" hover-class="cta-press">去创建计划</button>
   </view>
 </view>

@@ -1,26 +1,63 @@
 .page {
   min-height: 100vh;
-  padding: 30rpx 32rpx 48rpx;
+  padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
   background: var(--bg);
+}
+
+.day-kicker {
+  margin-bottom: 14rpx;
+  color: var(--signal);
+  font-size: 24rpx;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.page-title {
+  font-size: 56rpx;
+  line-height: 1.4;
+}
+
+.page-subtitle {
+  max-width: 620rpx;
+  margin-top: 8rpx;
+  line-height: 1.6;
 }
 
 /* ===== 动作列表:卡片化设计 ===== */
 .exercise-list {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 20rpx;
   margin-top: 16rpx;
 }
 
 .exercise-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 20rpx 112rpx minmax(0, 1fr) 88rpx;
   align-items: center;
-  gap: 24rpx;
-  padding: 24rpx 28rpx;
-  background: var(--surface);
+  column-gap: 12rpx;
+  padding: 16rpx;
+  background: var(--card-gradient);
   border: 1rpx solid var(--line);
-  border-radius: 20rpx;
-  transition: all 0.2s ease;
+  border-radius: 28rpx;
+  box-shadow: var(--card-shadow);
+}
+
+.exercise-grip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx;
+  width: 22rpx;
+  flex-shrink: 0;
+}
+
+.exercise-grip view {
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  opacity: 0.65;
 }
 
 .exercise-main {
@@ -36,66 +73,163 @@
 }
 
 .exercise-target {
-  margin-top: 8rpx;
-  font-family: "SF Mono", "DIN Alternate", Menlo, monospace;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 88rpx;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.target-capsule {
+  padding: 8rpx 12rpx;
+  border: 1rpx solid var(--signal-line);
+  border-radius: 16rpx;
+  background: var(--signal-soft);
+  color: var(--signal);
   font-size: 24rpx;
   font-weight: 700;
-  color: var(--signal);
-  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .exercise-tools {
+  grid-column: 3 / 5;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 88rpx 透明热区内放置紧凑图标，避免小按钮难以点按。 */
+.tool-btn {
+  box-sizing: border-box;
+  width: 88rpx;
+  height: 88rpx;
+  min-width: 88rpx;
+  min-height: 88rpx;
+  margin: 0;
+  padding: 0;
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  justify-content: center;
+  background: transparent;
+  line-height: 1;
 }
 
-/* 强制重置微信小程序默认 button 样式，避免默认宽度/内边距挤压布局 */
-.tool-btn {
-  box-sizing: border-box !important;
-  width: 64rpx !important;
-  height: 64rpx !important;
-  min-width: 64rpx !important;
-  min-height: 64rpx !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  line-height: 1 !important;
-  border: none !important;
-  background: var(--surface-2) !important;
-  color: var(--ink-dim) !important;
-  border-radius: 12rpx !important;
-  display: inline-flex !important;
+.tool-btn text {
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx !important;
-  font-weight: 700 !important;
+  width: 52rpx;
+  height: 52rpx;
+  border: 1rpx solid var(--line-strong);
+  border-radius: 12rpx;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+  font-size: 28rpx;
 }
 
-.tool-btn::after {
-  display: none !important;
-}
-
-.tool-btn:active {
-  opacity: 0.72;
-  transform: scale(0.95);
+.tool-btn::after, .exercise-target::after {
+  display: none;
 }
 
 .tool-btn[disabled] {
-  opacity: 0.25 !important;
-  background: var(--surface-2) !important;
-  color: var(--ink-faint) !important;
+  opacity: 0.25;
+  background: transparent;
 }
 
-.tool-btn.danger {
-  background: rgba(229, 83, 61, 0.08) !important;
-  color: var(--danger) !important;
+.remove-btn text {
+  background: var(--danger-soft, rgba(255, 143, 124, 0.08));
+  color: var(--danger);
+  border-color: var(--danger-line, rgba(255, 143, 124, 0.3));
 }
 
 /* ===== 确保全局按钮宽度不被微信 184px 限制且支持弹性伸缩 ===== */
 button.primary-button {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
   width: 100% !important;
+  min-width: 0 !important;
+  min-height: 96rpx !important;
+  margin: 40rpx 0 0 !important;
+  padding: 18rpx 24rpx !important;
+  line-height: 1.4 !important;
+  border-radius: 28rpx !important;
+  background: var(--action-background, var(--signal-gradient)) !important;
+  border: 1rpx solid var(--signal-line) !important;
+  box-shadow: var(--signal-glow);
+  color: var(--action-ink, var(--signal-ink)) !important;
+  font-size: 30rpx !important;
+  font-weight: 800 !important;
+  letter-spacing: 0;
 }
 
 .add-btn {
   margin-top: 40rpx;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 36rpx;
+}
+
+.section-heading .section-kicker { margin: 0; }
+.order-hint { color: var(--ink-faint); font-size: 22rpx; }
+
+.exercise-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 112rpx;
+  height: 144rpx;
+  border-radius: 24rpx;
+  background: rgba(71, 239, 182, 0.04);
+  border: 1rpx solid var(--line);
+}
+
+.exercise-thumb image, .thumb-glyph {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 18rpx;
+  background: var(--thumb-gradient);
+}
+
+.thumb-glyph { display: flex; align-items: center; justify-content: center; }
+.thumb-glyph view { position: relative; width: 60rpx; height: 6rpx; background: var(--placeholder-ink, #126548); }
+.thumb-glyph view::before, .thumb-glyph view::after {
+  content: '';
+  position: absolute;
+  top: -14rpx;
+  width: 8rpx;
+  height: 34rpx;
+  border-radius: 4rpx;
+  background: var(--placeholder-ink, #126548);
+}
+.thumb-glyph view::before { left: 7rpx; }
+.thumb-glyph view::after { right: 7rpx; }
+.exercise-tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 8rpx; }
+.exercise-tags text { padding: 2rpx 8rpx; border-radius: 6rpx; color: var(--ink-dim); background: var(--surface-2); font-size: 22rpx; }
+.image-credit { margin-top: 24rpx; text-align: center; color: var(--ink-faint); font-size: 20rpx; }
+
+.exercise-thumb image {
+  background: #FFFFFF;
+  mix-blend-mode: normal;
+}
+.theme-light .exercise-thumb {
+  background: var(--surface-2);
+}
+.exercise-thumb.has-media {
+  background: #FFFFFF;
+}
+
+.theme-light {
+  --placeholder-ink: var(--signal);
+  --danger-soft: rgba(190, 68, 56, 0.08);
+  --danger-line: rgba(190, 68, 56, 0.3);
 }

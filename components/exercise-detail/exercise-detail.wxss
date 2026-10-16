@@ -1,5 +1,7 @@
+@import "../../styles/theme.wxss";
+
 /* ============================================================
-   动作详情弹层 —— 与动作库页同源设计(青色 kicker + 琥珀 glyph)
+   动作详情弹层 —— FORGE 深色设计，共享 v3 色板与组件基础排版
    卡片三段式布局,三段边界明确:
      1. .detail-head    标题区:高度由内容决定,不参与收缩
      2. .detail-scroll  正文区:吸收剩余高度,内容过长时收缩并可滚动
@@ -11,6 +13,11 @@
    ============================================================ */
 
 .detail-mask {
+  /* 自定义属性沿页面继承，组件仅保留独立基础排版。 */
+  color: var(--ink);
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.6;
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -18,7 +25,7 @@
   align-items: center;
   justify-content: center;
   padding: 36rpx 32rpx calc(36rpx + env(safe-area-inset-bottom));
-  background: rgba(21, 59, 58, 0.55);
+  background: var(--overlay, rgba(0, 0, 0, 0.68));
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   box-sizing: border-box;
@@ -31,10 +38,10 @@
   max-width: 640rpx;
   max-height: 82vh;
   padding: 36rpx 32rpx;
-  background: var(--surface);
-  border: 1rpx solid var(--line);
-  border-radius: 28rpx;
-  box-shadow: 0 24rpx 64rpx rgba(21, 59, 58, 0.18);
+  background: var(--card-gradient);
+  border: 1rpx solid var(--line-strong);
+  border-radius: 32rpx;
+  box-shadow: var(--card-shadow);
   box-sizing: border-box;
 }
 
@@ -60,11 +67,15 @@
 }
 
 .detail-kicker {
-  color: var(--signal);
+  display: inline-flex;
+  padding: 5rpx 12rpx;
+  background: var(--surface-2);
+  border: 1rpx solid var(--line-strong);
+  border-radius: 8rpx;
+  color: var(--ink-dim);
   font-size: var(--t-kicker);
   font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   line-height: 1.3;
 }
 
@@ -93,7 +104,7 @@
   color: var(--ink-dim) !important;
   background: var(--surface-2) !important;
   border: 1rpx solid var(--line-strong) !important;
-  border-radius: 50% !important;
+  border-radius: 20rpx !important;
   font-size: 36rpx !important;
   line-height: 1 !important;
   box-sizing: border-box !important;
@@ -126,6 +137,9 @@
 
 .detail-art-wrap {
   margin-bottom: 24rpx;
+  background: var(--thumb-gradient);
+  border-radius: 28rpx;
+  overflow: hidden;
 }
 
 .detail-media {
@@ -133,9 +147,11 @@
   height: 360rpx;
   margin: 0 auto;
   display: block;
-  background: var(--surface-2);
-  border: 1rpx solid var(--line);
-  border-radius: 20rpx;
+  background: #FFFFFF;
+  mix-blend-mode: normal;
+  border: 1rpx solid var(--line-strong);
+  border-radius: 28rpx;
+  box-sizing: border-box;
 }
 
 .detail-art {
@@ -143,10 +159,10 @@
   align-items: center;
   justify-content: center;
   height: 180rpx;
-  background: linear-gradient(145deg, rgba(22, 191, 174, 0.14), rgba(255, 216, 74, 0.12));
+  background: var(--thumb-gradient);
   border: 1rpx solid var(--line);
-  border-radius: 20rpx;
-  color: var(--ink);
+  border-radius: 28rpx;
+  color: var(--signal-ink);
   font-size: 72rpx;
   font-weight: 800;
   line-height: 1;
@@ -192,8 +208,20 @@
   font-size: 22rpx;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--ink-faint);
-  margin-bottom: 6rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  color: var(--ink);
+  margin-bottom: 12rpx;
+}
+
+.detail-steps-title::before {
+  content: '';
+  width: 5rpx;
+  height: 24rpx;
+  border-radius: 3rpx;
+  background: var(--signal);
+  box-shadow: var(--signal-glow);
 }
 
 .detail-step {
@@ -205,7 +233,12 @@
 
 .detail-step-index {
   flex-shrink: 0;
-  min-width: 34rpx;
+  min-width: 40rpx;
+  padding: 4rpx;
+  background: var(--surface-2);
+  border-radius: 12rpx;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
   color: var(--signal);
   font-size: 24rpx;
   font-weight: 800;
@@ -223,8 +256,8 @@
 .detail-note {
   margin-top: 8rpx;
   padding: 16rpx 22rpx;
-  background: rgba(255, 216, 74, 0.16);
-  border: 1rpx dashed rgba(217, 200, 121, 0.9);
+  background: var(--surface-2);
+  border: 1rpx solid var(--line-strong);
   border-radius: 14rpx;
   color: var(--ink-dim);
   font-size: 22rpx;
@@ -237,6 +270,8 @@
   font-size: 20rpx;
   color: var(--ink-faint);
   letter-spacing: 0.02em;
+  line-height: 1.6;
+  word-break: break-all;
 }
 
 /* 正文末尾留白:滚到底时署名与操作区分隔线之间保留可见间隔 */
@@ -251,32 +286,42 @@
   flex-shrink: 0;
   padding-top: 24rpx;
   border-top: 1rpx solid var(--line);
-  background: var(--surface);
+  background: transparent;
 }
 
 .detail-primary {
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-height: 96rpx;
-  padding: 18rpx 28rpx;
-  color: var(--signal-ink);
-  background: var(--signal);
-  border: none;
-  border-radius: 999rpx;
-  font-size: 30rpx;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 96rpx !important;
+  margin: 0 !important;
+  padding: 18rpx 28rpx !important;
+  color: var(--action-ink, var(--signal-ink)) !important;
+  background: var(--action-background, var(--signal-gradient)) !important;
+  border: none !important;
+  border-radius: 28rpx !important;
+  font-family: inherit;
+  font-size: 30rpx !important;
   font-weight: 800;
-  letter-spacing: 0.1em;
-  box-shadow: none;
-  box-sizing: border-box;
+  line-height: 1.4 !important;
+  letter-spacing: 0.02em;
+  white-space: normal;
+  box-shadow: var(--signal-glow) !important;
+  box-sizing: border-box !important;
 }
 
 .detail-primary::after {
-  display: none;
-  border: none;
+  display: none !important;
+  border: none !important;
 }
 
 .detail-primary-hover {
   opacity: 0.82;
+}
+
+.detail-art-wrap.has-media {
+  background: #FFFFFF;
 }

@@ -1,31 +1,25 @@
-<view class="page">
-  <!-- 顶栏：循环控制台身份 + 编辑切换 -->
+<view class="page theme-{{theme}}">
   <view class="page-header">
-    <view class="topline">
-      <view class="topline-left">
-        <text class="topline-label">CYCLE DECK</text>
-        <view class="topline-dot {{activePlan ? 'on' : ''}}"></view>
-      </view>
-      <button
-        class="edit-pill {{editing ? 'done' : ''}}"
-        bindtap="onToggleEdit"
-        hover-class="edit-pill-hover"
-        hover-stay-time="80"
-      >{{editing ? '完成' : '编辑'}}</button>
+    <view class="page-heading">
+      <view class="page-title">训练计划</view>
+      <view class="page-subtitle">按周期循序推进，持续变强</view>
     </view>
-    <view class="page-title">计划</view>
-    <view class="page-subtitle">active 计划决定今天显示的训练日 · 完成才推进</view>
+    <button
+      class="edit-pill {{editing ? 'done' : ''}}"
+      bindtap="onToggleEdit"
+      hover-class="edit-pill-hover"
+      hover-stay-time="80"
+    >{{editing ? '完成' : '编辑'}}</button>
   </view>
 
   <block wx:if="{{activePlan}}">
     <!-- active 计划卡：进度浮层 + 循环轨道 -->
     <view class="plan-card">
-      <view class="plan-card-glow" aria-hidden="true"></view>
       <view class="plan-card-head">
         <view class="plan-card-info">
           <view class="plan-card-kicker">ACTIVE PLAN</view>
           <view class="plan-card-title">{{activePlan.name}}</view>
-          <view class="plan-card-sub">完成驱动 · {{activePlan.cycleDays.length}} 个训练日</view>
+          <view class="plan-card-sub">{{activePlan.cycleDays.length}} 个训练日 · 当前第 {{activePlan.cursor + 1}} 天</view>
         </view>
         <view class="plan-card-action">
           <button
@@ -43,7 +37,7 @@
         </view>
       </view>
 
-      <!-- 循环进度轨道：done / current(琥珀游标) / pending -->
+      <!-- 循环进度轨道：done / current / pending -->
       <view class="cycle-track">
         <view class="cycle-cell" wx:for="{{cycleTrack}}" wx:key="dayId">
           <view class="cycle-node {{item.state}}">
@@ -55,20 +49,24 @@
         </view>
       </view>
 
-      <view class="plan-card-note">
-        <text class="plan-card-note-mark mono">{{activePlan.cursor + 1}}</text>
-        <text class="plan-card-note-text">游标停在第 {{activePlan.cursor + 1}} 天，未打卡不会跳过</text>
+      <view wx:if="{{nextDay}}" class="plan-next">
+        <text class="plan-next-label">NEXT</text>
+        <text class="plan-next-text">下一场训练：<text class="plan-next-day">Day {{nextDay.num}} · {{nextDay.name}}</text></text>
       </view>
     </view>
 
-    <view class="section-kicker">训练日顺序</view>
+    <view class="section-kicker">训练日编排</view>
     <view class="plan-list">
-      <view class="plan-row {{editing ? 'editing' : ''}}" wx:for="{{dayRows}}" wx:key="dayId">
+      <view class="plan-row {{editing ? 'editing' : ''}} {{item.isCurrent ? 'current' : ''}}" wx:for="{{dayRows}}" wx:key="dayId">
         <view class="plan-row-index">
           <text class="plan-row-num mono">{{item.num}}</text>
         </view>
+        <view wx:if="{{!editing}}" class="plan-row-icon" aria-hidden="true"><view class="day-barbell"></view></view>
         <view class="plan-row-main" bindtap="onOpenDay" data-dayid="{{item.dayId}}">
-          <view class="plan-row-title">{{item.name}}</view>
+          <view class="plan-row-title-line">
+            <view class="plan-row-title">{{item.name}}</view>
+            <text wx:if="{{item.isCurrent}}" class="today-tag">● 今日待练</text>
+          </view>
           <view class="plan-row-meta">{{item.meta}}</view>
         </view>
         <view wx:if="{{editing}}" class="plan-row-tools">
@@ -106,15 +104,15 @@
           hover-class="row-link-hover"
           hover-stay-time="80"
         >
-          <text class="row-link-text">管理</text>
+          <text class="row-link-text">编排</text>
           <view class="row-link-chevron"></view>
         </button>
       </view>
     </view>
 
     <view class="action-row">
-      <button class="ghost-button action-btn" bindtap="onAddDay" hover-class="ghost-press" hover-stay-time="80">＋ 训练日</button>
-      <button class="ghost-button action-btn" bindtap="onGoLibrary" hover-class="ghost-press" hover-stay-time="80">＋ 动作库</button>
+      <button class="ghost-button action-btn" bindtap="onAddDay" hover-class="ghost-press" hover-stay-time="80">＋ 新增训练日</button>
+      <button class="ghost-button action-btn" bindtap="onGoLibrary" hover-class="ghost-press" hover-stay-time="80">浏览动作库</button>
     </view>
 
     <block wx:if="{{plans.length > 1}}">
@@ -128,7 +126,7 @@
               <text wx:if="{{item.active}}" class="all-plan-badge">当前使用</text>
             </view>
             <view class="all-plan-meta">
-              游标第 <text class="mono highlight">{{item.cursor + 1}}</text> 天 · <text class="mono highlight">{{item.cycleDays.length}}</text> 个训练日
+              当前第 <text class="mono highlight">{{item.cursor + 1}}</text> 天 · <text class="mono highlight">{{item.cycleDays.length}}</text> 个训练日
             </view>
           </view>
           <view class="all-plan-actions">
@@ -159,7 +157,7 @@
   <view wx:else class="empty-state">
     <view class="empty-glyph">◔</view>
     <view class="empty-title">还没有训练计划</view>
-    <view class="empty-desc">第 N 天循环，不绑定星期几，完成才推进</view>
+    <view class="empty-desc">按训练日循环，不绑定星期几；完成后进入下一天</view>
     <button class="primary-button empty-btn" bindtap="onNewPlan" hover-class="primary-press" hover-stay-time="80">创建第一个计划</button>
   </view>
 </view>

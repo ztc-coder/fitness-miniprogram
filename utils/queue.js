@@ -1,18 +1,20 @@
 /**
  * 提交队列执行器
- * domain.decideSubmission 只做纯判定;这里注入真实网络请求,
- * 负责「训练结束提交那一刻联网,无网自动排队重试」。
+ * 本地完成日志先成立;这里注入真实网络请求,无网自动排队重试。
  */
 const domain = require('./domain');
 const db = require('./db');
+const log = require('./training-log');
 
 const QUEUE_KEY = 'fitness:pendingQueue';
 const RETRY_DELAY_MS = 15000;
 
-let flushing = false;
+let flushing = null;
 
 function getQueue() {
-  return wx.getStorageSync(QUEUE_KEY) || [];
+  const legacy = wx.getStorageSync(QUEUE_KEY) || [];
+  return legacy.filter(s => !log.read().some(e => e.session.id === s.id))
+    .concat(log.read().filter(e => !e.sessionSynced || !e.planSynced).map(e => e.session));
 }
 
 function saveQueue(queue) {
@@ -32,48 +34,73 @@ function isOnline() {
  * 训练结束时调用:先入队(本地记录立即成立),再按网络状态决定提交/等待。
  */
 function push(session) {
-  const queue = domain.enqueueSession(getQueue(), session);
+  if (getCompletedSession(session.id)) return flush();
+  const queue = domain.enqueueSession(wx.getStorageSync(QUEUE_KEY) || [], session);
   saveQueue(queue);
   return flush();
 }
 
 /**
- * 冲刷队列:按 domain 判定逐个提交,失败标记 attempts 等待下轮重试。
+ * 同步查询已完成快照,供残留草稿恢复。
  */
+function getCompletedSession(id) {
+  const entry = log.read().find(e => e.session.id === id);
+  return entry ? entry.session : null;
+}
+
+function complete(session, now = Date.now()) {
+  try {
+    const existing = getCompletedSession(session.id);
+    if (existing) return Promise.resolve(existing);
+    const final = domain.finalizeTrainingSession(session, now);
+    if (!final) return Promise.reject(new Error('训练尚未完成'));
+    const plan = db.getLocalPlans().find(p => p.id === log.resolvePlanId(session.planId));
+    log.write(log.read().concat([{
+      session: final,
+      plan: plan ? domain.advanceCursor(plan, true) : null,
+      sessionSynced: false,
+      planSynced: !plan,
+    }]));
+    // All subsequent writes are repairable; the log already establishes completion.
+    try {
+      const draft = wx.getStorageSync('fitness:trainingDraft');
+      if (draft && draft.id === final.id) wx.removeStorageSync('fitness:trainingDraft');
+    } catch (err) { /* residual draft */ }
+    Promise.resolve().then(flush).catch(() => {});
+    return Promise.resolve(final);
+  } catch (err) { return Promise.reject(err); }
+}
+
 function flush() {
-  if (flushing) {
-    return Promise.resolve(getQueue());
-  }
-  flushing = true;
-  return isOnline()
-    .then((online) => {
-      const step = () => {
-        const queue = getQueue();
-        const decision = domain.decideSubmission(queue, online);
-        if (decision.action === 'idle' || decision.action === 'queued') {
-          flushing = false;
-          return queue;
+  if (flushing) return flushing;
+  flushing = Promise.resolve().then(isOnline).then(async online => {
+    while (true) {
+      const pending = getQueue();
+      const decision = domain.decideSubmission(pending, online);
+      if (decision.action === 'idle' || decision.action === 'queued') break;
+      const target = pending.find(session => session.id === decision.sessionId);
+      const entry = log.read().find(e => e.session.id === target.id);
+      try {
+        if (!entry || !entry.sessionSynced) {
+          await db.submitSession(target);
+          if (entry) log.update(target.id, { sessionSynced: true });
+          else saveQueue(domain.dequeueSession(wx.getStorageSync(QUEUE_KEY) || [], target.id));
         }
-        const target = queue.find((s) => s.id === decision.sessionId);
-        return db
-          .submitSession(target)
-          .then(() => {
-            saveQueue(domain.dequeueSession(getQueue(), target.id));
-            return step();
-          })
-          .catch((err) => {
-            console.warn('session 提交失败,进入重试队列', err);
-            saveQueue(domain.markAttemptFailed(getQueue(), target.id));
-            flushing = false;
-            return getQueue();
-          });
-      };
-      return step();
-    })
-    .catch(() => {
-      flushing = false;
-      return getQueue();
-    });
+        if (entry && !entry.planSynced && !log.isPlanDeleted(entry.plan.id)) {
+          await db.syncCompletedPlan(entry.plan);
+          log.update(target.id, { planSynced: true });
+        }
+      } catch (err) {
+        console.warn('session 提交失败,进入重试队列', err);
+        if (!entry) {
+          try { saveQueue(domain.markAttemptFailed(wx.getStorageSync(QUEUE_KEY) || [], target.id)); } catch (writeError) { /* retry original */ }
+        }
+        break;
+      }
+    }
+    return getQueue();
+  }).catch(() => getQueue()).finally(() => { flushing = null; });
+  return flushing;
 }
 
 /**
@@ -90,6 +117,8 @@ function watchNetwork() {
 }
 
 module.exports = {
+  complete,
+  getCompletedSession,
   push,
   flush,
   getQueue,

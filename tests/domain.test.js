@@ -65,7 +65,7 @@ describe('打卡快照 snapshotSession', () => {
     expect(session.dayId).toBe('d1');
     expect(session.exercises).toHaveLength(2);
     expect(session.exercises[0].sets).toHaveLength(4);
-    expect(session.exercises[0].sets[0]).toEqual({ weight: 60, reps: 8 });
+    expect(session.exercises[0].sets[0]).toEqual({ id: 'set_1', status: 'pending', weight: 60, reps: 8 });
   });
 
   test('快照完整保留动作顺序以及每个动作的组数/目标值', () => {
@@ -85,11 +85,11 @@ describe('打卡快照 snapshotSession', () => {
     expect(session.exercises.map((exercise) => exercise.exerciseId)).toEqual(['a', 'b', 'c']);
     expect(session.exercises.map((exercise) => exercise.sets.length)).toEqual([2, 4, 3]);
     expect(session.exercises[0].sets).toEqual([
-      { weight: 40, reps: 5 },
-      { weight: 40, reps: 5 },
+      { id: 'set_1', status: 'pending', weight: 40, reps: 5 },
+      { id: 'set_2', status: 'pending', weight: 40, reps: 5 },
     ]);
-    expect(session.exercises[1].sets[3]).toEqual({ weight: 0, reps: 12 });
-    expect(session.exercises[2].sets[2]).toEqual({ weight: 25, reps: 10 });
+    expect(session.exercises[1].sets[3]).toEqual({ id: 'set_6', status: 'pending', weight: 0, reps: 12 });
+    expect(session.exercises[2].sets[2]).toEqual({ id: 'set_9', status: 'pending', weight: 25, reps: 10 });
   });
 
   test('快照与 plan 无共享引用:修改快照不影响 plan', () => {
@@ -115,7 +115,7 @@ describe('打卡快照 snapshotSession', () => {
     session = domain.addSessionExercise(session, { exerciseId: 'fly', name: '绳索夹胸', equipment: 'cable' });
     expect(session.exercises).toHaveLength(2);
     expect(session.exercises[0].exerciseId).toBe('dip');
-    expect(session.exercises[0].sets[0]).toEqual({ weight: 0, reps: 8 });
+    expect(session.exercises[0].sets[0]).toEqual({ id: 'set_5', status: 'pending', weight: 0, reps: 8 });
     expect(session.exercises[1].exerciseId).toBe('fly');
     expect(session.exercises[1].sets).toHaveLength(1);
   });
@@ -325,4 +325,78 @@ describe('提交队列', () => {
     queue = domain.dequeueSession(queue, 'a');
     expect(domain.decideSubmission(queue, true).action).toBe('idle');
   });
+});
+
+// 逐组训练：只经由公开 domain API 观察纯输入输出。
+describe('逐组训练', () => {
+  const draft = () => domain.snapshotSession(buildPlan());
+  test('预填和追加共用 pending 初始化，稳定 ID 不重复，完成禁用', () => {
+    let s = draft();
+    expect(s.training.phase).toBe('ready');
+    expect(s.training.currentSetId).toBe('set_1');
+    expect(domain.canFinishTraining(s)).toBe(false);
+    s = domain.addSessionSet(s, 0);
+    s = domain.addSessionExercise(s, { exerciseId: 'extra' });
+    const sets = s.exercises.flatMap(ex => ex.sets);
+    expect(sets.every(set => set.status === 'pending')).toBe(true);
+    expect(new Set(sets.map(set => set.id)).size).toBe(9);
+    expect(domain.computeVolume(s.exercises[0])).toBe(0);
+  });
+});
+
+test('shared exercise compatibility selectors safely handle null and preserve legacy actual sets', () => {
+  expect(domain.isTrainingExercise(null)).toBe(false);
+  expect(domain.actualSets(null)).toEqual([]);
+  const legacy = {sets:[{weight:10,reps:2}]};
+  expect(domain.isTrainingExercise(legacy)).toBe(false);
+  expect(domain.actualSets(legacy)).toEqual([{weight:10,reps:2}]);
+  expect(domain.actualSets({flowVersion:1,sets:[{weight:10,reps:2}]})).toEqual([]);
+  const marked = {sets:[{status:'completed',weight:10,reps:2},{status:'skipped',weight:20,reps:2},{weight:30,reps:2}]};
+  expect(domain.isTrainingExercise(marked)).toBe(true);
+  expect(domain.actualSets(marked)).toEqual([{status:'completed',weight:10,reps:2}]);
+});
+
+describe('记录统计（只读派生）', () => {
+  const at = (y, m, d, h = 10) => new Date(y, m - 1, d, h).getTime();
+  const session = (day, overrides = {}) => Object.assign({
+    startedAt: day - 30 * 60 * 1000, submittedAt: day,
+    exercises: [{ equipment: 'barbell', sets: [{ status: 'completed', weight: 50, reps: 10 }] }],
+  }, overrides);
+  const now = at(2026, 10, 14, 20); // 周三
+
+  test('本周场次按周一起算，本月场次与时长只计当月，负重容量不混入自重次数', () => {
+    const sessions = [
+      session(at(2026, 10, 14)), session(at(2026, 10, 12)), // 本周
+      session(at(2026, 10, 11)),                            // 上周日，本月
+      session(at(2026, 9, 30)),                             // 上月
+      session(at(2026, 10, 13), { exercises: [{ equipment: 'body weight', sets: [{ status: 'completed', weight: 0, reps: 20 }] }] }),
+    ];
+    expect(domain.computeRecordStats(sessions, now)).toEqual({
+      weekSessions: 3, totalWeightedVolume: 2000, streakDays: 4, monthSessions: 4, monthDurationSec: 4 * 1800,
+    });
+  });
+
+  test('连续训练从今天或昨天向前数同日去重，断档即停；空输入安全', () => {
+    const yesterdayRun = [session(at(2026, 10, 13)), session(at(2026, 10, 13, 18)), session(at(2026, 10, 12)), session(at(2026, 10, 10))];
+    expect(domain.computeRecordStats(yesterdayRun, now).streakDays).toBe(2);
+    expect(domain.computeRecordStats([session(at(2026, 10, 11))], now).streakDays).toBe(0);
+    expect(domain.computeRecordStats(null, now)).toEqual({
+      weekSessions: 0, totalWeightedVolume: 0, streakDays: 0, monthSessions: 0, monthDurationSec: 0,
+    });
+  });
+});
+
+test('连续训练与本周起点按日历天计算，夏令时切换日不漏算', () => {
+  const prevTz = process.env.TZ;
+  process.env.TZ = 'America/New_York';
+  try {
+    const at = (m, d, h = 10) => new Date(2026, m - 1, d, h).getTime();
+    const s = (t) => ({ startedAt: t - 1000, submittedAt: t, exercises: [] });
+    // 2026-03-08 夏令时开始（当日 23 小时）；今天 03-09 未练，昨天 03-08 与 03-07 练过
+    const stats = domain.computeRecordStats([s(at(3, 8)), s(at(3, 7))], at(3, 9, 20));
+    expect(stats.streakDays).toBe(2);
+    expect(stats.weekSessions).toBe(0); // 03-09 周一为本周起点，03-08 属上周
+  } finally {
+    if (prevTz === undefined) delete process.env.TZ; else process.env.TZ = prevTz;
+  }
 });

@@ -1,11 +1,19 @@
 ---
 title: 集成验收与领域文档一致性
 labels: [ready-for-human]
-status: open
+status: done
 created: 2026-09-19
 ---
 
 # 05: 集成验收与领域文档一致性
+
+## 历史票收口
+
+用户已确认验收并授权关闭剩余票，本次同步此历史票的 done 状态。下方旧人工验收状态仅保留历史，不再作为当前未关闭任务。
+
+本票的 136 条 / 11 标签 / v3 方案已被 [全量目录发布](../../full-catalog/issue.md) 和 [七类筛选](../../library-seven-parts/issue.md) 取代，按父 issue 历史票表同步为 done。旧 11 标签界面不再是当前验收目标；本轮不重跑退役方案、不改写历史验收结论。
+
+下文为当时审计记录。后续真实媒体发布记录见 [媒体目标与发布](../../full-catalog/issues/04-media-and-contracts.md)；尚缺的当前微信端渲染、筛选、详情、加练与逐组训练证据统一挂在 [现有人工验收票](../../set-by-set-training/issues/04-integration-acceptance.md)。关闭历史票不等于当前真机通过。
 
 **What to build:** 端到端确认 136 条精选目录、11 个标签筛选、分页缩略图、v3 计划迁移与媒体同步计划共同可用；
 把领域文档（CONTEXT/spec/ADR/README）与旧 issue 状态同步到最终行为，并留下可复核的验收记录。

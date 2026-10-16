@@ -1,3 +1,9 @@
+---
+title: 动作库中文展示
+labels: [ready-for-human]
+status: done
+---
+
 # 02: 动作库中文展示
 
 **What to build:** 训练者在动作库列表、筛选标签和复用详情中只看到中文展示，英文动作名仍可用于搜索。

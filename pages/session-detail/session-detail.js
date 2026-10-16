@@ -4,8 +4,9 @@
 const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 const fmt = require('../../utils/format');
+const { themePage } = require('../../utils/theme');
 
-Page({
+Page(themePage({
   data: {
     session: null,
     exercises: [],
@@ -16,7 +17,7 @@ Page({
 
   onLoad(options) {
     db.fetchSessions(50).then((sessions) => {
-      const s = sessions.find((item) => (item._id || item.id) === options.id);
+      const s = sessions.find((item) => (item.id || item._id) === options.id);
       if (!s) {
         wx.showToast({ title: '记录不存在', icon: 'none' });
         setTimeout(() => wx.navigateBack(), 600);
@@ -25,20 +26,27 @@ Page({
       const durationSec = Math.max(0, Math.round(((s.submittedAt || Date.now()) - s.startedAt) / 1000));
       this.setData({
         session: s,
+        exerciseCount: domain.computeExerciseCount(s),
         dateLine: fmt.formatDateLine(s.submittedAt || s.startedAt),
         totalVolume: fmt.formatNumber(domain.computeSessionTotalVolume(s)),
         duration: fmt.formatDuration(durationSec),
-        exercises: (s.exercises || []).map((ex) => ({
-          name: ex.name,
-          skipped: !!ex.skipped,
-          isBodyWeight: domain.isBodyWeight(ex),
-          volume: domain.computeVolume(ex),
-          sets: (ex.sets || []).map((set, i) => ({
-            num: i + 1,
-            text: `${set.weight || 0} kg × ${set.reps || 0}`,
-          })),
-        })),
+        exercises: (s.exercises || []).map((ex) => {
+          const training = domain.isTrainingExercise(ex);
+          const actual = domain.actualSets(ex);
+          return {
+            name: ex.name,
+            skipped: !!ex.skipped && !training,
+            isBodyWeight: domain.isBodyWeight(ex),
+            volume: domain.computeVolume(ex),
+            sets: (ex.sets || []).map((set, i) => ({
+              num: i + 1,
+              text: set.status === 'skipped' ? '已跳过' :
+                training && !actual.includes(set) ? '未打卡' :
+                `${set.weight || 0} kg × ${set.reps || 0}`,
+            })),
+          };
+        }),
       });
     });
   },
-});
+}));

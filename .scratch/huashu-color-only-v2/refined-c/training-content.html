@@ -1,0 +1,736 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{margin:0;padding:0}body{margin:0}*{box-sizing:border-box}view,picker,scroll-view{display:block}text{display:inline}scroll-view{overflow-y:auto}::-webkit-scrollbar{display:none}button,input{font-family:inherit}button{appearance:none;cursor:default}input{border:0;outline:none;padding:0;min-width:0;appearance:none}input[type=number]{appearance:textfield}img{object-fit:contain}span{white-space:inherit}.native-switch{display:block;position:relative;width:52px;height:32px;border-radius:20px;background:#3ee6a0}.native-switch::after{content:'';position:absolute;width:28px;height:28px;right:2px;top:2px;border-radius:50%;background:white;box-shadow:0 1px 3px #0002}
+/* FORGE 3.0：近黑墨绿底、柔和图托卡片、翡翠渐变行动与发光层次，原生页面共享同一色板。 */
+ .native-page {
+  /* color */
+  --bg: #08110e;
+  --surface: #111d18;
+  --surface-2: #1a2a23;
+  --line: #1f3029;
+  --line-strong: #2c4339;
+  --ink: #eef7f2;
+  --ink-dim: #a3b6ac;
+  --ink-faint: #8aa095;
+  --signal: #3ee6a0;
+  --signal-deep: #1fbf83;
+  --signal-ink: #062014;
+  --signal-soft: rgba(62, 230, 160, 0.12);
+  --signal-line: rgba(62, 230, 160, 0.45);
+  --signal-glow: 0 0 16.64px rgba(62, 230, 160, 0.28);
+  --signal-gradient: linear-gradient(180deg, #6ff5bd 0%, #3ee6a0 45%, #1fbf83 100%);
+  --card-gradient: linear-gradient(180deg, #142420 0%, #0f1b17 100%);
+  --card-shadow: 0 6.24px 20.8px rgba(0, 0, 0, 0.35);
+  --thumb-gradient: linear-gradient(145deg, #e9fff5 0%, #b9f3d8 100%);
+  --amber: #ffb020;
+  --danger: #ff8f7c;
+
+  /* type scale(rpx) */
+  --t-hero: 66.56px;
+  --t-title: 33.28px;
+  --t-card: 17.68px;
+  --t-body: 14.56px;
+  --t-meta: 11.440000000000001px;
+  --t-kicker: 10.4px;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-size: var(--t-body);
+  line-height: 1.6;
+}
+
+view, text, button, input {
+  box-sizing: border-box;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+button::after {
+  border: 0;
+}
+
+/* ===== 数字/数据统一等宽 ===== */
+.mono {
+  font-family: "SF Mono", "DIN Alternate", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 通用排版 ===== */
+.page-title {
+  font-size: var(--t-title);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+
+.page-subtitle {
+  margin-top: 5.2px;
+  font-size: var(--t-meta);
+  color: var(--ink-dim);
+}
+
+/* 区块标：设计 v3 竖向信号绿短条 + 白色标题 */
+.section-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8.32px;
+  margin: 24.96px 0 11.440000000000001px;
+  font-size: 14.56px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.section-kicker::before {
+  content: '';
+  width: 3.12px;
+  height: 14.56px;
+  border-radius: 1.56px;
+  background: var(--signal);
+  box-shadow: 0 0 6.24px rgba(62, 230, 160, 0.6);
+}
+
+/* ===== 通用按钮 ===== */
+.primary-button.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54.08px;
+  padding: 9.36px 14.56px;
+  color: var(--signal-ink);
+  background: var(--signal-gradient);
+  box-shadow: var(--signal-glow);
+  border-radius: 14.56px;
+  font-size: 15.600000000000001px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0;
+  line-height: 1.4;
+  transition: opacity 0.15s ease;
+}
+
+.primary-button:active {
+  opacity: 0.82;
+}
+
+.ghost-button.ghost-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 43.68px;
+  padding: 7.28px 12.48px;
+  color: var(--ink-dim);
+  background: var(--surface);
+  border: 0.52px solid var(--line-strong);
+  width: 100%;
+  margin: 0;
+  line-height: 1.4;
+  border-radius: 12.48px;
+  font-size: var(--t-meta);
+}
+
+.ghost-button:active {
+  opacity: 0.7;
+}
+
+/* ===== 空状态:虚线环徽标 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 52px 20.8px;
+  text-align: center;
+}
+
+.empty-state .empty-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72.8px;
+  height: 72.8px;
+  border: 1.04px dashed var(--line-strong);
+  border-radius: 50%;
+  font-size: 27.04px;
+  color: var(--signal);
+  line-height: 1;
+}
+
+.empty-state .empty-title {
+  margin-top: 15.600000000000001px;
+  font-size: 17.68px;
+  font-weight: 700;
+}
+
+.empty-state .empty-desc {
+  margin-top: 5.2px;
+  font-size: var(--t-meta);
+  color: var(--ink-dim);
+}
+
+/* ===== 备注提示 ===== */
+.note-card {
+  padding: 12.48px;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+  border: 0.52px solid var(--line-strong);
+  border-radius: 8.32px;
+  font-size: var(--t-kicker);
+  line-height: 1.6;
+}
+
+ .native-page { background: var(--bg); color: var(--ink); }
+.training-page { min-height: 100vh; padding: 10.4px 15.600000000000001px calc(98.8px + 34px); }
+.training-page.has-rest { padding-bottom: calc(182px + 34px); }
+.training-page.show-summary { padding-bottom: calc(124.80000000000001px + 34px); }
+button { color: inherit; border-radius: 0; }
+button[disabled] { opacity: .4; color: inherit; }
+.primary-button { border-radius: 14.56px; min-height: 49.92px; font-size: 15.600000000000001px; font-weight: 600; letter-spacing: 0; }
+.training-page .secondary-button { display: flex; align-items: center; justify-content: center; border: 0.52px solid var(--line-strong); border-radius: 14.56px; background: var(--surface); color: var(--ink); min-height: 54.08px; font-size: 14.56px; font-weight: 600; }
+.signal { color: var(--signal); }
+.session-toolbar { display: flex; align-items: center; gap: 9.36px; min-height: 68.64px; padding: 11.440000000000001px; margin-bottom: 12.48px; border: 0.52px solid var(--line); border-radius: 14.56px; background: var(--card-gradient); box-shadow: var(--card-shadow); }
+.elapsed { display: flex; align-items: center; gap: 5.2px; font-size: 15.600000000000001px; font-weight: 700; color: var(--signal); white-space: nowrap; }
+.clock-icon { width: 15.600000000000001px; height: 15.600000000000001px; border: 1.04px solid currentColor; border-radius: 50%; position: relative; flex-shrink: 0; }
+.clock-icon::before { content: ''; position: absolute; top: 2.6px; left: 6.24px; width: 1.04px; height: 4.68px; background: currentColor; }
+.clock-icon::after { content: ''; position: absolute; top: 6.76px; left: 6.24px; width: 4.16px; height: 1.04px; background: currentColor; transform: rotate(25deg); transform-origin: left; }
+.training-page .pause-button { display: flex; align-items: center; justify-content: center; gap: 5.2px; width: 58.24px; flex: 0 0 58.24px; min-width: 0; min-height: 45.760000000000005px; border: 0.52px solid var(--signal-line); border-radius: 9.36px; background: transparent; font-size: 12.48px; }
+.pause-icon { width: 9.36px; height: 12.48px; border-left: 2.08px solid var(--ink); border-right: 2.08px solid var(--ink); }
+.training-title { font-size: 19.76px; line-height: 1.25; font-weight: 750; overflow-wrap: break-word; }
+.training-subtitle { margin-top: 4.16px; font-size: 11.440000000000001px; color: var(--ink-dim); overflow-wrap: break-word; }
+.progress-section { margin: 14.56px 6.24px 15.600000000000001px; }
+.progress-labels { display: flex; justify-content: space-between; align-items: flex-start; gap: 8.32px; font-size: 11.440000000000001px; color: var(--ink-dim); margin-bottom: 7.28px; }
+.progress-labels > .signal { flex-shrink: 0; }
+.progress-track { height: 6.24px; background: var(--surface-2); border-radius: 6.24px; }
+.progress-fill { height: 100%; background: var(--signal-gradient); border-radius: inherit; box-shadow: var(--signal-glow); }
+.paused-banner, .save-error { padding: 10.4px 12.48px; font-size: 12.48px; border-radius: 8.32px; margin-bottom: 12.48px; line-height: 1.6; background: #3b3220; color: #f5d99a; }
+.paused-banner { text-align: center; }
+.save-error button { padding-top: 8.32px; text-decoration: underline; }
+.rest-message { margin: 0 0 11.440000000000001px; font-size: 12.48px; color: var(--signal); }
+.ex-card { background: var(--card-gradient); border: 0.52px solid var(--line); border-radius: 16.64px; padding: 13.52px 11.440000000000001px 11.440000000000001px; margin-bottom: 14.56px; box-shadow: var(--card-shadow); }
+.ex-card.is-skipped { border-style: dashed; }
+.ex-header { display: flex; align-items: center; gap: 10.4px; margin-bottom: 13.52px; }
+.ex-thumb { width: 54.08px; height: 54.08px; flex: 0 0 54.08px; border-radius: 11.440000000000001px; background: var(--thumb-gradient); color: var(--signal-ink); display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 20.8px; }
+.ex-thumb-img { display: block; width: 100%; height: 100%; mix-blend-mode: multiply; }
+.ex-name-wrap { flex: 1; min-width: 0; }
+.ex-name { font-size: 15.600000000000001px; font-weight: 650; line-height: 1.4; overflow-wrap: break-word; }
+.ex-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6.24px; margin-top: 4.16px; font-size: 10.92px; color: var(--ink-dim); }
+.equipment-pill { padding: 1.04px 6.24px; border: 0.52px solid var(--signal-line); border-radius: 5.2px; font-size: 10.4px; }
+.training-page .btn-more { width: 45.760000000000005px; min-width: 45.760000000000005px; min-height: 45.760000000000005px; flex: 0 0 45.760000000000005px; border: 0.52px solid var(--line-strong); border-radius: 8.32px; color: var(--ink-dim); font-size: 13px; letter-spacing: 1.04px; display: flex; align-items: center; justify-content: center; }
+.set-row { display: flex; align-items: center; gap: 5.2px; min-height: 45.760000000000005px; padding: 0; border-top: 0.52px solid var(--line); }
+.set-row + .set-row { margin-top: 2.08px; }
+.set-header + .set-row { margin-top: 0; }
+.set-header { min-height: 24.96px; border: 0.52px solid var(--line); border-bottom: 0; border-radius: 11.440000000000001px 11.440000000000001px 0 0; padding: 6.24px 0; background: var(--bg); font-size: 10.4px; color: var(--ink-dim); text-align: center; }
+.col-num { width: 24.96px; flex-shrink: 0; text-align: center; font-size: 13px; color: var(--ink-dim); }
+.set-header .col-num { font-size: 10.4px; }
+.col-input { position: relative; flex: 1 1 0%; width: 0; min-width: 0; text-align: center; }
+.col-check { width: 45.760000000000005px; flex-shrink: 0; }
+.col-delete { width: 45.760000000000005px; flex-shrink: 0; }
+.set-input { width: 100%; height: 45.760000000000005px; min-height: 45.760000000000005px; min-width: 45.760000000000005px; border: 0.52px solid transparent; border-radius: 8.32px; background: transparent; font-size: 15.600000000000001px; color: var(--ink); text-align: center; padding: 0 2.08px; box-sizing: border-box; }
+.input-placeholder { color: var(--ink-faint); }
+.set-completed { background: transparent; border-radius: 8.32px; border-top-color: transparent; }
+.set-completed + .set-row { border-top-color: transparent; }
+.set-completed .set-input { background: transparent; border-color: transparent; color: var(--ink); }
+.training-page .check-button { width: 45.760000000000005px; min-width: 45.760000000000005px; flex: 0 0 45.760000000000005px; height: 45.760000000000005px; display: flex; align-items: center; justify-content: center; }
+.check-box { width: 20.8px; height: 20.8px; border: 1.04px solid var(--line-strong); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.set-completed .check-box { width: 27.04px; height: 27.04px; border-radius: 7.800000000000001px; background: var(--signal-gradient); border-color: var(--signal); color: var(--signal-ink); box-shadow: var(--signal-glow); }
+.check-mark { width: 11.440000000000001px; height: 6.76px; border-left: 2.08px solid currentColor; border-bottom: 2.08px solid currentColor; transform: translateY(-1.56px) rotate(-45deg); }
+.training-page .delete-button { width: 45.760000000000005px; min-width: 45.760000000000005px; flex: 0 0 45.760000000000005px; min-height: 45.760000000000005px; font-size: 17.68px; color: var(--ink-dim); display: flex; align-items: center; justify-content: center; }
+.skipped-value { font-size: 11.440000000000001px; color: var(--ink-dim); }
+.training-page .add-set { flex: 1; width: 0; min-width: 0; min-height: 45.760000000000005px; border: 0.52px solid var(--line-strong); border-radius: 11.440000000000001px; background: var(--surface); color: var(--ink); font-size: 12.48px; display: flex; align-items: center; justify-content: center; }
+.training-page .rest-launch { flex: 1.1; min-width: 0; min-height: 45.760000000000005px; width: 0; border: 0.52px solid var(--signal-line); border-radius: 11.440000000000001px; background: var(--signal-soft); color: var(--signal); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4.16px; padding: 6.24px; font-size: 12.48px; }
+.skip-note { font-size: 11.440000000000001px; text-align: center; color: var(--ink-dim); padding: 4.16px 0 8.32px; }
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 10.4px 15.600000000000001px calc(10.4px + 34px); background: var(--bg); border-top: 0.52px solid var(--line); z-index: 10; }
+.bottom-actions { display: flex; gap: 11.440000000000001px; }
+.bottom-actions > button { min-width: 0; width: 0; flex: 1; }
+.bottom-actions > .primary-button { flex: 1.35; }
+.training-page .mini-timer { display: flex; width: 100%; align-items: center; gap: 10.4px; margin-bottom: 11.440000000000001px; border: 0.52px solid var(--signal-line); background: var(--card-gradient); box-shadow: var(--card-shadow); border-radius: 14.56px; padding: 11.440000000000001px 13.52px; text-align: left; color: var(--signal); }
+.mini-timer-body { flex: 1; }
+.mini-label { font-size: 10.92px; color: var(--ink-dim); }
+.mini-time { font-size: 22.880000000000003px; font-weight: 800; line-height: 1.2; color: var(--signal); }
+.mini-expand { color: var(--signal); font-size: 12.48px; }
+.rest-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 30; display: flex; align-items: flex-end; }
+.rest-sheet { display: flex; flex-direction: column; width: 100%; height: 665.6px; max-height: 92vh; overflow: hidden; padding: 10.4px 20.8px calc(13.52px + 34px); background: var(--card-gradient); border: 0.52px solid var(--signal-line); border-bottom: 0; border-radius: 33.28px 33.28px 0 0; box-shadow: var(--card-shadow); }
+.rest-body { flex: 1; min-height: 0; height: 0; }
+.rest-footer { flex-shrink: 0; padding-top: 8.32px; }
+.sheet-handle { margin: 0 auto 13.52px; width: 33.28px; height: 4.16px; border-radius: 4.16px; background: var(--line-strong); }
+.sheet-heading { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 10.4px; }
+.sheet-title { font-size: 19.76px; font-weight: 650; }
+.sheet-subtitle { font-size: 12.48px; color: var(--ink-dim); margin-top: 2.08px; }
+.training-page .collapse-button { width: 58.24px; flex: 0 0 58.24px; min-width: 0; min-height: 45.760000000000005px; border: 0.52px solid var(--line-strong); border-radius: 16.64px; background: var(--surface); color: var(--ink); font-size: 12.48px; display: flex; align-items: center; justify-content: center; }
+.timer-ring { position: relative; width: 202.8px; height: 202.8px; margin: 15.600000000000001px auto; border-radius: 50%; box-shadow: var(--signal-glow), inset 0 0 20.8px var(--signal-soft); }
+.ring-track { position: absolute; inset: 0; border: 8.32px solid var(--surface-2); border-radius: 50%; }
+.ring-half { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; }
+.ring-left { transform: rotate(180deg); transform-origin: left center; }
+.ring-arc { position: absolute; top: 0; left: -100%; width: 200%; height: 100%; border: 8.32px solid var(--signal); border-radius: 50%; clip: rect(0,101.4px,202.8px,0); box-shadow: inset 0 0 11.440000000000001px var(--signal-soft); }
+.ring-cap { position: absolute; inset: 0; }
+.ring-cap::before { content: ''; position: absolute; top: 0; left: 50%; width: 8.32px; height: 8.32px; border-radius: 50%; background: var(--signal); transform: translateX(-50%); }
+.timer-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.rest-clock { font-size: 48.88px; font-weight: 800; line-height: 1.2; color: var(--ink); letter-spacing: -2.08px; text-shadow: 0 0 14.56px var(--signal-soft); }
+.clock-label { margin-top: 8.32px; padding: 0 18.72px; text-align: center; font-size: 11.96px; color: var(--signal); }
+.rest-presets { display: flex; gap: 8.32px; margin-bottom: 9.36px; }
+.training-page .preset { flex: 1; width: 0; min-width: 0; min-height: 45.760000000000005px; border: 0.52px solid var(--line-strong); border-radius: 9.36px; background: var(--surface); color: var(--ink-dim); font-size: 12.48px; display: flex; align-items: center; justify-content: center; }
+.preset.selected { background: var(--signal-soft); color: var(--signal); border-color: var(--signal); box-shadow: var(--signal-glow); font-weight: 700; }
+.rest-controls { display: flex; gap: 7.28px; margin-bottom: 9.36px; }
+.training-page .rest-controls button { flex: 1; width: 0; min-width: 0; min-height: 45.760000000000005px; border: 0.52px solid var(--line-strong); border-radius: 11.440000000000001px; background: var(--surface); font-size: 13.52px; display: flex; align-items: center; justify-content: center; }
+.rest-controls .pause-rest { flex: 1.3; background: var(--surface-2); border-color: var(--surface-2); }
+.training-page .end-rest { width: 100%; background: var(--signal-gradient); color: var(--signal-ink); box-shadow: var(--signal-glow); }
+.training-page .restart-rest { width: 100%; font-size: 11.96px; color: var(--ink-dim); min-height: 45.760000000000005px; display: flex; align-items: center; justify-content: center; }
+.sheet-foot { text-align: center; color: var(--ink-faint); font-size: 10.92px; }
+.summary-page { padding-top: 17.68px; }
+.success-symbol { width: 54.08px; height: 54.08px; border: 0.52px solid var(--signal-line); background: var(--signal-gradient); color: var(--signal-ink); box-shadow: var(--signal-glow); border-radius: 14.56px; display: flex; align-items: center; justify-content: center; margin-bottom: 15.600000000000001px; }
+.success-symbol .check-mark { width: 18.72px; height: 10.92px; }
+.summary-title { font-size: 32.24px; font-weight: 700; letter-spacing: -1.04px; line-height: 1.25; }
+.summary-subtitle { margin-top: 7.28px; color: var(--ink-dim); font-size: 11.96px; }
+.summary-stats { display: flex; flex-wrap: wrap; gap: 8.32px; margin: 20.8px 0 15.600000000000001px; }
+.summary-stat { width: calc(50% - 4.16px); padding: 13.52px 11.440000000000001px; border: 0.52px solid var(--line); border-radius: 14.56px; background: var(--card-gradient); box-shadow: var(--card-shadow); min-width: 0; }
+.summary-stat:nth-child(even) { padding-left: 11.440000000000001px; }
+.stat-number { font-size: 28.080000000000002px; line-height: 1.25; font-weight: 800; letter-spacing: -1.04px; color: var(--signal); overflow-wrap: anywhere; }
+.stat-unit { font-size: 11.96px; color: var(--ink-dim); margin-left: 4.16px; }
+.stat-label { display: block; margin-top: 6.24px; font-size: 11.96px; color: var(--ink-dim); }
+.bodyweight-stat { display: flex; justify-content: space-between; gap: 10.4px; padding: 12.48px; margin-bottom: 12.48px; border: 0.52px solid var(--signal-line); border-radius: 14.56px; background: var(--signal-soft); font-size: 13.52px; color: var(--signal); }
+.comparison-card { background: var(--card-gradient); border: 0.52px solid var(--line); border-radius: 14.56px; padding: 12.48px 14.56px; margin-bottom: 18.72px; box-shadow: var(--card-shadow); }
+.comparison-caption { font-size: 11.440000000000001px; color: var(--ink-dim); margin-bottom: 6.24px; }
+.comparison-row { display: flex; justify-content: space-between; gap: 10.4px; font-size: 13.52px; }
+.recap-heading { display: flex; justify-content: space-between; align-items: center; font-size: 15.600000000000001px; font-weight: 700; gap: 8.32px; border-left: 3.12px solid var(--signal); padding-left: 8.32px; }
+.recap-meta { font-size: 11.440000000000001px; color: var(--ink-dim); font-weight: 400; margin-top: 2.08px; }
+.recap-row { display: flex; justify-content: space-between; align-items: center; gap: 12.48px; padding: 12.48px; margin-top: 8.32px; border: 0.52px solid var(--line); border-radius: 14.56px; background: var(--card-gradient); font-size: 13.52px; }
+.recap-name { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.recap-volume { color: var(--signal); flex-shrink: 0; }
+.summary-saved { font-size: 11.96px; margin-top: 15.600000000000001px; color: var(--ink-dim); }
+.summary-bottom .text-button { width: 100%; min-height: 45.760000000000005px; font-size: 12.48px; color: var(--ink-dim); }
+.pressed { opacity: .75; }
+.media-credit { color: var(--ink-dim); font-size: 10.4px; margin: 10.4px 0; }
+
+/* style:v2 原生按钮 width=184px，行内控制必须显式覆盖，避免挤没输入列。 */
+.training-page button { margin-left: 0; margin-right: 0; padding: 0; line-height: 1.4; font-weight: 500; }
+.training-page .ex-thumb { width: 54.08px; min-width: 0; }
+.training-page .primary-button { width: 100%; font-weight: 600; }
+.training-page .bottom-actions > button { width: 0; }
+.training-page .preset.selected { background: var(--signal-soft); color: var(--signal); font-weight: 700; }
+.training-page .rest-controls .pause-rest { flex: 1.3; background: var(--surface-2); border-color: var(--surface-2); }
+.training-page .save-error button { width: 100%; }
+.training-heading { flex: 1; min-width: 0; }
+.exercise-actions { display: flex; gap: 6.24px; margin-top: 10.4px; }
+.set-row.is-current { border: 0.52px solid var(--signal-line); border-radius: 9.36px; background: var(--signal-soft); }
+.is-current .col-num { color: var(--ink); }
+.set-input:focus { border-color: var(--signal); box-shadow: var(--signal-glow); background: var(--signal-soft); }
+/* 未来组弱化但显示真实数值；空值由 placeholder「—」占位 */
+.is-future .set-input { color: var(--ink-dim); border-color: transparent; background: transparent; }
+.is-future .set-input:focus { color: var(--ink); border-color: var(--signal); background: var(--surface); }
+.ring-ticks { position: absolute; inset: 12.48px; border-radius: 50%; }
+.ring-tick { position: absolute; inset: 0; }
+.ring-tick::before { content: ''; display: block; width: 1.04px; height: 5.2px; margin: 0 auto; background: var(--signal-line); }
+.next-set-card { border: 0.52px solid var(--signal-line); border-radius: 12.48px; padding: 10.4px; margin-bottom: 10.4px; background: var(--card-gradient); }
+.next-set-heading { display: flex; justify-content: space-between; gap: 8.32px; font-size: 11.96px; color: var(--ink-dim); margin-bottom: 7.28px; }
+.next-set-row { display: flex; align-items: center; gap: 7.28px; padding: 6.24px; background: var(--surface); border: 0.52px solid var(--line); border-radius: 9.36px; }
+.preview-thumb { flex: 0 0 31.200000000000003px; height: 31.200000000000003px; background: var(--thumb-gradient); border-radius: 7.28px; overflow: hidden; color: var(--signal-ink); display: flex; align-items: center; justify-content: center; }
+.preview-image { display: block; width: 100%; height: 100%; mix-blend-mode: multiply; }
+.preview-name { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: break-word; }
+.preview-prescription { color: var(--signal); font-size: 13.52px; text-align: right; }
+@media (max-height: 700px) {
+  .timer-ring { width: 166.4px; height: 166.4px; margin: 10.4px auto; }
+  .ring-arc { clip: rect(0,83.2px,166.4px,0); }
+  .ring-ticks { inset: 10.4px; }
+  .rest-clock { font-size: 41.6px; }
+}
+@media (max-width: 359px) {
+  .session-toolbar { gap: 5.2px; padding: 9.36px; flex-wrap: wrap; }
+  .training-heading { flex-basis: 100%; }
+  .session-toolbar .elapsed { flex: 1; }
+  .progress-labels { flex-wrap: wrap; }
+  .ex-header { gap: 7.28px; }
+  .rest-sheet { padding-left: 14.56px; padding-right: 14.56px; }
+  .rest-presets, .rest-controls { gap: 5.2px; }
+}
+
+
+.native-page[data-theme="light"] {
+--bg: #F5F6F7;
+--surface: #FFFFFF;
+--surface-2: #EEF0F2;
+--line: #E5E8EB;
+--line-strong: #CDD3D8;
+--ink: #20262B;
+--ink-dim: #606B74;
+--ink-faint: #626D76;
+--energy: #C3ED42;
+--signal: #42651C;
+--signal-deep: #42651C;
+--signal-ink: #20262B;
+--signal-soft: #F1F7DF;
+--signal-line: #A3BC72;
+--signal-glow: none;
+--signal-gradient: linear-gradient(#C3ED42, #C3ED42);
+--card-gradient: linear-gradient(#FFFFFF, #FFFFFF);
+--card-shadow: 0 2px 8px rgba(32, 38, 43, 0.035), 0 1px 2px rgba(32, 38, 43, 0.025);
+--thumb-gradient: linear-gradient(#EEF0F2, #EEF0F2);
+--amber: #946008;
+--danger: #BE4438;}
+.native-page[data-theme="light"] .section-kicker::before {box-shadow:none}
+.native-page[data-theme="light"] .native-switch {background:var(--energy)}
+.native-page[data-theme="light"] .native-switch::after {background:var(--ink)}
+.native-page[data-theme="light"] .day-mark {background:var(--signal-gradient);color:var(--ink)}
+.native-page[data-theme="light"] .avatar {background:var(--energy);border-color:var(--energy);color:var(--ink)}
+.native-page[data-theme="light"] .ring-center,
+.native-page[data-theme="light"] .month-ring,
+.native-page[data-theme="light"] .avatar {box-shadow:none}
+.native-page[data-theme="light"] .day-number,
+.native-page[data-theme="light"] .rest-clock {text-shadow:none}
+.native-page[data-theme="light"] .paused-banner,
+.native-page[data-theme="light"] .save-error {background:#FFF4DF;color:#805307}
+.native-page[data-theme="light"] .rest-backdrop,
+.native-page[data-theme="light"] .sheet-mask {background:rgba(32,38,43,.40)}
+.native-page[data-theme="light"] .exercise-thumb,
+.native-page[data-theme="light"] .ex-thumb,
+.native-page[data-theme="light"] .preview-thumb {color:var(--ink-dim)}
+.native-page[data-theme="light"] .icon-tile {background:var(--surface-2);color:var(--ink-dim)}
+.native-page[data-theme="light"] .icon-trend text {background:var(--ink-dim)}
+.native-page[data-theme="light"] .exercise-list,
+.native-page[data-theme="light"] .profile,
+.native-page[data-theme="light"] .day-mark,
+.native-page[data-theme="light"] .mini-timer,
+.native-page[data-theme="light"] .equipment-pill,
+.native-page[data-theme="light"] .exercise-target,
+.native-page[data-theme="light"] .pause-button,
+.native-page[data-theme="light"] .cycle-node {border-color:var(--line)}
+.native-page[data-theme="light"] .day-number,
+.native-page[data-theme="light"] .exercise-target,
+.native-page[data-theme="light"] .record-volume,
+.native-page[data-theme="light"] .stat-number,
+.native-page[data-theme="light"] .elapsed,
+.native-page[data-theme="light"] .mini-time {color:var(--ink)}
+.native-page[data-theme="light"] .setting-chevron,
+.native-page[data-theme="light"] .sync-status:not(.pending) {color:var(--ink-dim)}
+.native-page[data-theme="light"] .record-item::after {border-color:var(--ink-faint)}
+.native-page[data-theme="light"] .status-pill:not(.pending),
+.native-page[data-theme="light"] .cycle-step.current .cycle-name,
+.native-page[data-theme="light"] .signal,
+.native-page[data-theme="light"] .mini-expand,
+.native-page[data-theme="light"] .setting-value.accent {color:var(--signal-deep)}
+.native-page[data-theme="light"] .cycle-step.current .cycle-node {background:var(--energy);border-color:var(--signal-deep);color:var(--ink)}
+.native-page[data-theme="light"] .record-tab.active,
+.native-page[data-theme="light"] .metric-btn {color:var(--signal-deep) !important}
+.native-page[data-theme="light"] .set-row.set-completed {background:#F6F8F1}
+.native-page[data-theme="light"] .chart-bar {opacity:1;background:#7D8C6B;box-shadow:none}
+.native-page[data-theme="light"] .chart-bar.last {background:var(--energy);border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal)}
+.native-page[data-theme="light"] .icon-flame {background:var(--signal)}
+.native-page[data-theme="light"] .progress-track,
+.native-page[data-theme="light"] .resume-track {background:var(--ink)}
+.native-page[data-theme="light"] .chart-bar:not(.last) .bar-value,
+.native-page[data-theme="light"] .chart-bar:not(.last) .bar-label {color:var(--ink-dim)}
+.native-page[data-theme="light"] .stat-card {border-color:var(--line);box-shadow:none}
+
+/* Color-only variant; original v4 layout stays untouched. */
+.native-page[data-theme="light"] {
+--energy:#C3ED42;
+--signal:#42651C;
+--signal-deep:#42651C;
+--signal-soft:#F1F7DF;
+--signal-line:#A3BC72;
+--signal-gradient:linear-gradient(#C3ED42,#C3ED42);
+}
+.native-page[data-theme="light"] .chart-bar:not(.last) {background:#7D8C6B}
+.native-page[data-theme="light"] .set-row.set-completed {background:#F6F8F1}
+.native-page[data-theme="light"] .primary-button.primary-button,
+.native-page[data-theme="light"] .page .action-button {background:var(--ink);color:var(--energy)}
+.native-page[data-theme="light"] .day-mark {background:var(--surface)}
+.native-page[data-theme="light"] .avatar {background:var(--surface-2);border-color:var(--line);color:var(--signal)}
+.native-page[data-theme="light"] .cycle-step.current .cycle-node {background:var(--ink);border-color:var(--ink);color:var(--energy)}
+
+/* C polish v2: color declarations only. */
+/* C 精修：炭黑承接操作，亮绿标识反馈，历史数据回归灰阶。 */
+.native-page[data-theme="light"] {
+  --signal: #3E5429;
+  --signal-deep: #3E5429;
+  --signal-soft: #F2F6E8;
+  --signal-line: #A7B68F;
+}
+
+.native-page[data-theme="light"] .avatar {
+  background-color: var(--ink);
+  border-color: var(--ink);
+  color: var(--energy);
+}
+
+.native-page[data-theme="light"] .chart-bar:not(.last) {
+  background-color: #879197;
+}
+
+.native-page[data-theme="light"] .set-row.set-completed {
+  background-color: #F7F8F4;
+}
+</style><body class="native-page" data-theme="dark"><view class="training-page has-rest ">
+  
+    <view class="session-toolbar">
+      <view class="training-heading">
+        <view class="training-title">胸三</view>
+        <view class="training-subtitle">推 / 拉 / 腿<text > · 第 1 天</text></view>
+      </view>
+      <view class="elapsed mono"><text >⏱</text>18:42</view>
+      <button class="pause-button" aria-label="暂停训练"><text >❚❚ 暂停</text></button>
+      
+    </view>
+    
+    <view class="progress-section">
+      <view class="progress-labels"><text >已完成 <text class="signal mono">2</text> / 14 组</text><text class="signal">继续完成第 3 组</text></view>
+      <view class="progress-track"><view class="progress-fill" style="width: 14.285714285714285%"></view></view>
+    </view>
+    
+    
+
+    <view class="exercise-list">
+      <view class="ex-card ">
+        <view class="ex-header">
+          <button class="ex-thumb" aria-label="查看杠铃卧推动作要领">
+            
+            <text >↔</text>
+          </button>
+          <view class="ex-name-wrap"><view class="ex-name">杠铃卧推</view><view class="ex-sub"><text class="equipment-pill">杠铃</text><text >胸部</text></view></view>
+          <button class="btn-more" aria-label="杠铃卧推更多操作">•••</button>
+        </view>
+        <view class="set-row set-header"><text class="col-num">组</text><text class="col-input">重量 kg</text><text class="col-input">次数</text><text class="col-check">完成</text><text class="col-delete"></text></view>
+        <view class="set-row set-completed  ">
+          <text class="col-num mono">1</text>
+          <view class="col-input">
+            <input class="set-input mono" value="60" placeholder="—" aria-label="杠铃卧推第1组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="杠铃卧推第1组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="杠铃卧推第1组取消完成" aria-checked="true"><view class="check-box"><view class="check-mark"></view></view></button>
+          <view class="col-delete"></view>
+        </view><view class="set-row set-completed  ">
+          <text class="col-num mono">2</text>
+          <view class="col-input">
+            <input class="set-input mono" value="60" placeholder="—" aria-label="杠铃卧推第2组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="杠铃卧推第2组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="杠铃卧推第2组取消完成" aria-checked="true"><view class="check-box"><view class="check-mark"></view></view></button>
+          <view class="col-delete"></view>
+        </view><view class="set-row set-pending is-current ">
+          <text class="col-num mono">3</text>
+          <view class="col-input">
+            <input class="set-input mono" value="60" placeholder="—" aria-label="杠铃卧推第3组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="杠铃卧推第3组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="杠铃卧推第3组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除杠铃卧推第3组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">4</text>
+          <view class="col-input">
+            <input class="set-input mono" value="60" placeholder="—" aria-label="杠铃卧推第4组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="杠铃卧推第4组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="杠铃卧推第4组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除杠铃卧推第4组">−</button>
+        </view>
+        <view class="exercise-actions">
+          <button class="add-set">＋ 增加一组</button>
+          
+        </view>
+        
+      </view><view class="ex-card ">
+        <view class="ex-header">
+          <button class="ex-thumb" aria-label="查看上斜哑铃卧推动作要领">
+            
+            <text >↔</text>
+          </button>
+          <view class="ex-name-wrap"><view class="ex-name">上斜哑铃卧推</view><view class="ex-sub"><text class="equipment-pill">哑铃</text><text >上胸</text></view></view>
+          <button class="btn-more" aria-label="上斜哑铃卧推更多操作">•••</button>
+        </view>
+        <view class="set-row set-header"><text class="col-num">组</text><text class="col-input">重量 kg</text><text class="col-input">次数</text><text class="col-check">完成</text><text class="col-delete"></text></view>
+        <view class="set-row set-pending  ">
+          <text class="col-num mono">1</text>
+          <view class="col-input">
+            <input class="set-input mono" value="20" placeholder="—" aria-label="上斜哑铃卧推第1组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="上斜哑铃卧推第1组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="上斜哑铃卧推第1组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除上斜哑铃卧推第1组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">2</text>
+          <view class="col-input">
+            <input class="set-input mono" value="20" placeholder="—" aria-label="上斜哑铃卧推第2组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="上斜哑铃卧推第2组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="上斜哑铃卧推第2组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除上斜哑铃卧推第2组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">3</text>
+          <view class="col-input">
+            <input class="set-input mono" value="20" placeholder="—" aria-label="上斜哑铃卧推第3组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="上斜哑铃卧推第3组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="上斜哑铃卧推第3组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除上斜哑铃卧推第3组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">4</text>
+          <view class="col-input">
+            <input class="set-input mono" value="20" placeholder="—" aria-label="上斜哑铃卧推第4组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="10" placeholder="—" aria-label="上斜哑铃卧推第4组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="上斜哑铃卧推第4组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除上斜哑铃卧推第4组">−</button>
+        </view>
+        <view class="exercise-actions">
+          <button class="add-set">＋ 增加一组</button>
+          
+        </view>
+        
+      </view><view class="ex-card ">
+        <view class="ex-header">
+          <button class="ex-thumb" aria-label="查看绳索夹胸动作要领">
+            
+            <text >↔</text>
+          </button>
+          <view class="ex-name-wrap"><view class="ex-name">绳索夹胸</view><view class="ex-sub"><text class="equipment-pill">绳索</text><text >胸部</text></view></view>
+          <button class="btn-more" aria-label="绳索夹胸更多操作">•••</button>
+        </view>
+        <view class="set-row set-header"><text class="col-num">组</text><text class="col-input">重量 kg</text><text class="col-input">次数</text><text class="col-check">完成</text><text class="col-delete"></text></view>
+        <view class="set-row set-pending  ">
+          <text class="col-num mono">1</text>
+          <view class="col-input">
+            <input class="set-input mono" value="15" placeholder="—" aria-label="绳索夹胸第1组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="12" placeholder="—" aria-label="绳索夹胸第1组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="绳索夹胸第1组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除绳索夹胸第1组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">2</text>
+          <view class="col-input">
+            <input class="set-input mono" value="15" placeholder="—" aria-label="绳索夹胸第2组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="12" placeholder="—" aria-label="绳索夹胸第2组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="绳索夹胸第2组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除绳索夹胸第2组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">3</text>
+          <view class="col-input">
+            <input class="set-input mono" value="15" placeholder="—" aria-label="绳索夹胸第3组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="12" placeholder="—" aria-label="绳索夹胸第3组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="绳索夹胸第3组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除绳索夹胸第3组">−</button>
+        </view>
+        <view class="exercise-actions">
+          <button class="add-set">＋ 增加一组</button>
+          
+        </view>
+        
+      </view><view class="ex-card ">
+        <view class="ex-header">
+          <button class="ex-thumb" aria-label="查看绳索下压动作要领">
+            
+            <text >↔</text>
+          </button>
+          <view class="ex-name-wrap"><view class="ex-name">绳索下压</view><view class="ex-sub"><text class="equipment-pill">绳索</text><text >肱三头肌</text></view></view>
+          <button class="btn-more" aria-label="绳索下压更多操作">•••</button>
+        </view>
+        <view class="set-row set-header"><text class="col-num">组</text><text class="col-input">重量 kg</text><text class="col-input">次数</text><text class="col-check">完成</text><text class="col-delete"></text></view>
+        <view class="set-row set-pending  ">
+          <text class="col-num mono">1</text>
+          <view class="col-input">
+            <input class="set-input mono" value="20" placeholder="—" aria-label="绳索下压第1组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="12" placeholder="—" aria-label="绳索下压第1组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="绳索下压第1组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除绳索下压第1组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">2</text>
+          <view class="col-input">
+            <input class="set-input mono" value="20" placeholder="—" aria-label="绳索下压第2组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="12" placeholder="—" aria-label="绳索下压第2组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="绳索下压第2组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除绳索下压第2组">−</button>
+        </view><view class="set-row set-pending  ">
+          <text class="col-num mono">3</text>
+          <view class="col-input">
+            <input class="set-input mono" value="20" placeholder="—" aria-label="绳索下压第3组重量" type="text" readonly>
+            
+          </view>
+          <view class="col-input">
+            <input class="set-input mono" value="12" placeholder="—" aria-label="绳索下压第3组次数" type="text" readonly>
+            
+          </view>
+          <button class="col-check check-button" aria-label="绳索下压第3组标记完成" aria-checked="false"><view class="check-box"></view></button>
+          <button class="col-delete delete-button" aria-label="删除绳索下压第3组">−</button>
+        </view>
+        <view class="exercise-actions">
+          <button class="add-set">＋ 增加一组</button>
+          
+        </view>
+        
+      </view>
+      
+    </view>
+    <view class="media-credit">© Gym visual</view>
+    <view class="bottom-bar">
+      <button class="mini-timer" aria-label="展开组间间歇"><view class="clock-icon"></view><view class="mini-timer-body"><view class="mini-label">组间休息倒计时</view><view class="mini-time mono">01:12</view></view><text class="mini-expand">展开 ⌃</text></button>
+      <view class="bottom-actions"><button class="secondary-button">＋ 加练动作</button><button class="primary-button">结束训练</button></view>
+    </view>
+  
+
+  
+
+  
+  
+</view><script>document.body.dataset.theme=new URLSearchParams(location.search).get('theme')||'dark';</script></body></html>

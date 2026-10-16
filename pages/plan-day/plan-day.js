@@ -2,12 +2,18 @@
  * 训练日详情:管理当天动作列表(统一目标、调顺序、删除),动作库入口
  */
 const db = require('../../utils/db');
+const library = require('../../data/exercises');
+const labels = require('../../data/exercise-labels');
+const { resolveMedia } = require('../../data/media-root');
 
-Page({
+const { themePage } = require('../../utils/theme');
+
+Page(themePage({
   data: {
     planId: '',
     dayId: '',
     dayName: '',
+    kicker: '',
     exercises: [],
   },
 
@@ -31,22 +37,33 @@ Page({
       this.plan = plan;
       this.setData({
         dayName: day.name,
-        exercises: (day.exercises || []).map((item, index) => ({
-          index,
-          exerciseId: item.exerciseId,
-          name: item.name,
-          prescription: `${item.sets} × ${item.targetReps}${
-            item.equipment === 'body weight'
-              ? item.targetWeight > 0
-                ? ` · +${item.targetWeight} kg`
-                : ''
-              : ` · ${item.targetWeight} kg`
-          }`,
-          isFirst: index === 0,
-          isLast: index === day.exercises.length - 1,
-        })),
+        kicker: `DAY ${String(plan.cycleDays.indexOf(day) + 1).padStart(2, '0')} · ${plan.name}`,
+        exercises: (day.exercises || []).map((item, index) => {
+          const media = library.findById(item.exerciseId);
+          const weight = item.equipment === 'body weight'
+            ? item.targetWeight > 0 ? `+${item.targetWeight} kg` : '自重'
+            : `${item.targetWeight} kg`;
+          return {
+            index,
+            exerciseId: item.exerciseId,
+            name: item.name,
+            bodyPartLabel: labels.bodyPartLabel(labels.bodyPartCategory(media)),
+            equipmentLabel: labels.equipmentLabel(item.equipment),
+            imageSrc: resolveMedia(media && media.imagePath),
+            prescription: `${item.sets} 组 × ${item.targetReps} 次 · ${weight}`,
+            isFirst: index === 0,
+            isLast: index === day.exercises.length - 1,
+          };
+        }),
       });
     });
+  },
+
+  onImageError(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isInteger(index) || !this.data.exercises[index]) return;
+    const exercises = this.data.exercises.map((item, i) => i === index ? { ...item, imageSrc: '' } : item);
+    this.setData({ exercises });
   },
 
   persistDay(nextExercises) {
@@ -81,6 +98,7 @@ Page({
     const day = plan.cycleDays.find((d) => d.dayId === this.data.dayId);
     const item = day.exercises[index];
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
       title: `编辑目标 · ${item.name}`,
       editable: true,
       placeholderText: '格式:组数x次数x重量,如 4x8x60',
@@ -117,4 +135,4 @@ Page({
       url: `/pages/library/library?planId=${this.data.planId}&dayId=${this.data.dayId}`,
     });
   },
-});
+}));
