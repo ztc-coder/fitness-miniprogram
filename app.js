@@ -1,10 +1,12 @@
 // 应用入口:初始化云开发环境,静默 openid 登录,打开即用
+const { applyTheme } = require('./utils/theme');
 const queue = require('./utils/queue');
 
 const ENV_ID = 'cloud1-d2ga0mned4bbf9b29'; // 云开发环境 ID
 
 App({
   onLaunch() {
+    applyTheme();
     if (!wx.cloud) {
       console.error('请使用 2.2.3 或以上的基础库以使用云能力');
       return;

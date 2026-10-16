@@ -310,3 +310,13 @@
   height: 58rpx;
   border-radius: 14rpx;
 }
+
+/* 精修 C：头像黑底亮绿，圆环/状态深绿；不改布局。 */
+.theme-light .profile { border-color: var(--line); }
+.theme-light .avatar { background: var(--ink); border-color: var(--ink); color: var(--energy); }
+.theme-light .avatar,
+.theme-light .month-ring,
+.theme-light .ring-center { box-shadow: none; }
+.theme-light .icon-tile { background: var(--surface-2); color: var(--ink-dim); }
+.theme-light .icon-trend text { background: var(--ink-dim); }
+.theme-light .setting-chevron { color: var(--ink-dim); }

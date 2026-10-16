@@ -5,9 +5,11 @@ const queue = require('../../utils/queue');
 const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 
+const { themePage, setTheme, applyTheme } = require('../../utils/theme');
+
 const SETTINGS_KEY = 'fitness:settings';
 
-Page({
+Page(themePage({
   data: {
     pendingCount: 0,
     offlineMode: true,
@@ -50,6 +52,11 @@ Page({
     });
   },
 
+  onToggleTheme(e) {
+    if (setTheme(e.detail.value ? 'light' : 'dark')) applyTheme(this);
+    else this.setData({ theme: this.data.theme });
+  },
+
   saveSettings(patch) {
     const settings = Object.assign(wx.getStorageSync(SETTINGS_KEY) || {}, patch);
     wx.setStorageSync(SETTINGS_KEY, settings);
@@ -74,6 +81,7 @@ Page({
 
   onShowLoginInfo() {
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429' } : {}),
       title: '登录状态',
       content: this.data.openid
         ? `已使用静默 openid 登录:${this.data.openid.slice(0, 12)}…`
@@ -84,9 +92,10 @@ Page({
 
   onShowLicense() {
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429' } : {}),
       title: '媒体授权状态',
       content: '动作示意图版权归 Gym visual。正式上线前必须取得书面授权、保留 © Gym visual — https://gymvisual.com/ 署名,并遵守 180×180 分辨率限制。',
       showCancel: false,
     });
   },
-});
+}));

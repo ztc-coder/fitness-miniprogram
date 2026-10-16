@@ -1,0 +1,35 @@
+/* 精修 C 的最终浅色值。组件隔离时自行引入，并在根节点设置 theme-light。
+ * signal = 深绿状态；action = 炭黑操作/亮绿文字；energy = 亮绿反馈/进度。
+ * 不在此覆盖深色：页面保留原变量或 var(--token, 原值) 回退。 */
+.theme-light {
+  --bg: #F5F6F7;
+  --surface: #FFFFFF;
+  --surface-2: #EEF0F2;
+  --line: #E5E8EB;
+  --line-strong: #CDD3D8;
+  --ink: #20262B;
+  --ink-dim: #606B74;
+  --ink-faint: #626D76;
+  --energy: #C3ED42;
+  --signal: #3E5429;
+  --signal-deep: #3E5429;
+  --signal-ink: #20262B;
+  --signal-soft: #F2F6E8;
+  --signal-line: #A7B68F;
+  --signal-glow: none;
+  --signal-gradient: linear-gradient(#C3ED42, #C3ED42);
+  --action-background: #20262B;
+  --action-ink: #C3ED42;
+  --completed-background: #F7F8F4;
+  --chart-history: #879197;
+  --overlay: rgba(32, 38, 43, .40);
+  --card-gradient: linear-gradient(#FFFFFF, #FFFFFF);
+  --card-shadow: 0 4rpx 16rpx rgba(32, 38, 43, 0.035), 0 2rpx 4rpx rgba(32, 38, 43, 0.025);
+  --thumb-gradient: linear-gradient(#EEF0F2, #EEF0F2);
+  --amber: #946008;
+  --danger: #BE4438;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.theme-light .section-kicker::before { box-shadow: none; }
