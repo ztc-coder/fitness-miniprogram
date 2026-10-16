@@ -1,15 +1,15 @@
 # Ticket 03 实施与验证记录
 
-状态：训练页代码及独立回归已实现；**相关旧测试有两处边界注入不兼容，按执行规则未提交，交集成者决定测试文件范围；原生待验，不关闭票。**
+状态：训练页代码及相关自动回归已完成并提交；两处旧测试的草稿读取故障注入已按 key 适配，8 suites / 148 tests 全部通过。原生待验，票保持 open。
 
 ## 范围与基线
 
-- 票03，独立 worktree 分支 `feat/light-dark-theme-03`。
-- 初始工作区 clean、HEAD `088e49a413552ca1670655e38891668cc4116fa9`；已确认其为 integration `feat/light-dark-theme` 的祖先且当时二者相等。
+- 票03，续作独立 worktree 分支 `feat/light-dark-theme-03-complete`。
+- 初始工作区 clean、HEAD `088e49a413552ca1670655e38891668cc4116fa9`；建立续作分支后 cherry-pick harness 保存的 `40fb5a2` 为 `411a99f`，完整保留上一执行代理的产品改动、独立测试及记录。
 - 已读 karpathy-guidelines、TDD SKILL 与 tests/mocking 附件、CONTEXT、关联 ADR、完整主题规格与票01/平台记录。
 - 使用已授权的 Page 用户事件/生命周期、wx/存储/时间边界；不 mock domain/queue/db 内部模块。
-- 收尾执行 `git merge feat/light-dark-theme` → Already up to date，integration tip 仍 `088e49a`。
-- 仅修改 `pages/training/training.js/wxml/wxss`、新增 `tests/training-theme.test.js` 及本记录；共享动作详情只在模板传 theme，不修改组件实现、domain、queue 或快照。
+- 续作收尾执行 `git merge feat/light-dark-theme` → Already up to date，最新 integration tip 为 `088e49a`。
+- 产品改动仅涉及 `pages/training/training.js/wxml/wxss`，独立测试为 `tests/training-theme.test.js`；续作额外按明确授权适配 `tests/training-flow.test.js` 的两处存储边界 mock，并更新本记录。共享动作详情只在模板传 theme，不修改组件实现、domain、queue 或快照。
 
 ## 实现
 
@@ -29,11 +29,11 @@
 3. 模板/颜色契约薄片先 red（根主题类缺失），接入模板与局部色值后 green。静态契约不视作渲染证据。
 4. 补充草稿按 key 读取失败阻塞写入/可显式重试，以及真实 Page 结束训练到小结后的双向切换；小结完成组数/动作数/时长/负重容量/上次对比、完成事实与队列不变，零 timer。
 5. 针对性运行：`jest tests/training-theme.test.js tests/training-submission.test.js tests/training-media.test.js tests/training-records.test.js tests/board1-training.test.js tests/training-checklist-domain.test.js tests/theme.test.js --runInBand --coverage=false --silent` → **7 suites / 96 tests passed**（本票独立新增 9 tests）。
-6. `jest tests/training-flow.test.js --runInBand --coverage=false --silent` → **50 passed / 2 failed**。两处失败分别在 :536 和 :576（read 分支）的 `wx.getStorageSync.mockImplementationOnce`：现装饰器先读 `fitness:settings`，一次性异常被主题恢复边界接住，因此未注入到原测试想覆盖的 `fitness:trainingDraft`。不是草稿读取失败被业务吞掉；本票独立测试已经按 draft key 注入并验证同一公开行为正确。
-   - 不为满足旧测试而修改共享装饰器或业务读取顺序。
-   - 用户限定只维护本票独立测试，故没有越界改 `tests/training-flow.test.js`；需协调者授权修改或由集成者将两处异常按 key 注入（仅 draft key throw，其余返回 storage.get(key)），然后重跑。
-   - 因相关验证仍有失败，遵循执行规则**不提交**，保留当前现场。未运行失败排除后声称全绿。
-7. `git diff --check`、`node --check pages/training/training.js`、`node --check tests/training-theme.test.js` 通过。未运行生产构建或重复全量 catalog 缺源失败。
+6. 续作先运行 `jest tests/training-flow.test.js --runInBand --coverage=false --silent -t '首次升级保存失败|reload read失败'` → **2 failed / 50 skipped（red）**。原 :536 与 :576 的 `wx.getStorageSync.mockImplementationOnce` 将一次异常注入给装饰器新增的 `fitness:settings` 读取，未触发测试想覆盖的 `fitness:trainingDraft` 故障。
+   - 按本次授权仅将两处 mock 改为按 `DRAFT_KEY` 注入：其它 key 原样返回 `storage.get(key)`；第一次草稿读取时恢复默认 storage mock 后抛错，后续读取/显式重试正常恢复。保留原有全部断言及训练行为，不更改主题装饰器、业务逻辑或读取顺序。
+   - 同一筛选命令重跑 → **2 passed / 50 skipped（green）**；原 reload 测试继续验证故障阻塞陈旧写入、显式重试采纳加练及后续保存恢复。
+   - 完整指定回归：`jest tests/training-flow.test.js tests/training-theme.test.js tests/training-submission.test.js tests/training-media.test.js tests/training-records.test.js tests/board1-training.test.js tests/training-checklist-domain.test.js tests/theme.test.js --runInBand --coverage=false --silent` → **8 suites / 148 tests passed**。
+7. `git diff --check`、`node --check pages/training/training.js`、`node --check tests/training-theme.test.js`、`node --check tests/training-flow.test.js` 通过。未安装依赖，未运行生产构建、模拟器或重复全量 catalog 缺源失败。
 
 ## 原生待验与平台限制
 
