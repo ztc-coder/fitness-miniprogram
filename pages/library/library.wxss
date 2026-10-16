@@ -479,7 +479,7 @@
   align-items: flex-end;
   justify-content: center;
   padding: 36rpx 32rpx calc(36rpx + env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, 0.68);
+  background: var(--overlay, rgba(0, 0, 0, 0.68));
   box-sizing: border-box;
 }
 
@@ -493,7 +493,7 @@
   background: var(--card-gradient);
   border-radius: 32rpx;
   border: 1rpx solid var(--line-strong);
-  box-shadow: 0 24rpx 60rpx -24rpx rgba(0, 0, 0, 0.5);
+  box-shadow: var(--picker-shadow, 0 24rpx 60rpx -24rpx rgba(0, 0, 0, 0.5));
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -704,4 +704,40 @@
   font-size: 23rpx;
   line-height: 1.6;
   text-align: center;
+}
+
+/* 浅色选中项表达筛选/状态，不复用主操作或完成反馈的亮绿。 */
+.theme-light .filter-pill.active {
+  color: var(--signal) !important;
+  background: var(--signal-soft) !important;
+  border-color: var(--signal-line) !important;
+}
+.theme-light .picker-plan-pill.active {
+  background: var(--signal-soft);
+  border-color: var(--signal-line);
+}
+.theme-light .picker-plan-pill.active .picker-plan-label {
+  color: var(--signal);
+}
+.theme-light .library-btn-circle.pick-active {
+  background: var(--signal-soft);
+  border-color: var(--signal-line);
+}
+.theme-light .library-btn-circle.pick-active .library-btn-text {
+  color: var(--signal);
+}
+.theme-light .library-btn-circle.pick-active .library-chevron {
+  border-color: var(--signal);
+}
+
+.theme-light .library-art-image {
+  background: #FFFFFF;
+  mix-blend-mode: normal;
+}
+.theme-light .library-art-wrap.has-media {
+  background: #FFFFFF;
+}
+
+.theme-light {
+  --picker-shadow: var(--card-shadow);
 }

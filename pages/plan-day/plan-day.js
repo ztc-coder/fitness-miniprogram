@@ -6,7 +6,9 @@ const library = require('../../data/exercises');
 const labels = require('../../data/exercise-labels');
 const { resolveMedia } = require('../../data/media-root');
 
-Page({
+const { themePage } = require('../../utils/theme');
+
+Page(themePage({
   data: {
     planId: '',
     dayId: '',
@@ -96,6 +98,7 @@ Page({
     const day = plan.cycleDays.find((d) => d.dayId === this.data.dayId);
     const item = day.exercises[index];
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
       title: `编辑目标 · ${item.name}`,
       editable: true,
       placeholderText: '格式:组数x次数x重量,如 4x8x60',
@@ -132,4 +135,4 @@ Page({
       url: `/pages/library/library?planId=${this.data.planId}&dayId=${this.data.dayId}`,
     });
   },
-});
+}));

@@ -1,7 +1,7 @@
 <!-- catchtouchmove:阻断触摸移动冒泡到页面,锁住遮罩下滚动;scroll-view 原生滚动不受影响 -->
 <!-- 布局契约:标题区 / 正文滚动区 / 操作区依次为兄弟节点,操作区不在滚动区内 -->
 <!-- showPick=true 时卡片加 .has-actions:卡片取确定高度,正文区才能吃满剩余高度并滚动 -->
-<view class="detail-mask" wx:if="{{detail}}" bindtap="onClose" catchtouchmove="noop">
+<view class="detail-mask theme-{{theme}}" wx:if="{{detail}}" bindtap="onClose" catchtouchmove="noop">
   <view class="detail-card {{showPick ? 'has-actions' : ''}}" catchtap="noop">
     <view class="detail-head">
       <view class="detail-head-main">
@@ -13,7 +13,7 @@
 
     <scroll-view class="detail-scroll" scroll-y>
       <!-- 媒体降级链:GIF → 示意图 → glyph;前缀未配置时级联为空,直接 glyph -->
-      <view class="detail-art-wrap">
+      <view class="detail-art-wrap {{stageIndex < mediaStages.length ? 'has-media' : ''}}">
         <image
           wx:if="{{stageIndex < mediaStages.length}}"
           class="detail-media"
