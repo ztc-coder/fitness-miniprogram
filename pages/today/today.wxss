@@ -32,7 +32,7 @@ page { background: var(--bg); color: var(--ink); }
 .exercise-row { display: flex; align-items: center; gap: 20rpx; padding: 18rpx 0; }
 .exercise-row + .exercise-row { border-top: 1rpx solid var(--line); }
 .exercise-thumb { width: 100rpx; height: 100rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 22rpx; background: var(--thumb-gradient); color: var(--signal-ink); }
-.exercise-image { display: block; width: 100%; height: 100%; mix-blend-mode: multiply; }
+.exercise-image { display: block; width: 100%; height: 100%; mix-blend-mode: normal; background: #FFFFFF; }
 .exercise-glyph { font-size: 54rpx; }
 .exercise-main { flex: 1; min-width: 0; }
 .exercise-name { font-size: 28rpx; font-weight: 600; line-height: 1.4; overflow-wrap: break-word; }
@@ -79,5 +79,3 @@ page { background: var(--bg); color: var(--ink); }
 .theme-light .exercise-target { color: var(--ink); }
 .theme-light .cycle-step.current .cycle-node { background: var(--ink); border-color: var(--ink); color: var(--energy); }
 .theme-light .resume-track { background: var(--ink); }
-/* 灰托只供占位；真实动作媒体保持原白底，不参与混色。 */
-.theme-light .exercise-image { mix-blend-mode: normal; background: #FFFFFF; }

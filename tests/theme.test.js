@@ -251,7 +251,7 @@ test('今天浅色替换草稿确认框使用可控文字色，取消仍保留�
 test('浅色真实动作图保留白底且不混色，灰色占位与亮绿进度分离', () => {
   const fs = require('fs');
   const style = fs.readFileSync('pages/today/today.wxss', 'utf8');
-  expect(style).toMatch(/\.theme-light \.exercise-image\s*\{[^}]*mix-blend-mode:\s*normal;[^}]*background:\s*#FFFFFF;/);
+  expect(style).toMatch(/\.exercise-image\s*\{[^}]*mix-blend-mode:\s*normal;[^}]*background:\s*#FFFFFF;/);
   expect(style).toMatch(/\.resume-fill\s*\{[^}]*background:\s*var\(--signal-gradient\)/);
   expect(fs.readFileSync('styles/theme.wxss', 'utf8')).toMatch(/--signal-gradient:\s*linear-gradient\(#C3ED42, #C3ED42\)/);
 });

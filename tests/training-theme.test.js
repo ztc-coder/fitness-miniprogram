@@ -111,7 +111,7 @@ test('训练模板向根节点和隔离动作详情传递主题，浅色样式�
   for (const selector of ['.theme-light .elapsed', '.theme-light .mini-time', '.theme-light .stat-number']) {
     expect(rules(selector)).toContain('color: var(--ink)');
   }
-  for (const selector of ['.theme-light .ex-thumb-img', '.theme-light .preview-image']) {
+  for (const selector of ['.ex-thumb-img', '.preview-image']) {
     expect(rules(selector)).toContain('background: #FFFFFF');
     expect(rules(selector)).toContain('mix-blend-mode: normal');
   }

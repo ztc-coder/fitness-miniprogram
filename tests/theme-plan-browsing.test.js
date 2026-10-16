@@ -148,19 +148,17 @@ test('筛选、选择计划与当前循环状态浅色使用浅绿底和深绿�
   expect(rule(plan, '.theme-light .all-plan-badge')).toContain('background: var(--signal-soft)');
 });
 
-test('浅色真实媒体白底不混色，媒体图托与占位分开且保留深色原混色', () => {
+test('浅深色真实媒体白底不混色，媒体图托与占位分开', () => {
   for (const [file, selector] of [
-    ['pages/library/library.wxss', '.theme-light .library-art-image'],
-    ['pages/plan-day/plan-day.wxss', '.theme-light .exercise-thumb image'],
-    ['components/exercise-detail/exercise-detail.wxss', '.theme-light .detail-media'],
+    ['pages/library/library.wxss', '.library-art-image'],
+    ['pages/plan-day/plan-day.wxss', '.exercise-thumb image'],
+    ['components/exercise-detail/exercise-detail.wxss', '.detail-media'],
   ]) {
     expect(rule(file, selector)).toContain('background: #FFFFFF');
     expect(rule(file, selector)).toContain('mix-blend-mode: normal');
   }
-  expect(rule('pages/library/library.wxss', '.library-art-image')).toContain('mix-blend-mode: multiply');
-  expect(rule('components/exercise-detail/exercise-detail.wxss', '.detail-media')).toContain('mix-blend-mode: multiply');
-  expect(rule('pages/library/library.wxss', '.theme-light .library-art-wrap.has-media')).toContain('background: #FFFFFF');
-  expect(rule('components/exercise-detail/exercise-detail.wxss', '.theme-light .detail-art-wrap.has-media')).toContain('background: #FFFFFF');
+  expect(rule('pages/library/library.wxss', '.library-art-wrap.has-media')).toContain('background: #FFFFFF');
+  expect(rule('components/exercise-detail/exercise-detail.wxss', '.detail-art-wrap.has-media')).toContain('background: #FFFFFF');
   expect(read('pages/library/library.wxml')).toContain("library-art-wrap {{item.thumbSrc ? 'has-media' : ''}}");
   expect(read('components/exercise-detail/exercise-detail.wxml')).toContain("detail-art-wrap {{stageIndex < mediaStages.length ? 'has-media' : ''}}");
 });
