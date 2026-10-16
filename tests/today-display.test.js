@@ -102,9 +102,11 @@ test('已本地完成的残留草稿不能继续，即使清除存储失败也�
   expect(wx.navigateTo).not.toHaveBeenCalled();
 });
 
-test('首页刷新沿用全局 tabBar，不再切换局部浅色样式', () => {
+test('首页显示应用共享深色 tabBar，仍只刷新一次业务', () => {
   page.refresh = jest.fn();
   page.onShow();
   expect(page.refresh).toHaveBeenCalledTimes(1);
-  expect(wx.setTabBarStyle).not.toHaveBeenCalled();
+  expect(wx.setTabBarStyle).toHaveBeenCalledWith(expect.objectContaining({
+    color: '#9aad9f', selectedColor: '#3ee6a0', backgroundColor: '#0b1612', borderStyle: 'black',
+  }));
 });

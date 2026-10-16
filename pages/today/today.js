@@ -10,9 +10,11 @@ const labels = require('../../data/exercise-labels');
 const library = require('../../data/exercises');
 const { resolveMedia } = require('../../data/media-root');
 
+const { themePage } = require('../../utils/theme');
+
 const TRAINING_DRAFT_KEY = 'fitness:trainingDraft';
 
-Page({
+Page(themePage({
   data: {
     dateLine: '',
     plan: null,
@@ -137,6 +139,7 @@ Page({
     }
     const info = this.buildDraftInfo(draft);
     wx.showModal({
+      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429', cancelColor: '#20262B' } : {}),
       title: '开始新训练？',
       content: `未完成：${info.planName} · ${info.dayName}。确认后将替换旧草稿及未提交成绩，按“${plan.name}”开始新训练；旧训练不计完成、不推进游标。`,
       confirmText: '新开训练',
@@ -206,4 +209,4 @@ Page({
   onGoPlan() {
     wx.switchTab({ url: '/pages/plan/plan' });
   },
-});
+}));

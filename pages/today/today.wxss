@@ -20,7 +20,7 @@ page { background: var(--bg); color: var(--ink); }
 .live-dot { font-size: 20rpx; color: var(--signal); margin-right: 10rpx; }
 .draft-progress { font-size: 24rpx; color: var(--signal); white-space: nowrap; }
 .resume-meta { margin: 12rpx 0 20rpx; font-size: 22rpx; color: var(--ink-dim); overflow-wrap: break-word; }
-.page .action-button { width: 100%; min-width: 0; margin: 0; padding: 18rpx 24rpx; line-height: 1.4; min-height: 100rpx; border-radius: 28rpx; background: var(--signal-gradient); box-shadow: var(--signal-glow); color: var(--signal-ink); font-size: 30rpx; font-weight: 650; display: flex; align-items: center; justify-content: center; gap: 18rpx; }
+.page .action-button { width: 100%; min-width: 0; margin: 0; padding: 18rpx 24rpx; line-height: 1.4; min-height: 100rpx; border-radius: 28rpx; background: var(--action-background, var(--signal-gradient)); box-shadow: var(--signal-glow); color: var(--action-ink, var(--signal-ink)); font-size: 30rpx; font-weight: 650; display: flex; align-items: center; justify-content: center; gap: 18rpx; }
 .action-button[disabled], .new-training[disabled] { opacity: .4; }
 .button-arrow { font-size: 36rpx; font-weight: 400; }
 .page .new-training { width: 100%; min-width: 0; min-height: 88rpx; padding: 0; line-height: 1.4; margin: 8rpx 0 -12rpx; color: var(--ink-dim); font-size: 24rpx; display: flex; align-items: center; justify-content: center; }
@@ -66,3 +66,18 @@ page { background: var(--bg); color: var(--ink); }
 .cycle-step.current .cycle-node { border-color: var(--signal-line); color: var(--ink-dim); }
 .cycle-name { position: relative; margin-top: 12rpx; padding: 0 8rpx; font-size: 23rpx; color: var(--ink-dim); overflow-wrap: break-word; }
 .cycle-step.current .cycle-name { color: var(--signal); font-weight: 700; }
+
+/* 只覆盖精修 C 的颜色；几何与深色原值保留。 */
+.theme-light .day-mark { background: var(--surface); }
+.theme-light .day-number { color: var(--ink); text-shadow: none; }
+.theme-light .exercise-thumb { color: var(--ink-dim); }
+.theme-light .exercise-list,
+.theme-light .day-mark,
+.theme-light .equipment-pill,
+.theme-light .exercise-target,
+.theme-light .cycle-node { border-color: var(--line); }
+.theme-light .exercise-target { color: var(--ink); }
+.theme-light .cycle-step.current .cycle-node { background: var(--ink); border-color: var(--ink); color: var(--energy); }
+.theme-light .resume-track { background: var(--ink); }
+/* 灰托只供占位；真实动作媒体保持原白底，不参与混色。 */
+.theme-light .exercise-image { mix-blend-mode: normal; background: #FFFFFF; }

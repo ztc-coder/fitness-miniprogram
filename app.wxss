@@ -1,3 +1,5 @@
+@import "styles/theme.wxss";
+
 /* FORGE 3.0：近黑墨绿底、柔和图托卡片、翡翠渐变行动与发光层次，原生页面共享同一色板。 */
 page {
   /* color */
@@ -105,8 +107,8 @@ button::after {
   width: 100%;
   min-height: 104rpx;
   padding: 18rpx 28rpx;
-  color: var(--signal-ink);
-  background: var(--signal-gradient);
+  color: var(--action-ink, var(--signal-ink));
+  background: var(--action-background, var(--signal-gradient));
   box-shadow: var(--signal-glow);
   border-radius: 28rpx;
   font-size: 30rpx;
