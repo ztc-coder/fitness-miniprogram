@@ -20,13 +20,26 @@ function database() {
         get: () => run('list'),
         add: ({ data }) => run('add', { data }),
         doc: id => ({
-          set: ({ data }) => run('set', { id, data }),
+          set: payload => run('set', { id, ...payload }),
           update: ({ data }) => run('update', { id, data }),
-          remove: () => run('remove', { id }),
+          remove: (payload = {}) => run('remove', { id, ...payload }),
         }),
       };
     }
     return query();
   } };
 }
-module.exports = { database };
+async function generation() {
+  const storage = require('./owner-storage');
+  const saved = storage.getStorageSync('fitness:syncGeneration');
+  if (saved !== undefined && saved !== '') return saved;
+  const token = service.snapshot();
+  if (!service.ready()) throw new Error('仅本地模式');
+  const res = await wx.cloud.callFunction({ name: 'personalData', data: { action: 'state' } });
+  service.assertCurrent(token);
+  if (!res.result || !Number.isSafeInteger(res.result.generation)) throw new Error('无法确认云端代际');
+  if (res.result.generation !== 0) throw new Error('云端数据代际已改变，本地未同步数据保留待处理');
+  storage.setStorageSync('fitness:syncGeneration', 0);
+  return res.result.generation;
+}
+module.exports = { database, generation };

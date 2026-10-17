@@ -7,11 +7,13 @@ const domain = require('./domain');
 const db = require('./db');
 const log = require('./training-log');
 const service = require('./cloud-service');
+const operations = require('./plan-operations');
 
 const QUEUE_KEY = 'fitness:pendingQueue';
 const RETRY_DELAY_MS = 15000;
 
 let flushing = null;
+let flushingToken = null;
 
 function getQueue() {
   const legacy = storage.getStorageSync(QUEUE_KEY) || [];
@@ -37,7 +39,8 @@ function isOnline() {
  */
 function push(session) {
   if (getCompletedSession(session.id)) return flush();
-  const queue = domain.enqueueSession(storage.getStorageSync(QUEUE_KEY) || [], session);
+  const queued = Object.assign({}, session, { syncGeneration: storage.getStorageSync('fitness:syncGeneration') || 0 });
+  const queue = domain.enqueueSession(storage.getStorageSync(QUEUE_KEY) || [], queued);
   saveQueue(queue);
   return flush();
 }
@@ -59,10 +62,12 @@ function complete(session, now = Date.now()) {
     const plan = db.getLocalPlans().find(p => p.id === log.resolvePlanId(session.planId));
     log.write(log.read().concat([{
       session: final,
+      generation: storage.getStorageSync('fitness:syncGeneration') || 0,
       plan: plan ? domain.advanceCursor(plan, true) : null,
       sessionSynced: false,
       planSynced: !plan,
     }]));
+    try { db.getLocalPlans(); } catch (err) { /* completion log repairs staging after restart */ }
     // All subsequent writes are repairable; the log already establishes completion.
     try {
       const draft = storage.getStorageSync('fitness:trainingDraft');
@@ -75,9 +80,12 @@ function complete(session, now = Date.now()) {
 
 function flush() {
   if (!service.ready()) return Promise.resolve(getQueue());
-  if (flushing) return flushing;
+  if (flushing && flushingToken.epoch === service.snapshot().epoch) return flushing;
   const token = service.snapshot();
-  flushing = Promise.resolve().then(isOnline).then(async online => {
+  flushingToken = token;
+  const flight = Promise.resolve().then(() => { service.assertCurrent(token); return isOnline(); }).then(async online => {
+    db.preparePlanTasks();
+    let blocked = false;
     while (true) {
       service.assertCurrent(token);
       if (!service.ready()) break;
@@ -88,7 +96,7 @@ function flush() {
       const entry = log.read().find(e => e.session.id === target.id);
       try {
         if (!entry || !entry.sessionSynced) {
-          await db.submitSession(target);
+          await db.submitSession(target, entry ? (entry.generation || 0) : (target.syncGeneration || 0));
           service.assertCurrent(token);
           if (entry) log.update(target.id, { sessionSynced: true });
           else saveQueue(domain.dequeueSession(storage.getStorageSync(QUEUE_KEY) || [], target.id));
@@ -101,15 +109,25 @@ function flush() {
       } catch (err) {
         service.assertCurrent(token);
         console.warn('session 提交失败,进入重试队列', err);
+        if (entry) log.update(target.id, { attempts: (entry.attempts || 0) + 1, lastAttemptAt: Date.now(), error: err.message });
         if (!entry) {
           try { saveQueue(domain.markAttemptFailed(storage.getStorageSync(QUEUE_KEY) || [], target.id)); } catch (writeError) { /* retry original */ }
         }
+        blocked = true;
         break;
       }
     }
+    service.assertCurrent(token);
+    if (!blocked && online && service.ready()) {
+      try { await db.flushPlanTasks(); } catch (err) { service.assertCurrent(token); }
+    }
+    service.assertCurrent(token);
     return getQueue();
-  }).catch(() => getQueue()).finally(() => { flushing = null; });
-  return flushing;
+  }).catch(err => { service.assertCurrent(token); return getQueue(); }).finally(() => {
+    if (flushing === flight) { flushing = null; flushingToken = null; }
+  });
+  flushing = flight;
+  return flight;
 }
 
 /**
@@ -121,11 +139,12 @@ function watchNetwork() {
   watching = true;
   wx.onNetworkStatusChange((res) => {
     if (res.isConnected) {
-      setTimeout(flush, 500);
+      setTimeout(() => flush().catch(() => {}), 500);
     }
   });
+  setTimeout(() => flush().catch(() => {}), 0);
   // 兜底定时重试,覆盖网络监听漏报场景
-  setInterval(flush, RETRY_DELAY_MS * 4);
+  setInterval(() => flush().catch(() => {}), RETRY_DELAY_MS * 4);
 }
 
 module.exports = {
@@ -135,4 +154,21 @@ module.exports = {
   flush,
   getQueue,
   watchNetwork,
+  getStatus,
 };
+
+function getStatus() {
+  db.getLocalPlans(); // repair durable completion tasks after interrupted local writes
+  const tasks = operations.read().tasks;
+  const plans = tasks.concat(db.getLocalPlans().filter(p => p.revision === undefined && !tasks.some(t => t.id === p.id)));
+  const sessions = getQueue().filter(s => { const e = log.read().find(e => e.session.id === s.id); return !e || !e.sessionSynced; });
+  function status(tasks) {
+    return { pending: tasks.length, state: !service.ready() ? '仅本地' :
+      flushing ? '同步中' : tasks.length ? '待同步 / 失败' : '已同步',
+      details: tasks.map(t => ({ id: t.id, attempts: t.attempts || 0, error: t.error || '', lastAttemptAt: t.lastAttemptAt || 0 })) };
+  }
+  return { plans: status(plans), sessions: status(sessions.map(s => {
+    const entry = log.read().find(e => e.session.id === s.id);
+    return Object.assign({}, s, entry && { attempts: entry.attempts, error: entry.error, lastAttemptAt: entry.lastAttemptAt });
+  })) };
+}

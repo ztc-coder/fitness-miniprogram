@@ -29,6 +29,11 @@ function mockWx({ cloudOk = false, cloudPlans = null, cloudSessions = null } = {
       return Promise.resolve({ _id: 'cloud_generated_id' });
     },
     doc: (docId) => ({
+      set: ({data}) => {
+        if (!cloudAvailable) return rejected();
+        cloudDocs[name] = cloudDocs[name].filter(d => (d.id || d._id) !== docId).concat([{...data,_id:docId}]);
+        return Promise.resolve({acknowledged:true});
+      },
       update: (payload) => {
         calls[`${name}:update`] = (calls[`${name}:update`] || 0) + 1;
         if (!cloudAvailable) return rejected();
@@ -102,14 +107,14 @@ describe('savePlan 本地写穿', () => {
       });
   });
 
-  test('云端成功时用返回的正式 id 替换本地 local_ 记录', async () => {
+  test('云端同步保持本地稳定逻辑 id，不重映射训练引用', async () => {
     const { storage } = mockWx({ cloudOk: true });
     const db = loadDb();
     await require('./helpers/cloud-runtime').enableCloud();
     return db.savePlan(buildLocalPlan()).then((saved) => {
-      expect(saved.id).toBe('cloud_generated_id');
+      expect(saved.id).toBe('local_plan_1');
       expect(storage['fitness:plans']).toHaveLength(1);
-      expect(storage['fitness:plans'][0].id).toBe('cloud_generated_id');
+      expect(storage['fitness:plans'][0].id).toBe('local_plan_1');
     });
   });
 });

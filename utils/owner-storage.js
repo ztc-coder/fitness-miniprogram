@@ -2,10 +2,10 @@
 const service = require('./cloud-service');
 const KEYS = ['fitness:plans', 'fitness:trainingDraft', 'fitness:pendingQueue',
   'fitness:completedTraining', 'fitness:seedVersion', 'fitness:planMigrationVersion',
-  'fitness:planMigrationCloudSynced'];
+  'fitness:planMigrationCloudSynced', 'fitness:planSync', 'fitness:syncGeneration'];
 function envelope(key) {
   const saved = wx.getStorageSync('fitness:owned:' + key);
-  if (saved && saved.version === 1 && Array.isArray(saved.buckets)) return saved;
+  if (saved && saved.version === 1 && Array.isArray(saved.buckets)) return JSON.parse(JSON.stringify(saved));
   const legacy = wx.getStorageSync(key);
   return { version: 1, buckets: legacy === undefined || legacy === '' ? [] : [{ owner: '', value: legacy }] };
 }
@@ -40,7 +40,7 @@ function claimPreview() {
 function claimAnonymous(owner) {
   if (!service.ready() || owner !== service.snapshot().owner) throw new Error('认领身份已改变');
   // 不覆盖此身份已有数据。页面应在首次云读取/上传前询问。
-  for (const key of KEYS.slice(0, 4)) {
+  for (const key of KEYS.filter(key => !key.includes('Version'))) {
     if (readOwner(key, owner) !== undefined && readOwner(key, '') !== undefined) throw new Error('当前身份已有本地数据，不能覆盖认领');
   }
   for (const key of KEYS) {

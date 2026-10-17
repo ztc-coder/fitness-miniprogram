@@ -17,6 +17,7 @@ async function enableCloud() {
   wx.cloud = wx.cloud || {};
   wx.cloud.init = () => {};
   wx.cloud.callFunction = async ({ name, data }) => {
+    if (data && data.action === 'state') return { result: { generation: 0 } };
     if (name === 'login') return { result: { openid: 'fixture-user' } };
     let collection = wx.cloud.database().collection(data.collection);
     if (data.action === 'list') {

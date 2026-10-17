@@ -14,6 +14,8 @@ const SETTINGS_KEY = 'fitness:settings';
 Page(themePage({
   data: {
     pendingCount: 0,
+    syncStatus: { plans: { state: '仅本地', pending: 0, details: [] }, sessions: { state: '仅本地', pending: 0, details: [] } },
+    readStatus: { plans: '未读取', sessions: '未读取' },
     offlineMode: true,
     cloudFailed: false,
     unit: 'kg',
@@ -28,7 +30,9 @@ Page(themePage({
     const settings = wx.getStorageSync(SETTINGS_KEY) || {};
     const state = service.snapshot();
     this.setData({
-      pendingCount: queue.getQueue().length,
+      pendingCount: queue.getStatus().plans.pending + queue.getStatus().sessions.pending,
+      syncStatus: queue.getStatus(),
+      readStatus: db.getReadStatus(),
       offlineMode: !state.consent,
       cloudFailed: state.status === 'failed',
       unit: settings.unit || 'kg',
@@ -48,6 +52,7 @@ Page(themePage({
       const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
       const hours = stats.monthDurationSec / 3600;
       this.setData({
+        readStatus: db.getReadStatus(),
         monthSessions: stats.monthSessions,
         monthHours: hours < 10 ? hours.toFixed(1) : hours.toFixed(0),
         // 展示环：本月场次 / 当月总天数，上限 100%；不是训练目标或出勤率。
@@ -97,12 +102,18 @@ Page(themePage({
       wx.showToast({ title: '仅本地保存；请先启用或重试本人云服务', icon: 'none' });
       return;
     }
-    queue.flush().then((list) => {
-      this.setData({ pendingCount: list.length });
-      wx.showToast({
-        title: list.length === 0 ? '训练队列已同步（不代表全部计划）' : `剩余 ${list.length} 条待重试`,
-        icon: 'none',
-      });
+    const token = service.snapshot();
+    const pending = queue.flush();
+    this.setData({ syncStatus: queue.getStatus() });
+    return pending.then(() => {
+      service.assertCurrent(token);
+      const status = queue.getStatus();
+      const count = status.plans.pending + status.sessions.pending;
+      this.setData({ pendingCount: count, syncStatus: status, readStatus: db.getReadStatus() });
+      wx.showToast({ title: count ? `仍有 ${count} 项待处理，请查看失败详情` : '计划与训练同步任务已确认', icon: 'none' });
+    }).catch(() => {
+      this.setData({ syncStatus: queue.getStatus() });
+      wx.showToast({ title: '同步未确认，请检查云服务状态后重试', icon: 'none' });
     });
   },
 
@@ -129,7 +140,8 @@ Page(themePage({
         if (!res.confirm) return;
         try {
           local.claimAnonymous(preview.owner);
-          wx.showToast({ title: '已确认归属；训练可手动同步，计划可靠重试待交付', icon: 'none' });
+          wx.showToast({ title: '已确认归属；计划与训练可手动重试同步', icon: 'none' });
+          queue.flush().catch(() => {});
           this.onShow();
         } catch (err) { wx.showToast({ title: err.message, icon: 'none' }); }
       },
