@@ -20,17 +20,29 @@ exports.main = async (event = {}) => {
   if (typeof owner !== 'string' || !owner.trim()) throw new Error('缺少可信微信身份');
   const db = cloud.database({ throwOnNotFound: false });
   const metadataId = boundary.metadataId(owner);
-  if (event.action === 'state') {
+  const readState = async () => {
     const res = await db.collection(boundary.COLLECTION).doc(metadataId).get();
-    return { generation: res.data ? res.data.generation : 0 };
-  }
+    const meta = res.data;
+    return { generation: meta ? meta.generation : 0, deleting: !!(meta && meta.deletion && meta.deletion.status === 'deleting'),
+      ...(meta && meta.deletion ? { deletion: meta.deletion } : {}) };
+  };
+  if (event.action === 'state') return readState();
+  if (event.action === 'deleteAll') return require('./deletion').deleteAll(db, owner, event);
   if (!['plans', 'sessions'].includes(event.collection)) throw new Error('不支持的集合');
   if (event.action === 'list') {
     const skip = Number.isSafeInteger(event.skip) && event.skip >= 0 ? event.skip : 0;
     const limit = Number.isSafeInteger(event.limit) && event.limit > 0 ? Math.min(100, event.limit) : 20;
-    return db.collection(event.collection).where({ _openid: owner })
+    const before = await readState();
+    const check = state => {
+      if (state.deleting) throw new Error('个人数据正在删除，不能读取部分列表');
+      if ((event.generation === undefined ? 0 : event.generation) !== state.generation) throw new Error('数据代际已过期');
+    };
+    check(before);
+    const result = await db.collection(event.collection).where({ _openid: owner })
       .orderBy(event.collection === 'plans' ? 'createdAt' : 'submittedAt', event.collection === 'plans' ? 'asc' : 'desc')
       .orderBy('_id', 'asc').skip(skip).limit(limit).get();
+    check(await readState());
+    return result;
   }
   if (!['set', 'remove'].includes(event.action)) throw new Error('所有写入必须使用版本化 set/remove');
   if (typeof event.id !== 'string' || !event.id || event.id.length > 256 || event.id.includes('/')) throw new Error('无效文档 ID');

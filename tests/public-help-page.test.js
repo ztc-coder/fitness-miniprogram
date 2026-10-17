@@ -25,7 +25,17 @@ test('打开说明页显示真实缺失状态、无联系方式时不复制；�
   expect(page.data.theme).toBe('light');
   expect(page.data.releaseBlocked).toBe(true);
   expect(page.data.operatorName).toContain('未提供');
-  expect(page.data.missingInfo.join(' ')).toContain('antiResurrection');
+  expect(page.data.missingInfo.join(' ')).not.toContain('antiResurrection');
+  ['operatorName', 'privacyContact', 'supportContact', 'verified'].forEach(key =>
+    expect(page.data.missingInfo.join(' ')).toContain(key));
+  expect(page.data.metadataScope).toContain('personalDataMeta');
+  expect(page.data.metadataScope).toContain('当前或最近一次删除操作标识');
+  expect(page.data.metadataRetention).toContain('服务存续期间持续保留');
+  const info = require('../config/public-info');
+  expect(info.operatorName).toBe('');
+  expect(info.privacyContact.value).toBe('');
+  expect(info.supportContact.value).toBe('');
+  expect(info.verified).toBe(false);
   page.onCopyContact({ currentTarget: { dataset: { contact: 'supportContact' } } });
   expect(wx.setClipboardData).not.toHaveBeenCalled();
   expect(wx.showToast).toHaveBeenCalledWith(expect.objectContaining({ title: '公开联系方式尚未提供' }));

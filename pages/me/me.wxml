@@ -83,6 +83,14 @@
   <view class="queue-note">{{networkStatus}}</view>
   <button bindtap="onClaimLocalData">认领匿名本地数据（启用云服务后）</button>
 
+  <view class="section-kicker">数据管理</view>
+  <view class="queue-note">撤回不删除云端；清本机可离线；全部删除需联网确认。已在途请求不能取消。</view>
+  <button bindtap="onWithdrawConsent">撤回云服务同意</button>
+  <button bindtap="onClearLocal">清除本机全部训练数据</button>
+  <button bindtap="onDeleteAll" disabled="{{deleting}}">{{deleting ? '删除处理中…' : '删除本人全部个人数据 / 重试'}}</button>
+  <button bindtap="onReconcile">确认删除屏障后重新使用</button>
+  <view class="queue-note" aria-live="polite">{{dataResult}}</view>
+
   <view class="section-kicker">关于</view>
   <view class="setting-list about-list">
     <view class="setting-row" bindtap="onOpenHelp" data-section="privacy" role="button" aria-label="隐私说明与公开支持">

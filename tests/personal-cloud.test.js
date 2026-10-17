@@ -84,7 +84,7 @@ test('真实数据 API 经可信入口完成本地计划：实际云 ID 回填�
 });
 test('版本写入响应丢失可重试，墓碑拒绝旧写入，代际过期不写入', async () => {
   const { main } = require('../cloudfunctions/personalData');
-  expect(await main({ action: 'state' })).toEqual({ generation: 0 });
+  expect(await main({ action: 'state' })).toEqual({ generation: 0, deleting: false });
   const request = { collection:'plans', action:'set', id:'p', expectedRevision:0, generation:0, operationId:'edit1', data:{id:'p',name:'第一版'} };
   await main(request); await main(request);
   expect((await main({collection:'plans',action:'list'})).data).toHaveLength(1);
@@ -277,5 +277,5 @@ test('旧版场次内容相同仍须先校验删除代际', async () => {
   const metadataId=require('crypto').createHash('sha256').update('A').digest('hex');
   mockDocs.personalDataMeta.set(metadataId,{generation:1,serial:1});
   await expect(main({collection:'sessions',action:'set',id:session.id,generation:0,expectedRevision:0,operationId:'session_'+session.id,data:session})).rejects.toThrow('代际');
-  expect((await main({collection:'sessions',action:'list'})).data).toEqual([original]);
+  expect((await main({collection:'sessions',action:'list',generation:1})).data).toEqual([original]);
 });

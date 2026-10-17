@@ -7,7 +7,8 @@ test('未提供真实公开资料时检查以失败退出并逐项指出发布�
   expect(result.stderr).toContain('operatorName');
   expect(result.stderr).toContain('privacyContact');
   expect(result.stderr).toContain('supportContact');
-  expect(result.stderr).toContain('antiResurrection');
+  expect(result.stderr).not.toContain('antiResurrection');
+  expect(result.stderr).toContain('verified');
   expect(result.stderr).toContain('发布阻断');
 });
 

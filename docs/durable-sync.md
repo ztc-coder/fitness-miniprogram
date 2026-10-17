@@ -2,7 +2,7 @@
 
 ## 范围与证据
 
-仅实现 ticket02；没有部署、真机、独立云环境或双微信身份验证。以上真实验证全部 **Blocked**，不代表发布完成。01 的同意门控、所有者区、训练成绩/容量/主题契约继续保留。没有逐组网络请求，没有冲突副本、备份或03的清除/撤回/全量删除 UI。
+此文件记录 ticket02；没有部署、真机、独立云环境或双微信身份验证。以上真实验证全部 **Blocked**，不代表发布完成。01 的同意门控、所有者区、训练成绩/容量/主题契约继续保留。没有逐组网络请求、冲突副本或备份。03 后续增加清除/撤回/全量删除 UI，现行删除协议见 `docs/data-deletion.md`。
 
 ## 本地提交点与公开接口
 
@@ -20,7 +20,7 @@
 
 | action | 参数/返回 |
 |---|---|
-| `state` | 返回 `{generation}`，仅当前可信 owner；无元数据时初始0 |
+| `state` | 返回 `{generation,deleting,deletion?:{id,status}}`，仅当前可信 owner；无元数据时初始0 |
 | `list` | `collection,skip,limit`；可信 owner 过滤、业务时间+`_id`稳定排序；计划包含最小墓碑，客户端过滤但分页仍计数 |
 | `set/remove` | `collection,id,data,operationId,expectedRevision,generation`；返回 `{_id,revision,acknowledged:true}` |
 
@@ -66,3 +66,10 @@
 - Red1 `/tmp/ticket02-p1-red1.log`：两个读取入口均回退 revision1（2失败/8通过）；Green1 `/tmp/ticket02-p1-green1.log`：10通过。迁移夹具显式提供有效 cursor0，避免未初始化游标触发正常迁移写入。
 - Red2 `/tmp/ticket02-p1-red2.log`：两种旧场次均阻塞队列（2失败/10通过）；Green2 `/tmp/ticket02-p1-green2.log`：12通过。追加8项拒绝回归后聚焦3套42通过，全量40套540通过、29既有跳过未变。命令与集成版本见02 tracker。
 - 以上不是云端或真机验证。未提供环境/设备，真实权限、事务及网络场景仍 **Blocked**；未修改 SDK 事务读取选项，未实现03，未安装依赖、生产构建、push或部署。
+
+## 03 已承接的删除协议
+
+- 全部写入继续使用同一 `withOwnerGate`（普通写经 `withOwnerWrite`）；删除开始推进代际、逐文档物理删除和 finalize 均争用同一 owner metadata 锁。`deleteAll(operationId,generation)` 最多每次清100条、可持久重试；迟到 worker 重新检查 active job，不能删掉删除后新建的数据。
+- list 在查询前后检查 generation/deleting，删除期间不返回部分列表。客户端在读取/上传前及返回后核对 state；发现屏障清当前 owner 过期数据并阻断普通访问，直到显式协调。已有任务的 generation 不改绑。其他离线设备不能即时远程擦除。
+- `syncBarrier/deletionOperation` 纳入私人键；清本机覆盖全部身份及匿名区，全量删除云确认后仅清当前 owner；均保留偏好并撤回同意。响应丢失及本机清理失败保留原删除操作 ID，不报假成功。操作状态、元数据字段/保留策略、TDD 与限制见 `docs/data-deletion.md`。
+- `personalDataMeta` 服务存续期间保留最小 owner 关联、generation、serial 和当前/最近删除 job；不保留训练内容，不承诺固定天数。普通计划墓碑直到全量删除时一并物理清理。真实 SDK、权限和设备验收仍 Blocked。

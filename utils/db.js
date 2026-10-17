@@ -93,7 +93,9 @@ function fetchCloudPlans() {
  * 读取当前用户全部计划;云失败降级到本地缓存。
  */
 function fetchPlans() {
+  const token = service.snapshot();
   return fetchCloudPlans().catch((err) => {
+    service.assertCurrent(token);
     markRead('plans', service.ready() ? '读取未完整，请重试' : '仅本地');
     console.warn('云端计划读取失败,使用本地缓存', err);
     return readLocalPlans().map(normalizePlan);
