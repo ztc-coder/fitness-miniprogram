@@ -28,3 +28,13 @@
 - `npm run check:package`：1,195,154 bytes、86文件，低于2MiB；源码预算不是微信最终编译包体，`/tmp/ticket02-package.log`。
 - 变更 JS `node --check`、`git diff --check` 通过。依赖未安装；personalData 固定 wx-server-sdk 2.6.3，基于官方文档和精确npm源码研究，尚无云端运行证据。
 - 03必须通过 `cloudfunctions/personalData/write-boundary.js` 同一元数据事务推进 generation；增加 `personalDataMeta` 也必须 deny-all 客户端。不得将旧队列改绑新代际。全量删除/清本机/撤回UI不属于02。
+
+## P1 复审修复证据
+
+- 专用隔离 worktree 分支 `fix/ticket02-p1-durable-sync`，起点 `57462fd57b8c15abab6cf87d17497f5cb1a1f6e5`；`git merge-base --is-ancestor` 确认基线，完成前 `git merge feat/public-release` 快进到当前集成 `3b9f1504f1362ff6847e1a9146e1cb7ed9c96725`（仅增加集成证据文档）。
+- 修复延迟旧云计划列表覆盖已确认新 revision/content；普通读取及目录迁移入口均回归。保持未知云端冲突拒绝，不自动重绑 expectedRevision。
+- 修复升级后无 revision/operationId 旧场次成功但未本地确认的队首阻塞：可信所有者、未删除、代际与版本正确、完整快照一致才只读确认；原全局 ID/01 owned 命名空间均覆盖。后续计划/场次继续同步且游标不变；内容差异、未知字段、外人、墓碑与过期代际均拒绝且原文档不变。实现/Red→Green细节见 `docs/durable-sync.md` 新增 P1 节。
+- 聚焦：`PATH=/Users/ztc/fitness-miniprogram/node_modules/.bin:$PATH jest tests/durable-sync.test.js tests/personal-cloud.test.js tests/training-submission.test.js --runInBand --coverage=false --silent`，3套42项通过，`/tmp/ticket02-p1-focused.log`。
+- 全量：`PATH=/Users/ztc/fitness-miniprogram/node_modules/.bin:$PATH npm test -- --runInBand --silent`，40套540项通过，29项既有跳过不变（原528项全部保留，新增12项），`/tmp/ticket02-p1-full.log`。
+- `npm run check:package`：1,195,554 bytes、86文件，低于2MiB，`/tmp/ticket02-p1-package.log`；非最终微信编译包体。三个变更 JS 的 `node --check` 和 `git diff --check` 通过。
+- 仅公开数据 API / 云函数 main 与现有 Page 回归；只 mock wx/云/时间/存储边界。真实环境、双身份、设备及云事务仍 Blocked；未提供环境/设备，未部署、push或生产构建，未实现03。

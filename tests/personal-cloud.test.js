@@ -189,3 +189,93 @@ test('事务读取错误（泛码-1）直接失败，不能当作文档不存在
   mockReadError=null;
   expect((await main({collection:'plans',action:'list'})).data).toEqual([]);
 });
+test.each(['fetchPlans', 'migratePlansForCatalog'])('延迟旧云读不能回退已确认版本，%s 后的下一次编辑仍可同步', async read => {
+  jest.resetModules(); const storage = new Map();
+  let deferRead = false, release, captured;
+  const capturedRead = new Promise(resolve => { captured = resolve; });
+  global.wx = {
+    getStorageSync:k=>storage.get(k), setStorageSync:(k,v)=>storage.set(k,JSON.parse(JSON.stringify(v))), removeStorageSync:k=>storage.delete(k),
+    getNetworkType:o=>o.success({networkType:'wifi'}), cloud:{init(){},callFunction:async ({name,data})=>{
+      const result = await require(`../cloudfunctions/${name}`).main(data);
+      if (deferRead && data.collection === 'plans' && data.action === 'list') {
+        deferRead = false; captured();
+        await new Promise(resolve => { release = resolve; });
+      }
+      return {result};
+    }},
+  };
+  try {
+    await require('../utils/cloud-service').enable();
+    const db=require('../utils/db'), queue=require('../utils/queue');
+    await db.savePlan({id:'delayed',name:'第一版',cursor:0,cycleDays:[]}); await queue.flush();
+    deferRead = true;
+    const oldRead = db[read](); await capturedRead;
+    await db.savePlan({...db.getLocalPlans()[0],name:'已确认第二版'}); await queue.flush();
+    expect(queue.getStatus().plans.pending).toBe(0);
+    release();
+    expect((await oldRead)[0]).toMatchObject({revision:2,name:'已确认第二版'});
+    expect(db.getLocalPlans()[0]).toMatchObject({revision:2,name:'已确认第二版'});
+    await db.savePlan({...db.getLocalPlans()[0],name:'第三版'}); await queue.flush();
+    expect(queue.getStatus().plans.pending).toBe(0);
+    expect((await db.fetchPlans())[0]).toMatchObject({revision:3,name:'第三版'});
+  } finally { delete global.wx; }
+});
+test.each(['global', 'owned'])('升级重试确认 %s 旧版同一训练快照，不重复场次且继续同步后续队列', async namespace => {
+  jest.resetModules(); const storage = new Map();
+  global.wx = {
+    getStorageSync:k=>storage.get(k), setStorageSync:(k,v)=>storage.set(k,JSON.parse(JSON.stringify(v))), removeStorageSync:k=>storage.delete(k),
+    getNetworkType:o=>o.success({networkType:'wifi'}), cloud:{init(){},callFunction:async ({name,data})=>({result:await require(`../cloudfunctions/${name}`).main(data)})},
+  };
+  try {
+    await require('../utils/cloud-service').enable();
+    const db=require('../utils/db'), queue=require('../utils/queue'), {main}=require('../cloudfunctions/personalData');
+    const session={id:'legacy_session',planId:'legacy_plan',planName:'旧计划',dayId:'a',dayName:'推',dayIndex:0,startedAt:100,submittedAt:500,
+      exercises:[{exerciseId:'0025',equipment:'barbell',sets:[{weight:20,reps:10}]}]};
+    const id=namespace==='global' ? session.id : 'owned_'+require('crypto').createHash('sha256').update('A\0'+session.id).digest('hex');
+    // External database fixture: pre-upgrade doc.set succeeded, but the device never received its acknowledgement.
+    mockDocs.sessions.set(id,{...session,_id:id,_openid:'A'});
+    require('../utils/owner-storage').setStorageSync('fitness:plans',[{id:'legacy_plan',name:'旧计划',cursor:1,revision:0,cycleDays:[]}]);
+    require('../utils/owner-storage').setStorageSync('fitness:pendingQueue',[
+      {...session,attempts:2,training:{phase:'finished'},nextSetId:7,_id:id,_openid:'A'},
+      {...session,id:'following_session',submittedAt:600},
+    ]);
+    await db.savePlan({...db.getLocalPlans()[0],name:'后续编辑'}); await queue.flush();
+    expect(queue.getQueue()).toEqual([]);
+    expect(queue.getStatus().sessions.pending).toBe(0);
+    expect(queue.getStatus().plans.pending).toBe(0);
+    expect(db.getLocalPlans()[0]).toMatchObject({cursor:1,name:'后续编辑'});
+    expect((await db.fetchAllSessions()).map(s=>s.id)).toEqual(['following_session','legacy_session']);
+    const legacy=(await main({collection:'sessions',action:'list'})).data.find(s=>s.id===session.id);
+    expect(legacy).toEqual({...session,_id:id,_openid:'A'});
+    await queue.flush();
+    expect(await db.fetchAllSessions()).toHaveLength(2);
+    expect(db.getLocalPlans()[0].cursor).toBe(1);
+  } finally { delete global.wx; }
+});
+test.each([
+  ['实际成绩不同', {exercises:[{sets:[{weight:21,reps:10}]}]}, {}, '不可变'],
+  ['缺少业务字段', {planName:undefined}, {}, '不可变'],
+  ['未知旧字段不能忽略', {}, {legacyExtra:'不得丢弃'}, '不可变'],
+  ['未知上传字段不能忽略', {extra:'不得丢弃'}, {}, '不可变'],
+  ['其他所有者', {}, {_openid:'B'}, '无权'],
+  ['删除墓碑', {}, {deleted:true}, '已删除'],
+  ['已有版本但缺少操作标识', {}, {revision:0}, '不可变'],
+])('旧版场次重试拒绝%s，不改写或复制记录', async (label, incoming, existing, error) => {
+  const {main}=require('../cloudfunctions/personalData');
+  const session={id:'legacy_reject',planId:'p',planName:'旧计划',submittedAt:500,exercises:[{sets:[{weight:20,reps:10}]}]};
+  const original={...session,_id:session.id,_openid:'A',...existing};
+  mockDocs.sessions.set(session.id,original);
+  await expect(main({collection:'sessions',action:'set',id:session.id,generation:0,expectedRevision:0,operationId:'session_'+session.id,data:{...session,...incoming}})).rejects.toThrow(error);
+  mockIdentity=original._openid;
+  expect((await main({collection:'sessions',action:'list'})).data).toEqual([original]);
+});
+test('旧版场次内容相同仍须先校验删除代际', async () => {
+  const {main}=require('../cloudfunctions/personalData');
+  const session={id:'old_generation',submittedAt:500,exercises:[]};
+  const original={...session,_id:session.id,_openid:'A'};
+  mockDocs.sessions.set(session.id,original);
+  const metadataId=require('crypto').createHash('sha256').update('A').digest('hex');
+  mockDocs.personalDataMeta.set(metadataId,{generation:1,serial:1});
+  await expect(main({collection:'sessions',action:'set',id:session.id,generation:0,expectedRevision:0,operationId:'session_'+session.id,data:session})).rejects.toThrow('代际');
+  expect((await main({collection:'sessions',action:'list'})).data).toEqual([original]);
+});

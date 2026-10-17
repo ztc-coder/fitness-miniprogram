@@ -1,8 +1,16 @@
 const cloud = require('wx-server-sdk');
 const { createHash } = require('crypto');
+const { isDeepStrictEqual } = require('util');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV, throwOnNotFound: false });
 const hash = value => createHash('sha256').update(value).digest('hex');
 const boundary = require('./write-boundary');
+
+// Compare the entire legacy immutable snapshot, not a whitelist that could hide differing content.
+function sessionSnapshot(data) {
+  const snapshot = Object.assign({}, data);
+  ['_id', '_openid', 'training', 'nextSetId', 'attempts', 'syncGeneration'].forEach(key => delete snapshot[key]);
+  return snapshot;
+}
 
 /** All personal writes lock the same owner metadata document inside the transaction.
  * Ticket03 must advance generation through this same boundary, never a parallel writer.
@@ -40,6 +48,14 @@ exports.main = async (event = {}) => {
     }
     const revision = current ? (current.revision || 0) : 0;
     if (!Number.isSafeInteger(event.expectedRevision) || event.expectedRevision !== revision || (current && current.deleted)) throw new Error('版本已过期或计划已删除；本地修改保留待处理');
+    if (event.collection === 'sessions' && current && event.action === 'set' &&
+        !Object.prototype.hasOwnProperty.call(current, 'revision') &&
+        !Object.prototype.hasOwnProperty.call(current, 'operationId') &&
+        isDeepStrictEqual(sessionSnapshot(current), sessionSnapshot(event.data))) {
+      // Pre-versioned doc.set may have succeeded without a local acknowledgement.
+      // Confirm only an identical owned snapshot; do not rewrite history or bypass generation/revision checks.
+      return { _id: id, revision, acknowledged: true };
+    }
     if (event.collection === 'sessions' && (current || event.action === 'remove')) throw new Error('训练记录不可变');
     const fields = event.collection === 'plans'
       ? ['name', 'cursor', 'active', 'cycleDays', 'createdAt', 'updatedAt']
