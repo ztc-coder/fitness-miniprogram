@@ -84,6 +84,8 @@ function flush() {
   const token = service.snapshot();
   flushingToken = token;
   const flight = Promise.resolve().then(() => { service.assertCurrent(token); return isOnline(); }).then(async online => {
+    if (online) await require('./personal-cloud').generation();
+    service.assertCurrent(token);
     db.preparePlanTasks();
     let blocked = false;
     while (true) {

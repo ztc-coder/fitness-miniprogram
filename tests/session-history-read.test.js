@@ -65,8 +65,7 @@ test('汇总页面使用完整云端历史，月度环封顶但不截断真实�
     const page = { ...definition, data: { ...definition.data },
       setData(patch, callback) { Object.assign(this.data, patch); if (callback) callback(); } };
     if (name === 'records') {
-      page.refresh();
-      for (let i = 0; i < 20; i++) await Promise.resolve();
+      await page.refresh();
       expect(page.data.stats.totalWeightedVolume).toBe(12200);
       expect(page.data.totalVolumeValue).toBe('12.2');
     } else {

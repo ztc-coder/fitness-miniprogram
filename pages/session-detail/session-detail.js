@@ -17,7 +17,8 @@ Page(ownerPage(themePage({
   },
 
   onLoad(options) {
-    db.fetchSessions(50).then((sessions) => {
+    return db.fetchSessions(50).then((sessions) => {
+      if (!this.isCurrentOwner()) return;
       const s = sessions.find((item) => (item.id || item._id) === options.id);
       if (!s) {
         wx.showToast({ title: '记录不存在', icon: 'none' });
@@ -48,6 +49,6 @@ Page(ownerPage(themePage({
           };
         }),
       });
-    });
+    }).catch(() => {}); // an invalidated history read cannot restore a deleted view
   },
 })));

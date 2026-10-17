@@ -16,13 +16,33 @@ function snapshot() { return { owner, epoch, status, consent: consented() }; }
 function assertCurrent(token) {
   if (token.epoch !== epoch || token.owner !== owner) throw new Error('身份或云服务状态已改变，请重新打开页面');
 }
-function disable() {
-  wx.setStorageSync(KEY, false);
-  consent = false;
+function invalidate() {
   epoch += 1;
-  status = 'local';
   changed();
+}
+function disable() {
+  consent = false;
+  status = 'local';
   starting = null;
+  invalidate();
+  wx.setStorageSync(KEY, false);
+}
+function initialize() {
+  if (!wx.cloud) throw new Error('当前微信版本不支持云服务');
+  if (!initialized) { wx.cloud.init({ env: ENV_ID, traceUser: false }); initialized = true; }
+}
+/** Purpose-specific authorization: never sets product consent or starts queue/media service. */
+async function authorizeDeletion() {
+  disable();
+  const version = epoch;
+  initialize();
+  const res = await wx.cloud.callFunction({ name: 'login' });
+  if (version !== epoch || consent) throw new Error('删除授权已失效，请重新确认');
+  const id = res.result && res.result.openid;
+  if (typeof id !== 'string' || !id.trim()) throw new Error('未取得可信微信身份');
+  owner = id;
+  changed();
+  return snapshot();
 }
 async function enable() {
   wx.setStorageSync(KEY, true);
@@ -34,8 +54,7 @@ async function enable() {
   changed();
   starting = (async () => {
     try {
-      if (!wx.cloud) throw new Error('当前微信版本不支持云服务');
-      if (!initialized) { wx.cloud.init({ env: ENV_ID, traceUser: false }); initialized = true; }
+      initialize();
       const res = await wx.cloud.callFunction({ name: 'login' });
       if (version !== epoch || !consented()) throw new Error('云服务已停用');
       const id = res.result && res.result.openid;
@@ -56,4 +75,4 @@ function restore() {
   try { consent = wx.getStorageSync(KEY) === true; } catch (err) { consent = false; }
   return consented() ? enable() : Promise.resolve(snapshot());
 }
-module.exports = { subscribe, ready, snapshot, assertCurrent, enable, disable, restore };
+module.exports = { subscribe, ready, snapshot, assertCurrent, enable, disable, restore, invalidate, authorizeDeletion };

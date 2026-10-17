@@ -38,13 +38,14 @@ Page(ownerPage(themePage({
   },
 
   onShow() {
-    this.refresh();
+    return this.refresh();
   },
 
   refresh() {
     // 待提交队列在本地，先同步读取，避免云查询期间误显示「已全部云同步」。
     this.setData({ pendingCount: queue.getQueue().length });
-    db.fetchAllSessions().then((sessions) => {
+    return db.fetchAllSessions().then((sessions) => {
+      if (!this.isCurrentOwner()) return;
       this.allSessions = sessions;
       const stats = domain.computeRecordStats(this.allSessions, Date.now());
       const rows = sessions.map((s) => this.toSessionRow(s));
@@ -57,7 +58,7 @@ Page(ownerPage(themePage({
         sessions: rows,
       });
       this.buildTrend();
-    });
+    }).catch(() => {}); // owner epoch invalidation rejects stale reads instead of rendering deleted history
   },
 
   toSessionRow(s) {

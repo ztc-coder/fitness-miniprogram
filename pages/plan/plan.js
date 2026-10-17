@@ -18,16 +18,17 @@ Page(ownerPage(themePage({
   },
 
   onShow() {
-    this.refresh();
+    return this.refresh();
   },
 
   refresh() {
-    db.ensureSeedPlans().then((plans) => {
+    return db.ensureSeedPlans().then((plans) => {
+      if (!this.isCurrentOwner()) return;
       const activePlan = plans.find((p) => p.active) || plans[0] || null;
       this.setData(
         Object.assign({ plans, activePlan }, this.buildCycleView(activePlan))
       );
-    });
+    }).catch(() => {}); // revoked/expired owner reads must not render or escape as unhandled callbacks
   },
 
   buildCycleView(plan) {

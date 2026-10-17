@@ -33,11 +33,12 @@ Page(ownerPage(themePage({
   },
 
   onShow() {
-    this.refresh();
+    return this.refresh();
   },
 
   refresh() {
-    db.ensureSeedPlans().then((plans) => {
+    return db.ensureSeedPlans().then((plans) => {
+      if (!this.isCurrentOwner()) return;
       const plan = plans.find((p) => p.active) || plans[0] || null;
       const draft = this.readDraft();
       const view = this.buildView(plan);
@@ -50,7 +51,7 @@ Page(ownerPage(themePage({
           draftInfo: this.buildDraftInfo(draft),
         })
       );
-    });
+    }).catch(() => {}); // revoked/expired owner reads must not render or escape as unhandled callbacks
   },
 
   readDraft() {

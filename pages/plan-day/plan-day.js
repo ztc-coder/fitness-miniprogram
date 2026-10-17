@@ -23,11 +23,12 @@ Page(ownerPage(themePage({
   },
 
   onShow() {
-    this.refresh();
+    return this.refresh();
   },
 
   refresh() {
-    db.fetchPlans().then((plans) => {
+    return db.fetchPlans().then((plans) => {
+      if (!this.isCurrentOwner()) return;
       const plan = plans.find((p) => p.id === this.data.planId);
       if (!plan) {
         wx.showToast({ title: '计划不存在', icon: 'none' });
@@ -57,7 +58,7 @@ Page(ownerPage(themePage({
           };
         }),
       });
-    });
+    }).catch(() => {}); // revoked/expired owner reads must not render or escape as unhandled callbacks
   },
 
   onImageError(e) {

@@ -3,6 +3,9 @@ module.exports = {
   operatorName: '',
   privacyContact: { label: '', value: '' },
   supportContact: { label: '', value: '' },
-  antiResurrection: { scope: '', retention: '' },
+  antiResurrection: {
+    scope: '云端 personalDataMeta 仅保存本人身份关联（openid 及其 SHA-256 文档索引）、删除代际 generation、事务串行计数 serial、当前或最近一次删除操作标识与 deleting/completed 状态；不保存计划、训练成绩或草稿。个人业务集合在全量删除时物理清理。本机另存尚未确认完成的删除操作标识、请求代际和确认状态，用于响应丢失或本机清理失败后的重试；本机还保存当前同步代际及屏障（代际、是否删除中），阻止旧任务改绑。',
+    retention: '云端最小屏障在服务存续期间持续保留，用于拒绝旧设备、旧代际和延迟写入；不承诺固定天数，不承诺所有技术痕迹均已擦除。本机尚未确认完成的删除状态保留到云端确认且本机清理完成，或用户明确清除本机全部训练数据；本机同步代际保留至下次代际更新或清理，屏障保留至明确协调、成功删除清理或清本机。离线其他设备不能即时远程物理擦除，下次联网识别屏障后才清理旧数据。',
+  },
   verified: false,
 };

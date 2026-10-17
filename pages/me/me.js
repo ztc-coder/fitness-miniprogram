@@ -6,6 +6,24 @@ const db = require('../../utils/db');
 const domain = require('../../utils/domain');
 const service = require('../../utils/cloud-service');
 const local = require('../../utils/owner-storage');
+const management = require('../../utils/data-management');
+function isCurrent(token) {
+  try { service.assertCurrent(token); return true; } catch (err) { return false; }
+}
+function confirmTwice(page, title, content, action) {
+  const token = service.snapshot(), version = local.version();
+  const current = () => {
+    if (isCurrent(token) && version === local.version()) return true;
+    page.setData({ dataResult: '身份或本机数据已变化，请重新查看范围并确认' });
+    return false;
+  };
+  wx.showModal({ title, content, confirmText: '继续', success: res => {
+    if (!res.confirm || !current()) return;
+    wx.showModal({ title: '再次确认不可恢复的操作', content, confirmText: '确认执行', success: result => {
+      if (result.confirm && current()) return action();
+    } });
+  } });
+}
 
 const { themePage, setTheme, applyTheme } = require('../../utils/theme');
 
@@ -24,9 +42,13 @@ Page(themePage({
     monthSessions: 0,
     monthHours: '0.0',
     monthProgress: 0,
+    dataResult: '',
+    deleting: false,
   },
 
   onShow() {
+    if (!this._meUnsubscribe) this._meUnsubscribe = service.subscribe(() => this.resetPrivateView());
+    const token = service.snapshot();
     const settings = wx.getStorageSync(SETTINGS_KEY) || {};
     const state = service.snapshot();
     this.setData({
@@ -39,13 +61,14 @@ Page(themePage({
       openid: service.ready() ? state.owner : '',
     });
     wx.getNetworkType({
-      success: (res) =>
-        this.setData({
-          networkStatus: res.networkType === 'none' ? '当前无网络，提交将排队重试' : `当前网络：${res.networkType}`,
-        }),
-      fail: () => this.setData({ networkStatus: '网络状态未知' }),
+      success: (res) => {
+        if (!isCurrent(token)) return;
+        this.setData({ networkStatus: res.networkType === 'none' ? '当前无网络，提交将排队重试' : `当前网络：${res.networkType}` });
+      },
+      fail: () => { if (isCurrent(token)) this.setData({ networkStatus: '网络状态未知' }); },
     });
     return db.fetchAllSessions().then((sessions) => {
+      if (!isCurrent(token)) return;
       const now = Date.now();
       const stats = domain.computeRecordStats(sessions, now);
       const date = new Date(now);
@@ -59,6 +82,59 @@ Page(themePage({
         monthProgress: Math.min(100, stats.monthSessions / daysInMonth * 100),
       });
     }).catch(() => {});
+  },
+
+  onUnload() { if (this._meUnsubscribe) this._meUnsubscribe(); },
+
+  resetPrivateView() {
+    this.setData({ pendingCount: 0, monthSessions: 0, monthHours: '0.0', monthProgress: 0,
+      openid: '', offlineMode: !service.snapshot().consent,
+      readStatus: { plans: '未读取', sessions: '未读取' },
+      syncStatus: { plans: { state: '仅本地', pending: 0, details: [] }, sessions: { state: '仅本地', pending: 0, details: [] } } });
+  },
+
+  onWithdrawConsent() {
+    management.withdraw();
+    this.resetPrivateView();
+    this.setData({ dataResult: '已撤回同意，停止新增身份、同步及远程媒体请求。本地训练保留；云数据未删除，已在途请求不能取消、可能已执行。' });
+  },
+
+  onClearLocal() {
+    const loss = management.preview(true);
+    confirmTwice(this, '清除本机全部训练数据？',
+      `将丢失本机全部身份及匿名区的计划、历史、${loss.drafts} 份进行中草稿、${loss.pending} 项待同步任务及同步状态。保留主题和单位偏好，撤回云服务同意。仅清本机，不删除云端；再次同意可能下载云数据。已在途请求不能取消。`, () => {
+        try {
+          management.clearLocal(); this.resetPrivateView();
+          this.setData({ dataResult: '本机全部训练数据已清除；偏好保留，同意已撤回。云端未删除，在途请求可能已执行。' });
+        } catch (err) { this.setData({ dataResult: `本机清理未完成：${err.message}，请重试` }); }
+      });
+  },
+
+  async onDeleteAll() {
+    if (this.data.deleting) return;
+    this.setData({ deleting: true, dataResult: '仅为删除校验本人身份，不开启同步或上传本地数据…' });
+    try {
+      const token = await management.authorizeDeletion();
+      const loss = management.preview();
+      confirmTwice(this, '删除本人全部个人数据？',
+        `当前本人身份：${token.owner}。将联网删除本人云计划和历史，确认完成后才清除此身份本机的计划、历史、${loss.drafts} 份进行中草稿、${loss.pending} 项待同步任务。不会清除其他身份或匿名区，不影响公共媒体。保留主题和单位，撤回同意；本次联网仅用于删除。已在途请求不能取消，离线设备不能即时远程擦除，下次联网才识别屏障。失败需重试，不代表已删除。`, async () => {
+          this.setData({ deleting: true, dataResult: '删除中；尚未确认完成，请勿视为已删除' });
+          const result = await management.deleteAll(token);
+          this.resetPrivateView();
+          this.setData({ deleting: false, dataResult: result.status === 'deleted'
+            ? '本人云端删除已确认，当前身份本机数据已清除；偏好保留、同意已撤回。其他离线设备无法即时擦除，必要防复活技术元数据仍保留。'
+            : (result.message || '删除尚未确认，请重新确认并重试') });
+        });
+    } catch (err) { this.setData({ dataResult: `删除授权失败：${err.message}；本机未清理，可重试` }); }
+    finally { this.setData({ deleting: false }); }
+  },
+
+  onReconcile() {
+    confirmTwice(this, '确认删除屏障后的重新使用？',
+      '云端删除完成后，清除当前身份本机残留的计划、历史、草稿和任务，再采用新代际。旧任务不会改绑重传，其他身份及匿名区不受影响。需要先主动同意云服务；此操作不恢复已删数据。', async () => {
+        try { await management.reconcile(); this.resetPrivateView(); this.setData({ dataResult: '已采用当前代际，可主动新建数据并同步' }); }
+        catch (err) { this.setData({ dataResult: err.message }); }
+      });
   },
 
   onToggleTheme(e) {
@@ -78,11 +154,13 @@ Page(themePage({
       wx.showToast({ title: '已停止新增云请求；在途请求可能已完成，云数据未删除', icon: 'none' });
       return;
     }
+    const token = service.snapshot();
     wx.showModal({
       title: '启用本人云服务？',
-      content: '将使用微信身份保存和同步训练计划、训练记录，并按需加载远程动作图片/GIF。不采集手机号或头像昵称。不同意仍可完整本地训练。可在此停用新增云请求；停用不会删除云数据。在途请求不能撤回。云端全量删除入口尚待交付，目前不应作为正式发布版本。产品同意不等于微信平台隐私接口授权。',
+      content: '将使用微信身份保存和同步训练计划、训练记录，并按需加载远程动作图片/GIF。不采集手机号或头像昵称。不同意仍可完整本地训练。可在此停用新增云请求；停用不会删除云数据。在途请求不能撤回。云端全量删除请使用独立的数据管理操作，不会自动删除云数据。产品同意不等于微信平台隐私接口授权。',
       confirmText: '同意启用',
       success: async res => {
+        if (!isCurrent(token)) return;
         if (!res.confirm) { this.setData({ offlineMode: !service.snapshot().consent }); return; }
         try {
           const state = await service.enable();
@@ -130,15 +208,18 @@ Page(themePage({
 
   onClaimLocalData() {
     if (!service.ready()) return;
+    const token = service.snapshot(), version = local.version();
     const preview = local.claimPreview();
     if (!preview.plans && !preview.sessions && !preview.drafts) return;
     wx.showModal({
       title: '认领匿名/旧版本地数据',
       content: `当前微信身份：${preview.owner}。待归属范围：${preview.plans} 个计划、${preview.sessions} 条训练记录、${preview.drafts} 份草稿。仅在确认这些数据属于你时认领，之后才允许上传；取消则保留匿名区且不展示/上传。其他所有者的数据不会被认领。`,
       confirmText: '属于我',
-      success: res => {
-        if (!res.confirm) return;
+      success: async res => {
+        if (!res.confirm || !isCurrent(token) || version !== local.version()) return;
         try {
+          await require('../../utils/personal-cloud').generation();
+          if (!isCurrent(token) || version !== local.version()) return;
           local.claimAnonymous(preview.owner);
           wx.showToast({ title: '已确认归属；计划与训练可手动重试同步', icon: 'none' });
           queue.flush().catch(() => {});
