@@ -1,3 +1,5 @@
+const { ownerPage } = require('../../utils/owner-page');
+const storage = require('../../utils/owner-storage');
 /**
  * 首页(今天):"今天该练什么"卡片 + 开始训练按钮
  * 显示 active 计划当前游标指向的训练日 + 动作清单
@@ -14,7 +16,7 @@ const { themePage } = require('../../utils/theme');
 
 const TRAINING_DRAFT_KEY = 'fitness:trainingDraft';
 
-Page(themePage({
+Page(ownerPage(themePage({
   data: {
     dateLine: '',
     plan: null,
@@ -52,9 +54,9 @@ Page(themePage({
   },
 
   readDraft() {
-    const draft = wx.getStorageSync(TRAINING_DRAFT_KEY);
+    const draft = storage.getStorageSync(TRAINING_DRAFT_KEY);
     if (draft && queue.getCompletedSession(draft.id)) {
-      try { wx.removeStorageSync(TRAINING_DRAFT_KEY); } catch (err) { /* retry later */ }
+      try { storage.removeStorageSync(TRAINING_DRAFT_KEY); } catch (err) { /* retry later */ }
       return null;
     }
     return draft;
@@ -144,6 +146,7 @@ Page(themePage({
       confirmText: '新开训练',
       cancelText: '保留草稿',
       success: (res) => {
+        if (!this.isCurrentOwner()) return;
         if (res.confirm) this.createTrainingDraft(plan, draft.id);
         else this.releaseStart();
       },
@@ -176,7 +179,7 @@ Page(themePage({
         return;
       }
       // 单次覆盖写：失败时旧草稿仍在，不先删旧数据，也不提交或推进。
-      wx.setStorageSync(TRAINING_DRAFT_KEY, session);
+      storage.setStorageSync(TRAINING_DRAFT_KEY, session);
       // 防连点由 _starting JS 锁负责，不禁用按钮，避免跳转期间出现灰色残影。
       this.setData({ hasDraft: true, draftInfo: this.buildDraftInfo(session) });
     } catch (err) {
@@ -198,7 +201,7 @@ Page(themePage({
       draft = this.readDraft();
       if (!draft) { this.setData({ hasDraft: false, draftInfo: null }); return; }
       const upgraded = domain.upgradeTrainingDraft(draft);
-      if (upgraded !== draft) wx.setStorageSync(TRAINING_DRAFT_KEY, upgraded);
+      if (upgraded !== draft) storage.setStorageSync(TRAINING_DRAFT_KEY, upgraded);
     } catch (err) {
       wx.showToast({ title: '草稿保存失败，请重试', icon: 'none' });
       return;
@@ -209,4 +212,4 @@ Page(themePage({
   onGoPlan() {
     wx.switchTab({ url: '/pages/plan/plan' });
   },
-}));
+})));

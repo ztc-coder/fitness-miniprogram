@@ -1,8 +1,10 @@
+const storage = require('./owner-storage');
 /**
  * CloudBase 数据访问层(仓库模式)
  * UI 与 domain logic 之上的薄封装,统一处理云数据库读写与本地存储降级。
  */
 const domain = require('./domain');
+const service = require('./cloud-service');
 const log = require('./training-log');
 const catalog = require('../data/exercises');
 
@@ -32,7 +34,8 @@ const PLAN_MIGRATION_VERSION = 5;
 // ===== 数据库句柄 =====
 
 function db() {
-  return wx.cloud.database();
+  if (!service.ready()) throw new Error('仅本地模式，尚未启用本人云服务');
+  return require('./personal-cloud').database();
 }
 
 function isCloudError(err) {
@@ -48,18 +51,23 @@ function isCloudPlanId(id) {
 
 /** 只读取云端计划;不写本地缓存,供迁移在合并 local_ 计划前安全使用。 */
 function readCloudPlans() {
+  const token = service.snapshot();
   return Promise.resolve().then(() => db()
     .collection(COLLECTIONS.PLANS)
     .orderBy('createdAt', 'asc')
     .get()
-    .then((res) => log.overlayPlans((res.data || []).map(normalizePlan))));
+    .then((res) => { service.assertCurrent(token); return log.overlayPlans((res.data || []).map(normalizePlan)); }));
 }
 
 /** 拉取云端计划并写穿本地缓存;云失败时抛出,由调用方决定降级。 */
 function fetchCloudPlans() {
+  const token = service.snapshot();
   return readCloudPlans().then((plans) => {
-    wx.setStorageSync(LOCAL_KEYS.PLANS, plans);
-    return plans;
+    service.assertCurrent(token);
+    const cloudIds = new Set(plans.map(p => p.id));
+    const merged = plans.concat(readLocalPlans().filter(p => !cloudIds.has(p.id)));
+    storage.setStorageSync(LOCAL_KEYS.PLANS, merged);
+    return merged;
   });
 }
 
@@ -107,7 +115,7 @@ function normalizePlan(raw) {
 // ===== 本地缓存(写穿真相来源,无网/未开通云时保证可用) =====
 
 function readLocalPlans() {
-  return log.overlayPlans(wx.getStorageSync(LOCAL_KEYS.PLANS) || []);
+  return log.overlayPlans(storage.getStorageSync(LOCAL_KEYS.PLANS) || []);
 }
 
 function upsertLocalPlan(plan) {
@@ -117,11 +125,11 @@ function upsertLocalPlan(plan) {
     index >= 0
       ? plans.map((p) => (p.id === plan.id ? plan : p))
       : plans.concat([plan]);
-  wx.setStorageSync(LOCAL_KEYS.PLANS, next);
+  storage.setStorageSync(LOCAL_KEYS.PLANS, next);
 }
 
 function removeLocalPlan(planId) {
-  wx.setStorageSync(
+  storage.setStorageSync(
     LOCAL_KEYS.PLANS,
     readLocalPlans().filter((p) => p.id !== planId)
   );
@@ -136,6 +144,7 @@ function savePlan(plan) {
     createdAt: plan.createdAt || Date.now(),
   });
   upsertLocalPlan(finalPlan);
+  if (!service.ready()) return Promise.resolve(finalPlan);
   return syncPlanToCloud(finalPlan).catch((err) => {
     console.warn('计划云端同步失败,已本地生效', err);
     return finalPlan;
@@ -143,6 +152,7 @@ function savePlan(plan) {
 }
 
 function syncCompletedPlan(plan) {
+  const token = service.snapshot();
   if (log.isPlanDeleted(plan.id)) return Promise.resolve(null);
   let id = log.resolvePlanId(plan.id);
   if (!isCloudPlanId(id)) {
@@ -153,12 +163,19 @@ function syncCompletedPlan(plan) {
   const latest = readLocalPlans().find(p => p.id === id) || plan;
   const data = Object.assign({}, latest, { id });
   return Promise.resolve().then(() => {
+    service.assertCurrent(token);
     if (log.isPlanDeleted(plan.id)) return null;
     return db().collection(COLLECTIONS.PLANS).doc(id).set({ data });
   })
     .then(res => {
+      service.assertCurrent(token);
+      if (res._id && res._id !== id) {
+        id = res._id;
+        data.id = id;
+        log.write(log.read().map(e => e.plan && e.plan.id === plan.id ? Object.assign({}, e, { cloudPlanId: id }) : e));
+      }
       if (log.isPlanDeleted(plan.id)) {
-        return Promise.resolve().then(() => removePlanFromCloud(id)).catch(() => {}).then(() => null);
+        return Promise.resolve().then(() => { service.assertCurrent(token); return removePlanFromCloud(id); }).catch(() => {}).then(() => null);
       }
       if (res.stats && res.stats.created === 0 && res.stats.updated === 0) throw new Error('计划未写入');
       removeLocalPlan(plan.id);
@@ -168,6 +185,7 @@ function syncCompletedPlan(plan) {
 }
 
 function syncPlanToCloud(plan) {
+  const token = service.snapshot();
   if (log.isPlanDeleted(plan.id)) return Promise.resolve(null);
   if (log.read().some(e => e.plan && (e.plan.id === plan.id || e.cloudPlanId === plan.id) && !e.planSynced)) {
     return syncCompletedPlan(plan);
@@ -185,14 +203,15 @@ function syncPlanToCloud(plan) {
       .collection(COLLECTIONS.PLANS)
       .doc(plan.id)
       .update({ data: doc })
-      .then(() => log.isPlanDeleted(plan.id)
-        ? Promise.resolve().then(() => removePlanFromCloud(plan.id)).catch(() => {}).then(() => null)
-        : plan);
+      .then(() => { service.assertCurrent(token); return log.isPlanDeleted(plan.id)
+        ? Promise.resolve().then(() => { service.assertCurrent(token); return removePlanFromCloud(plan.id); }).catch(() => {}).then(() => null)
+        : plan; });
   }
   return db()
     .collection(COLLECTIONS.PLANS)
     .add({ data: doc })
     .then((res) => {
+      service.assertCurrent(token);
       // 云端分配了正式 _id,本地记录用新 id 替换旧的 local_ 记录
       const saved = Object.assign({}, plan, { id: res._id });
       // Persist the alias before repairable cache writes, including earlier completions.
@@ -202,7 +221,7 @@ function syncPlanToCloud(plan) {
           ? Object.assign({}, e, { cloudPlanId: saved.id }) : e));
       }
       if (log.isPlanDeleted(plan.id)) {
-        return Promise.resolve().then(() => removePlanFromCloud(saved.id)).catch(() => {}).then(() => null);
+        return Promise.resolve().then(() => { service.assertCurrent(token); return removePlanFromCloud(saved.id); }).catch(() => {}).then(() => null);
       }
       removeLocalPlan(plan.id);
       upsertLocalPlan(saved);
@@ -221,11 +240,12 @@ function removePlanFromCloud(planId) {
  * 删除计划:本地立即删除,云端 best-effort 删除(local_ 计划从未上云,跳过)。
  */
 function deletePlan(planId) {
+  const token = service.snapshot();
   const id = log.resolvePlanId(planId);
   log.deletePlan(planId); // durable cancellation precedes repairable cache cleanup
   removeLocalPlan(planId);
   if (isCloudPlanId(id)) {
-    return Promise.resolve().then(() => removePlanFromCloud(id)).catch((err) => {
+    return Promise.resolve().then(() => { service.assertCurrent(token); return removePlanFromCloud(id); }).catch((err) => {
       console.warn('计划云端删除失败,已本地删除', err);
     });
   }
@@ -239,14 +259,16 @@ function deletePlan(planId) {
  * @returns 推进后的 plan;计划不存在返回 null
  */
 function advancePlanCursor(planId) {
+  const token = service.snapshot();
   return fetchPlans().then((plans) => {
+    service.assertCurrent(token);
     const plan = plans.find((p) => p.id === planId);
     if (!plan) {
       return null;
     }
     const advanced = domain.advanceCursor(plan, true);
     const nextPlans = plans.map((p) => (p.id === planId ? advanced : p));
-    wx.setStorageSync(LOCAL_KEYS.PLANS, nextPlans);
+    storage.setStorageSync(LOCAL_KEYS.PLANS, nextPlans);
     return savePlan(advanced).catch((err) => {
       console.warn('游标推进云端保存失败,已本地生效', err);
       return advanced;
@@ -302,6 +324,7 @@ function fetchSessions(limit = 50) {
 
 /** 汇总页按小程序端每页 20 条读取历史，再合并本地未同步记录。 */
 async function fetchAllSessions() {
+  const token = service.snapshot();
   const cloud = [];
   try {
     const sessions = db().collection(COLLECTIONS.SESSIONS);
@@ -309,11 +332,13 @@ async function fetchAllSessions() {
     while (true) {
       const res = await sessions.orderBy('submittedAt', 'desc')
         .skip(cloud.length).limit(pageSize).get();
+      service.assertCurrent(token);
       const page = res.data || [];
       cloud.push(...page);
       if (page.length < pageSize) break;
     }
   } catch (err) {
+    service.assertCurrent(token);
     console.warn('云端完整历史读取失败，保留已读取和本地记录', err);
   }
   return mergeSessions(cloud);
@@ -321,7 +346,7 @@ async function fetchAllSessions() {
 
 function mergeSessions(cloud) {
   const byId = new Map();
-  cloud.concat(wx.getStorageSync('fitness:pendingQueue') || [], log.read().map(e => e.session))
+  cloud.concat(storage.getStorageSync('fitness:pendingQueue') || [], log.read().map(e => e.session))
     .forEach(s => byId.set(String(s.id || s._id), s));
   return Array.from(byId.values()).sort((a, b) => (b.submittedAt || b.startedAt) - (a.submittedAt || a.startedAt));
 }
@@ -387,10 +412,11 @@ function prunePlanCycleDays(plan) {
  *   云端写失败(含离线)不落定,联网后重试直至云端计划全部裁剪,成功后不再重复写。
  */
 function migratePlansForCatalog() {
+  const token = service.snapshot();
   const localMigrated =
-    wx.getStorageSync(LOCAL_KEYS.PLAN_MIGRATION) === PLAN_MIGRATION_VERSION;
+    storage.getStorageSync(LOCAL_KEYS.PLAN_MIGRATION) === PLAN_MIGRATION_VERSION;
   const cloudMigrated =
-    wx.getStorageSync(LOCAL_KEYS.PLAN_MIGRATION_CLOUD) === PLAN_MIGRATION_VERSION;
+    storage.getStorageSync(LOCAL_KEYS.PLAN_MIGRATION_CLOUD) === PLAN_MIGRATION_VERSION;
   if (localMigrated && cloudMigrated) {
     return fetchPlans();
   }
@@ -403,10 +429,11 @@ function migratePlansForCatalog() {
       return [];
     })
     .then((cloudPlans) => {
-      // 云端正式 id 以云端为真相;尚未上云的 local_ 计划必须合并保留,不能被云列表覆盖。
+      service.assertCurrent(token);
+      // 同 id 仍沿用旧云优先规则；云列表中缺失的本人本地计划必须保留，不能吞掉已认领缓存。
       const cloudIds = new Set(cloudPlans.map((plan) => plan.id));
       const pendingLocalPlans = localPlans.filter(
-        (plan) => !isCloudPlanId(plan.id) && !cloudIds.has(plan.id)
+        (plan) => !cloudIds.has(plan.id)
       );
       const plans = cloudReachable ? cloudPlans.concat(pendingLocalPlans) : localPlans;
       let cloudFailed = false;
@@ -447,16 +474,17 @@ function migratePlansForCatalog() {
       });
 
       // 本地裁剪先落定。在线同步 local_ 时 syncPlanToCloud 会把临时 id 替换成正式 id。
-      wx.setStorageSync(LOCAL_KEYS.PLANS, kept);
+      storage.setStorageSync(LOCAL_KEYS.PLANS, kept);
       return writes
-        .reduce((chain, run) => chain.then(run), Promise.resolve())
+        .reduce((chain, run) => chain.then(() => { service.assertCurrent(token); return run(); }), Promise.resolve())
         .then(() => {
-          wx.setStorageSync(LOCAL_KEYS.PLANS, kept);
+          service.assertCurrent(token);
+          storage.setStorageSync(LOCAL_KEYS.PLANS, kept);
           if (!localMigrated) {
-            wx.setStorageSync(LOCAL_KEYS.PLAN_MIGRATION, PLAN_MIGRATION_VERSION);
+            storage.setStorageSync(LOCAL_KEYS.PLAN_MIGRATION, PLAN_MIGRATION_VERSION);
           }
           if (cloudReachable && !cloudFailed) {
-            wx.setStorageSync(
+            storage.setStorageSync(
               LOCAL_KEYS.PLAN_MIGRATION_CLOUD,
               PLAN_MIGRATION_VERSION
             );
@@ -473,13 +501,15 @@ function migratePlansForCatalog() {
  * 先执行目录裁剪迁移(版本化、幂等),再判断是否需要种子。
  */
 function ensureSeedPlans() {
+  const token = service.snapshot();
   return migratePlansForCatalog().then((plans) => {
-    const seeded = wx.getStorageSync(LOCAL_KEYS.SEED_VERSION);
+    service.assertCurrent(token);
+    const seeded = storage.getStorageSync(LOCAL_KEYS.SEED_VERSION);
     if (plans.length > 0 || seeded === SEED_VERSION) {
       return plans;
     }
     const seed = buildSeedPlan();
-    wx.setStorageSync(LOCAL_KEYS.SEED_VERSION, SEED_VERSION);
+    storage.setStorageSync(LOCAL_KEYS.SEED_VERSION, SEED_VERSION);
     return savePlan(seed)
       .then((saved) => [saved])
       .catch(() => [seed]); // 无网也能用本地种子
@@ -545,3 +575,17 @@ module.exports = {
   migratePlansForCatalog,
   isCloudError,
 };
+
+// 每个异步公共边界拒绝旧身份结果，包括云失败后的本地降级路径。
+Object.keys(module.exports).forEach(name => {
+  if (['getLocalPlans', 'isCloudError'].includes(name)) return;
+  const fn = module.exports[name];
+  module.exports[name] = function (...args) {
+    const token = service.snapshot();
+    service.assertCurrent(token);
+    return Promise.resolve(fn(...args))
+      .then(value => { service.assertCurrent(token); return value; }, err => {
+        service.assertCurrent(token); throw err;
+      });
+  };
+});

@@ -1,0 +1,142 @@
+const plan = { id: 'local_one', name: '本地计划', cycleDays: [], active: true };
+function runtime() {
+  jest.resetModules();
+  const storage = {};
+  global.wx = {
+    getStorageSync: k => storage[k], setStorageSync: (k, v) => { storage[k] = v; },
+    removeStorageSync: k => { delete storage[k]; },
+    cloud: { init: jest.fn(), callFunction: jest.fn().mockResolvedValue({ result: { openid: 'A' } }), database: jest.fn(() => { throw Error('unexpected direct database'); }) },
+    getNetworkType: jest.fn(o => o.success({ networkType: 'wifi' })),
+    onNetworkStatusChange: jest.fn(),
+  };
+  return storage;
+}
+afterEach(() => jest.useRealTimers());
+test('未明确同意：本地计划与历史可用，启动不请求云或远程媒体', async () => {
+  runtime();
+  global.App = app => { global.app = app; };
+  require('../app');
+  app.onLaunch();
+  const db = require('../utils/db');
+  await db.savePlan(plan);
+  expect((await db.fetchPlans())[0].name).toBe('本地计划');
+  expect(await db.fetchAllSessions()).toEqual([]);
+  expect(require('../data/media-root').resolveMedia('exercises/a.jpg')).toBe('');
+  expect(wx.cloud.init).not.toHaveBeenCalled();
+  expect(wx.cloud.callFunction).not.toHaveBeenCalled();
+  expect(wx.cloud.database).not.toHaveBeenCalled();
+  expect(wx.onNetworkStatusChange).not.toHaveBeenCalled();
+});
+test('同意及重启恢复，匿名计划需显示身份和数量并显式认领；B 不见 A 草稿/队列/历史', async () => {
+  jest.useFakeTimers();
+  const storage = runtime();
+  storage['fitness:plans'] = [plan]; // unknown legacy cache
+  storage['fitness:trainingDraft'] = { id: 'draft' };
+  storage['fitness:pendingQueue'] = [{ id: 'session' }];
+  const service = require('../utils/cloud-service');
+  const local = require('../utils/owner-storage');
+  await service.enable();
+  expect(local.getStorageSync('fitness:plans')).toBeUndefined();
+  expect(local.claimPreview()).toEqual({ owner: 'A', plans: 1, sessions: 1, drafts: 1 });
+  local.claimAnonymous('A');
+  expect(local.getStorageSync('fitness:plans')[0].name).toBe('本地计划');
+  service.disable();
+  wx.cloud.callFunction.mockResolvedValue({ result: { openid: 'B' } });
+  await service.enable();
+  expect(local.getStorageSync('fitness:plans')).toBeUndefined();
+  expect(local.getStorageSync('fitness:trainingDraft')).toBeUndefined();
+  expect(require('../utils/queue').getQueue()).toEqual([]);
+  expect(local.claimPreview()).toEqual({ owner: 'B', plans: 0, sessions: 0, drafts: 0 });
+  expect(() => local.claimAnonymous('A')).toThrow();
+  expect(wx.onNetworkStatusChange).toHaveBeenCalledTimes(1);
+  jest.resetModules();
+  await require('../utils/cloud-service').restore();
+  expect(require('../utils/cloud-service').snapshot().owner).toBe('B');
+});
+test('身份失败可本地训练与重试；停用后迟到云响应不得污染当前缓存', async () => {
+  jest.useFakeTimers();
+  runtime();
+  const service = require('../utils/cloud-service');
+  wx.cloud.callFunction.mockRejectedValueOnce(Error('login failed'));
+  await expect(service.enable()).rejects.toThrow('login failed');
+  const db = require('../utils/db');
+  await db.savePlan(plan);
+  expect((await db.fetchPlans())[0].id).toBe('local_one');
+  await service.enable();
+  let resolve;
+  wx.cloud.callFunction.mockImplementation(() => new Promise(r => { resolve = r; }));
+  const pending = db.fetchPlans();
+  for (let i = 0; i < 8; i++) await Promise.resolve();
+  service.disable();
+  resolve({ result: { data: [{ _id: 'cloud_a', name: '迟到数据' }] } });
+  await expect(pending).rejects.toThrow('身份或云服务状态已改变');
+  expect(db.getLocalPlans()).toEqual([]);
+});
+test('我的用户操作：取消不启用，同意失败能重试，停用立即阻断新增请求', async () => {
+  jest.useFakeTimers(); runtime();
+  wx.showModal = jest.fn(); wx.showToast = jest.fn();
+  let definition;
+  global.Page = p => { definition = p; };
+  require('../pages/me/me');
+  const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
+  page.onToggleOffline();
+  expect(wx.showModal.mock.calls[0][0].content).toContain('训练计划');
+  wx.showModal.mock.calls[0][0].success({ confirm: false });
+  expect(wx.cloud.init).not.toHaveBeenCalled();
+  page.onToggleOffline();
+  await wx.showModal.mock.calls[1][0].success({ confirm: true });
+  expect(page.data.offlineMode).toBe(false);
+  page.onToggleOffline();
+  expect(require('../utils/cloud-service').ready()).toBe(false);
+});
+test('身份改变时，旧计划页的延迟确认与迟到渲染不能写入新所有者', async () => {
+  jest.useFakeTimers(); runtime();
+  wx.showModal = jest.fn(); wx.showToast = jest.fn(); wx.reLaunch = jest.fn();
+  const service = require('../utils/cloud-service');
+  await service.enable();
+  let definition;
+  global.Page = p => { definition = p; };
+  require('../pages/plan/plan');
+  const page = { ...definition, data: { ...definition.data, activePlan: { ...plan, cycleDays: [{ dayId: 'one', exercises: [] }] } }, setData(p) { Object.assign(this.data, p); } };
+  page.onDeleteDay({ currentTarget: { dataset: { dayid: 'one' } } });
+  const confirmation = wx.showModal.mock.calls[0][0];
+  service.disable();
+  wx.cloud.callFunction.mockResolvedValue({ result: { openid: 'B' } });
+  await service.enable();
+  await confirmation.success({ confirm: true });
+  expect(require('../utils/db').getLocalPlans()).toEqual([]);
+});
+test('旧 openid/平台隐私已授权不代表同意：种子计划、逐组完成、快照及历史全本地成立', async () => {
+  const storage = runtime();
+  storage['fitness:openid'] = 'legacy-A';
+  storage['fitness:settings'] = { offlineMode: false, theme: 'light' };
+  wx.getPrivacySetting = jest.fn(o => o.success({ needAuthorization: false }));
+  global.App = p => { global.app = p; };
+  require('../app');
+  await app.onLaunch();
+  const db = require('../utils/db');
+  expect((await db.ensureSeedPlans()).length).toBe(1);
+  const domain = require('../utils/domain');
+  const p = { id: 'local_training', name: '训练计划', cursor: 0, cycleDays: [{ dayId: 'push', exercises: [{ exerciseId: '0025', equipment: 'barbell', sets: 1, targetWeight: 20, targetReps: 10 }] }] };
+  await db.savePlan(p);
+  let draft = domain.snapshotSession(p);
+  draft = domain.completeTrainingSet(draft, draft.exercises[0].sets[0].id, 200);
+  require('../utils/owner-storage').setStorageSync('fitness:trainingDraft', draft);
+  const final = await require('../utils/queue').complete(draft, 500);
+  p.cycleDays[0].exercises[0].targetWeight = 999;
+  expect(final.exercises[0].sets[0].weight).toBe(20);
+  expect((await db.fetchAllSessions())[0].id).toBe(final.id);
+  expect(require('../data/media-root').resolveMedia('exercises/a.gif')).toBe('');
+  expect(wx.cloud.init).not.toHaveBeenCalled();
+  expect(wx.cloud.callFunction).not.toHaveBeenCalled();
+  expect(wx.getPrivacySetting).not.toHaveBeenCalled();
+});
+test('认领后空云列表不能覆盖尚未上云的本地计划', async () => {
+  jest.useFakeTimers(); runtime();
+  const db = require('../utils/db');
+  await db.savePlan(plan);
+  await require('../utils/cloud-service').enable();
+  require('../utils/owner-storage').claimAnonymous('A');
+  wx.cloud.callFunction.mockResolvedValue({ result: { data: [] } });
+  expect((await db.fetchPlans()).map(p => p.id)).toEqual(['local_one']);
+});

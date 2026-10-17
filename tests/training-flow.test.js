@@ -504,17 +504,14 @@ test('小结负重容量与自重次数分开，排除pending；同计划同日�
   page.onInputWeight(event({ setId: body }, '0')); page.onInputReps(event({ setId: body }, '15')); toggle(body);
   page.onPause(); jest.advanceTimersByTime(90000); page.onResume();
   page.onAddSet(event({ anchorId: body }));
-  wx.cloud.database.mockImplementation(() => {
-    const query = { orderBy: () => query, limit: () => query, get: () => Promise.resolve({ data: [
+  storage.set('fitness:pendingQueue', [
       { id: 'other-day', planId: 'plan', dayId: 'different', submittedAt: 999900, exercises: [{ equipment: 'barbell', sets: [{ weight: 100, reps: 10 }] }] },
       { id: 'other-plan', planId: 'different', dayId: 'day', submittedAt: 999800, exercises: [{ equipment: 'barbell', sets: [{ weight: 100, reps: 10 }] }] },
       { id: 'previous', planId: 'plan', dayId: 'day', submittedAt: 999000, exercises: [
         { equipment: 'barbell', sets: [{ weight: 30, reps: 10 }] },
         { equipment: 'body weight', sets: [{ weight: 0, reps: 10 }] },
       ] },
-    ] }) };
-    return { collection: () => query };
-  });
+  ]);
   const finishing = page.onFinish(); modal().success({ confirm: true }); await finishing;
   expect(page.data.summary).toMatchObject({ weightedVolume: '400', bodyWeightReps: '15', completedSets: 2, exerciseCount: 2, duration: '01:30' });
   expect(page.data.summary.exercises.map(ex => ex.volumeText)).toEqual(['400 kg', '15 次']);

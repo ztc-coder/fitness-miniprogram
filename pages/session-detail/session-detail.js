@@ -1,3 +1,4 @@
+const { ownerPage } = require('../../utils/owner-page');
 /**
  * 训练快照详情:忠实展示当次 session 的独立副本,不受后续计划修改影响
  */
@@ -6,7 +7,7 @@ const domain = require('../../utils/domain');
 const fmt = require('../../utils/format');
 const { themePage } = require('../../utils/theme');
 
-Page(themePage({
+Page(ownerPage(themePage({
   data: {
     session: null,
     exercises: [],
@@ -49,4 +50,4 @@ Page(themePage({
       });
     });
   },
-}));
+})));

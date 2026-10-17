@@ -1,3 +1,4 @@
+const { ownerPage } = require('../../utils/owner-page');
 /**
  * 计划 tab:管理循环计划(增删训练日、调顺序、切换 active)、动作库入口
  */
@@ -6,7 +7,7 @@ const domain = require('../../utils/domain');
 
 const { themePage } = require('../../utils/theme');
 
-Page(themePage({
+Page(ownerPage(themePage({
   data: {
     plans: [],
     activePlan: null,
@@ -83,6 +84,7 @@ Page(themePage({
       content: '删除后不影响已提交的历史记录(快照独立)。',
       confirmColor: '#d96a5b',
       success: (res) => {
+        if (!this.isCurrentOwner()) return;
         if (!res.confirm) return;
         const cycleDays = plan.cycleDays.filter((d) => d.dayId !== dayid);
         const cursor = plan.cursor >= cycleDays.length ? 0 : plan.cursor;
@@ -106,6 +108,7 @@ Page(themePage({
       editable: true,
       placeholderText: '胸/背/肩/腿',
       success: (res) => {
+        if (!this.isCurrentOwner()) return;
         if (!res.confirm || !res.content) return;
         const day = {
           dayId: domain.generateId('day'),
@@ -126,6 +129,7 @@ Page(themePage({
       editable: true,
       placeholderText: '计划名称,例如:力量循环',
       success: (res) => {
+        if (!this.isCurrentOwner()) return;
         if (!res.confirm || !res.content) return;
         const plan = {
           id: domain.generateId('local_plan'),
@@ -157,6 +161,7 @@ Page(themePage({
       content: '删除后不可恢复;历史记录不受影响。',
       confirmColor: '#d96a5b',
       success: (res) => {
+        if (!this.isCurrentOwner()) return;
         if (!res.confirm) return;
         const plans = this.data.plans;
         const deletingActive = this.data.activePlan && this.data.activePlan.id === id;
@@ -193,4 +198,4 @@ Page(themePage({
       .catch((err) => wx.showToast({ title: '保存失败', icon: 'none' }))
       .then(() => this.refresh());
   },
-}));
+})));

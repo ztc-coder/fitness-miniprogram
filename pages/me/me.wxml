@@ -7,7 +7,7 @@
     </view>
     <button class="login-pill" bindtap="onShowLoginInfo" aria-label="查看登录状态">
       <text class="login-dot {{openid ? '' : 'login-pending'}}"></text>
-      <text>{{openid ? '已登录' : '登录中'}}</text>
+      <text>{{openid ? '云服务已启用' : '仅本地 / 待重试'}}</text>
       <text class="setting-chevron">›</text>
     </button>
   </view>
@@ -59,7 +59,7 @@
       <view class="icon-tile" aria-hidden="true">✣</view>
       <view class="setting-main">
         <view class="setting-name">离线训练模式</view>
-        <view class="setting-sub">训练中零网络依赖，秒级响应</view>
+        <view class="setting-sub">开启为仅本地；关闭需主动同意本人云服务</view>
       </view>
       <view class="switch-hit">
         <switch checked="{{offlineMode}}" color="{{theme === 'light' ? '#C3ED42' : '#3ee6a0'}}" bindchange="onToggleOffline" aria-label="离线训练模式" />
@@ -76,6 +76,7 @@
     </view>
   </view>
   <view class="queue-note">{{networkStatus}}</view>
+  <button bindtap="onClaimLocalData">认领匿名本地数据（启用云服务后）</button>
 
   <view class="section-kicker">关于</view>
   <view class="setting-list about-list">

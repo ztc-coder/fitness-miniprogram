@@ -53,6 +53,8 @@ afterEach(() => {
 
 test('记录再次显示恢复双向主题，保留页签、动作与指标弹层，原刷新每次仅读取一次且历史不写', async () => {
   const { storage, writes, cloudWrite, reads, open, theme } = setup([session('old', NOW)]);
+  await require('./helpers/cloud-runtime').enableCloud();
+  writes.mockClear();
   storage['fitness:pendingQueue'] = [session('local', NOW - 86400000, 30)];
   storage['fitness:trainingDraft'] = { id: 'untouched' };
   const page = open('records');
@@ -84,6 +86,8 @@ test('记录再次显示恢复双向主题，保留页签、动作与指标弹�
 test('从时间线打开旧详情读取本机浅色，往返改主题不重载详情或改写历史和现有选择', async () => {
   const legacy = session('legacy', NOW, 30);
   const { storage, writes, cloudWrite, reads, open, theme } = setup([legacy]);
+  await require('./helpers/cloud-runtime').enableCloud();
+  writes.mockClear();
   storage['fitness:settings'] = { theme: 'light', unit: 'kg' };
   const before = JSON.stringify(legacy);
   const records = open('records');
@@ -156,6 +160,8 @@ test('浅色统计与时间线炭黑数值、深绿火焰、自有弹层遮罩�
 
 test('空记录恢复浅色且不补写历史，指标预留提示和关闭行为保持原样', async () => {
   const { storage, open, writes, cloudWrite } = setup();
+  await require('./helpers/cloud-runtime').enableCloud();
+  writes.mockClear();
   storage['fitness:settings'] = { theme: 'light' };
   const page = open('records');
   page.onLoad(); page.onShow(); await settled();
@@ -182,6 +188,8 @@ test('浅色详情仍显示新历史的完成、未打卡和跳过组，不修�
     ] }],
   };
   const { storage, open, writes, cloudWrite } = setup([actual]);
+  await require('./helpers/cloud-runtime').enableCloud();
+  writes.mockClear();
   storage['fitness:settings'] = { theme: 'light' };
   const before = JSON.stringify(actual);
   const page = open('session-detail');
@@ -197,6 +205,8 @@ test('不存在的历史仍提示并按原延时返回，不因主题变更重�
   jest.useFakeTimers();
   try {
     const { storage, open, writes, reads } = setup();
+  await require('./helpers/cloud-runtime').enableCloud();
+  writes.mockClear();
     storage['fitness:settings'] = { theme: 'light' };
     const page = open('session-detail');
     page.onLoad({ id: 'missing' }); await settled();
@@ -215,6 +225,8 @@ test('不存在的历史仍提示并按原延时返回，不因主题变更重�
 test('主题往返仍读取超过50场完整历史并按旧优先级合并本地，统计与历史全程只读', async () => {
   const cloud = Array.from({ length: 61 }, (_, i) => session(`s${i}`, NOW - i * 3600000));
   const { storage, open, writes, cloudWrite, theme, reads } = setup(cloud);
+  await require('./helpers/cloud-runtime').enableCloud();
+  writes.mockClear();
   storage['fitness:pendingQueue'] = [session('s0', NOW, 30)];
   storage['fitness:completedTraining'] = [{ session: session('s0', NOW, 40), sessionSynced: false, planSynced: true }];
   const before = JSON.stringify(storage);

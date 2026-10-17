@@ -18,7 +18,7 @@ beforeEach(() => {
   global.wx = {
     getStorageSync: key => storage[key],
     setStorageSync: jest.fn((key, value) => { storage[key] = value; }),
-    showToast: jest.fn(),
+    showToast: jest.fn(), showModal: jest.fn(),
     getNetworkType: jest.fn(({ success }) => success({ networkType: 'none' })),
     cloud: { database: () => { throw Error('offline'); } },
   };
@@ -57,11 +57,12 @@ test('开关立即双向切换，合并已有偏好；重载和离线设置保�
   await reopened.onShow();
   expect(reopened.data.theme).toBe('light');
   reopened.onToggleOffline();
-  expect(storage['fitness:settings']).toEqual({ unit: 'lb', offlineMode: true, theme: 'light' });
+  expect(wx.showModal).toHaveBeenCalled();
+  expect(storage['fitness:settings']).toEqual({ unit: 'lb', offlineMode: false, theme: 'light' });
   reopened.onToggleTheme({ detail: { value: false } });
   expect(reopened.data.theme).toBe('dark');
   expect(wx.getNetworkType).toHaveBeenCalledTimes(2);
-  expect(storage['fitness:settings']).toEqual({ unit: 'lb', offlineMode: true, theme: 'dark' });
+  expect(storage['fitness:settings']).toEqual({ unit: 'lb', offlineMode: false, theme: 'dark' });
   delete storage['fitness:settings'].theme;
   storage['fitness:settings'].offlineMode = false;
   expect(JSON.stringify(storage)).toBe(before);
