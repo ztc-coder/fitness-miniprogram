@@ -34,3 +34,12 @@
 - 集成后测试：39 套通过，517 项通过、29 跳过；源码包体 1,190,300 bytes（85 文件），低于 2 MiB；`git diff --check` 通过。
 - 配置及边界见 `docs/consent-owner-isolation.md`；客户端个人集合读写应全拒绝，运行时走可信云函数。本轮未部署这些规则，不宣称真实云端隔离已验收。
 - 第02票已按第01票源码依赖就绪启动；第01票保留真实验收阻断记录，真实双用户与真机证据统一由第05票承接。
+- 聚焦审查发现登录失败未通知视图清屏（P1）、失败重试提示与开关行为不一致（P2）；修复合并于 `484dd5a`。两项回归均先红后绿，定向只读复审通过，无新增 P0–P2。
+- 修复集成后：39 套通过，519 项通过、29 跳过；源码 1,190,611 bytes；差异检查通过。上述仍非真机/线上隔离证据。
+
+## SDK 文档核实
+
+- 前两次调研请求在使用工具前遭遇上游 524；换路后取得官方文档，未把失败请求当作调研结果。
+- 事务最低 SDK 要求 1.7.0，当前 `~2.6.3` 支持；云函数可用 `runTransaction`，事务内只允许单记录操作，可对多记录/多集合操作，不使用 `where` 批量写事务。
+- 官方资料：[事务指南](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/database/transaction)、[runTransaction](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/reference-sdk-api/database/Database.runTransaction.html)、[安全规则](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/database/security-rules.html)。运行时代码必须核对具体 SDK 返回值与错误，不把任意读取失败当作不存在。
+- 仓库外共享笔记 `/tmp/public-release-cloudbase-research.md` 供第02/03票参考；真实 SDK、规则与事务竞态仍须第05票测试环境实测。
