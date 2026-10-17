@@ -25,3 +25,4 @@
 | [0010](./0010-explicit-set-results-and-local-completion.md) | 逐组显式结果、草稿兼容与整场本地完成 | 已采纳；实现与复审完成，待真机验收 |
 | [0011](./0011-checklist-training-and-independent-rest.md) | 自由勾选记录、独立间歇与 v2 草稿 | 已采纳；用户已确认规则和视觉 |
 | [0012](./0012-public-release-and-conflict-preservation.md) | 免费公开工具首版最小发布闭环；冲突副本与备份延后 | 范围已采纳；本轮仅落规格，尚未实施 |
+| [0013](./0013-trusted-personal-data-write-boundary.md) | 私人数据经可信云入口、客户端全拒绝、所有者事务串行与固定代际任务 | 已采纳；源码实施中，真实云验收受阻 |

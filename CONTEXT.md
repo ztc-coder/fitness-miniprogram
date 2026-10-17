@@ -7,11 +7,11 @@
 
 ## 1. 项目是什么
 
-当前已实现版本是个人自用的**力量训练打卡工具**（微信原生小程序）。首版公开发布范围见 `.scratch/public-release/issue.md`：个人免费、同意前本地可用、同意后静默身份与本人云同步、可靠同步状态、数据删除及必要隐私/帮助/反馈；个人备份与复杂多设备冲突处理延后，首版不支持多设备并发编辑。本轮仅落规格，尚未实施；保留现有动作媒体等待书面授权，授权未落实仍阻断正式发布。下文架构和数据模型描述现有实现基线，不能作为新发布能力已完成的证据。
+当前工具为**力量训练打卡工具**（微信原生小程序）。首版公开发布范围见 `.scratch/public-release/issue.md`：个人免费、同意前本地可用、同意后静默身份与本人云同步、可靠同步状态、数据删除及必要隐私/帮助/支持；个人备份与复杂多设备冲突处理延后，首版不支持多设备并发编辑。已授权本地实施，集成进度及证据见 `.scratch/public-release/implementation.md`；真实云端、真机及正式发布尚未验收，不能将源码交付当作已部署。保留现有动作媒体等待书面授权，授权未落实仍阻断正式发布。
 
 - 单用户闭环：无社交、无多角色（无私教/学员）、无支付、无通知。
 - 核心模型是**第 N 天循环**（如 推-拉-腿），不绑定星期几。
-- 训练场景常在健身房、网络不稳定：**全程本地缓存，只在结束提交那一刻联网**。
+- 训练场景常在健身房、网络不稳定：**训练成绩先本地成立，逐组记录不联网**；启用本人云服务后，计划与完成记录通过持久任务同步。
 - 历史记录必须**忠实于当时实际发生的训练**，不受后续改计划影响。
 
 ## 2. 领域词汇表
@@ -25,6 +25,10 @@
 | 术语 | 含义 |
 |---|---|
 | 数据所有者 | 拥有一组私人训练计划与训练记录的微信用户；不同所有者的数据彼此不可见。 |
+| 产品云服务同意 | 训练者主动允许本人身份、云同步与远程动作媒体处理的选择；不同于微信平台隐私接口授权，不是本地训练的前提。 |
+| 匿名本地数据 | 未确认微信所有者的本机计划、记录和草稿；不能因已有 openid 或首次登录而静默归入本人云端。 |
+| 待同步操作 | 已在本机成立、尚未获对应云端确认的计划修改、删除或训练提交；本地保存不等于同步成功。 |
+| 数据代际 | 一位所有者的数据所属批次；全量删除形成分界，删除前的旧操作不能改归新批次继续上传。 |
 | 冲突副本 | 同一计划在不同设备发生无法直接合并的修改时，为保留双方修改形成的独立计划。 |
 | 个人备份 | 训练者主动保存、可用于恢复本人训练数据的文件；不等同于已完成云同步。 |
 | 合并恢复 | 将备份中的计划与训练记录加入当前个人数据，同时识别重复与冲突的恢复方式。 |
@@ -102,9 +106,12 @@
 
 ```
 pages/*            UI 页面(WXML/WXSS/JS)  —— 薄封装
-cloudfunctions/    login —— 静默 openid 登录
-utils/queue.js     提交队列执行器(注入真实网络请求 + 网络恢复监听)
-utils/db.js        CloudBase 数据访问层(仓库模式 + 本地存储降级)
+cloudfunctions/    login + personalData —— 可信身份及版本化本人 CRUD
+utils/cloud-service.js  产品同意、云能力及身份代际门控
+utils/owner-storage.js 所有者本地存储边界、匿名归属确认
+utils/plan-operations.js 持久计划保存/删除任务及本地墓碑
+utils/queue.js     两类任务执行器(单飞重试 + 网络恢复监听)
+utils/db.js        统一数据访问层(本地成立 + 可信云 RPC + 分页合并)
 utils/domain.js    ★ domain logic —— 核心规则 seam(纯函数,无运行时依赖)
 utils/format.js    展示层格式化纯函数
 data/exercises.js  离线动作库
@@ -142,7 +149,7 @@ training = { phase: 'ready' | 'rest' | 'finished' | 'paused', currentSetId, rest
 Exercise= { id, name, nameZh, equipment, bodyPart, target, imagePath, gifPath, instructionSteps, aliases }
 ```
 
-CloudBase 集合：`plans`、`sessions`（权限：仅创建者可读写）。
+CloudBase 集合：`plans`、`sessions`、`personalDataMeta`；首版配置要求客户端读写全部拒绝，可信云函数自行核对所有者、版本及代际。规则尚未部署核验；不能继续只按“创建者可写”配置并宣称旧写入路径已封闭。决策见 ADR-0013。
 
 ## 7. 设计系统：FORGE 与手动主题
 
@@ -178,14 +185,14 @@ npm test        # jest --coverage
 
 - **媒体版权**：数据层 MIT 可用；示意图/GIF 版权归 Gym visual（与 ExerciseDB 权利主张冲突，克隆仓库 ≠ 授权）。个人自用可加载真实媒体并署名；商用上线前必须取得书面授权，且不得把仓库媒体镜像再分发。分辨率限制 180×180。
 - **包体积**：动作库文本裁成 `id/name/nameZh/equipment/bodyPart/target/imagePath/gifPath/instructionSteps` 后打进主包；超 2MB 再分包。示意图与 GIF 不进包。
-- **环境配置**：`app.js` 顶部 `ENV_ID` 为云开发环境 ID；云数据库需建集合 `plans`、`sessions`；首次进入自动种入「胸三 / 背二 / 肩腿」演示计划。
+- **环境配置**：当前云环境入口为 `utils/cloud-service.js`，媒体根为 `data/media-root.js`；自行部署必须替换为自己的环境，不能误连现有环境。集合与规则见上文；首次本地进入可种入「胸三 / 背二 / 肩腿」演示计划，启用云服务时匿名数据归属须明确确认。
 - **训练清单改版与间歇**：用户已确认规则并验收视觉稿，领域与页面接入采用 v2；当前规格见 `.scratch/training-checklist-redesign/spec.md`。上一轮先开始本组、顺序推进和自动休息规则已被替代。微信原生关键场景无证据时不能标整体验收完成。
 - **MVP 不做**：趋势曲线的 top weight / 估算 1RM 指标（仅预留切换入口）。
 
 ## 10. 相关文档
 
 - 需求规格：`docs/spec.md`（定位、数据模型、动作库与验收边界）
-- 免费公开发布规格：`.scratch/public-release/issue.md`（ready-for-agent；本轮仅落规格，代码实施需另行授权），决策见 ADR-0012；尚未实施，不代表已部署或通过公开发布条件。
+- 免费公开发布规格：`.scratch/public-release/issue.md`；本轮已授权本地实施，实际进展见同目录 `implementation.md`，发布闸门见 `human-clearance.md`。首版范围决策见 ADR-0012，可信数据入口见 ADR-0013；源码实施不代表部署或正式发布验收。
 - 当前训练规格与验收任务：`.scratch/training-checklist-redesign/spec.md`、`.scratch/training-checklist-redesign/issue.md`；上一轮记录：`.scratch/set-by-set-training/`
 - 全站主题与原生布局修复：`.scratch/forge-theme-unification/issue.md`；只读量测脚本 `.scratch/forge-theme-unification/check-native-layout.py`
 - 动作库实现：`data/exercises.js`（离线目录）、`data/media-root.js`（CloudBase 媒体根）、`pages/library/library-paging.js`（分页预热）、生成脚本与媒体同步脚本
