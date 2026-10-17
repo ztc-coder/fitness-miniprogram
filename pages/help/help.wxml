@@ -1,0 +1,30 @@
+<view class="page theme-{{theme}}">
+  <view class="notice" wx:if="{{releaseBlocked}}">
+    <view class="card-title">资料未齐 · 正式发布受阻</view>
+    <view>以下为开发中的首版说明，不是已核实的对外隐私政策。</view>
+    <view wx:for="{{missingInfo}}" wx:key="*this" class="missing">{{item}}</view>
+  </view>
+  <view class="card">
+    <view class="card-title">运营者与公开支持</view>
+    <text selectable="{{true}}">{{operatorName}}</text>
+    <view class="contact-label">隐私权益请求 · {{privacyContact.label}}</view>
+    <text selectable="{{true}}">{{privacyContact.value}}</text>
+    <button class="contact-button" data-contact="privacyContact" bindtap="onCopyContact" disabled="{{!privacyContact.available}}">复制隐私联系方式</button>
+    <view class="contact-label">使用支持 · {{supportContact.label}}</view>
+    <text selectable="{{true}}">{{supportContact.value}}</text>
+    <button class="contact-button" data-contact="supportContact" bindtap="onCopyContact" disabled="{{!supportContact.available}}">复制支持联系方式</button>
+    <view class="paragraph">复制后请在该渠道联系；复制本身不会发送请求。</view>
+  </view>
+  <view class="content">
+    <view wx:for="{{sections}}" wx:key="id" id="{{item.id}}" class="card">
+      <view class="card-title">{{item.title}}</view>
+      <view wx:for="{{item.paragraphs}}" wx:for-item="paragraph" wx:key="*this" class="paragraph">{{paragraph}}</view>
+    </view>
+    <view class="card">
+      <view class="card-title">防复活最小技术元数据</view>
+      <view class="paragraph">用途：拒绝删除前旧写入，不用于恢复已删训练数据。</view>
+      <view class="paragraph">范围：{{metadataScope}}</view>
+      <view class="paragraph">保存策略：{{metadataRetention}}</view>
+    </view>
+  </view>
+</view>

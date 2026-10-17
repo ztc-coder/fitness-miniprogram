@@ -90,6 +90,12 @@ Page(themePage({
     });
   },
 
+  onOpenHelp(e) {
+    const section = e.currentTarget.dataset.section;
+    if (!['privacy', 'data', 'help'].includes(section)) return;
+    wx.navigateTo({ url: `/pages/help/help?section=${section}` });
+  },
+
   onShowLicense() {
     wx.showModal({
       ...(this.data.theme === 'light' ? { confirmColor: '#3E5429' } : {}),

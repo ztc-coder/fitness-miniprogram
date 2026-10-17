@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "test": "jest --coverage",
+    "check:public-info": "node scripts/check-public-info.js",
     "check:package": "node scripts/check-package-size.js"
   },
   "devDependencies": {
