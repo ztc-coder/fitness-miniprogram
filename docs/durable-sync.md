@@ -57,3 +57,12 @@
 追加真实数据层→云函数 main 贯通用例覆盖响应丢失、重启、重复flush、完整45计划分页/中断、旧云读、删除重启/防复活、一次成绩/一次游标。保留全部原断言；原“正式ID回填”断言更新为稳定逻辑ID；旧 in-flight add 测试改为 in-flight set，仍断言删除不复活和历史保留。旧25+4个历史 skip 未新增或变更。
 
 最终命令及结果见02 tracker和 implementation；原始日志在 `/tmp/ticket02-*.log`。未运行生产构建、未安装依赖、未 push/部署。
+
+## 02 P1 复审修复（本机 mock 边界）
+
+- 计划读取按逻辑 ID 保持已知 revision 单调：延迟旧列表即使在本地新写确认、持久任务已清除后返回，也不能把较新缓存的版本/内容回退。`migratePlansForCatalog` 共用 `fetchPlans` 合并入口；未确认任务仍最后叠加，遇到未知更高云版本仍保留原 expectedRevision 并拒绝冲突写，不自动抬版本。
+- 升级兼容：可信所有者已有 **同时不含 revision 与 operationId** 的旧 session，仅在 generation/expectedRevision/未删除检查通过、完整不可变业务快照深度相等时确认。比较只剥离上传时已知的 `_id/_openid/training/nextSetId/attempts/syncGeneration`，不使用字段白名单掩盖未知差异；对象键顺序不构成业务差异，数组顺序仍严格比较。原全局 doc ID 与01的 owned 命名空间均支持；只返回确认，不重写旧记录、不生成副本。字段缺失、实际成绩差异、未知额外字段、外人记录、墓碑或过期代际均不能借此确认。
+- 公开接口回归 `tests/personal-cloud.test.js`：真实 db/queue → personalData.main；只模拟 wx、云 SDK/存储边界。先捕获 revision1 列表、延迟返回，期间保存并确认 revision2，释放后下一次 revision3 编辑正常同步；普通读取与目录迁移均覆盖。旧版响应丢失夹具验证两种命名空间、后续场次/计划队列继续执行、游标不再推进、原记录不变及拒绝条件。
+- Red1 `/tmp/ticket02-p1-red1.log`：两个读取入口均回退 revision1（2失败/8通过）；Green1 `/tmp/ticket02-p1-green1.log`：10通过。迁移夹具显式提供有效 cursor0，避免未初始化游标触发正常迁移写入。
+- Red2 `/tmp/ticket02-p1-red2.log`：两种旧场次均阻塞队列（2失败/10通过）；Green2 `/tmp/ticket02-p1-green2.log`：12通过。追加8项拒绝回归后聚焦3套42通过，全量40套540通过、29既有跳过未变。命令与集成版本见02 tracker。
+- 以上不是云端或真机验证。未提供环境/设备，真实权限、事务及网络场景仍 **Blocked**；未修改 SDK 事务读取选项，未实现03，未安装依赖、生产构建、push或部署。

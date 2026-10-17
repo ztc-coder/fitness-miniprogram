@@ -74,8 +74,15 @@ function fetchCloudPlans() {
   return readCloudPlans().then((plans) => {
     service.assertCurrent(token);
     const local = readLocalPlans();
+    const localById = new Map(local.map(p => [p.id, p]));
     const cloudIds = new Set(plans.map(p => p.id));
-    const merged = operations.overlay(plans.filter(p => !p.deleted)
+    // A read may predate a write acknowledgement that already removed its task.
+    // Keep that newer local snapshot; pending edits still overlay below, without rebasing conflicts.
+    const monotonic = plans.map(p => {
+      const cached = localById.get(p.id);
+      return cached && cached.revision > p.revision ? cached : p;
+    });
+    const merged = operations.overlay(monotonic.filter(p => !p.deleted)
       .concat(local.filter(p => !cloudIds.has(p.id))));
     storage.setStorageSync(LOCAL_KEYS.PLANS, merged);
     return merged;
