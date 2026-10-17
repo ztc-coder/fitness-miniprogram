@@ -1,7 +1,7 @@
 page { background: var(--bg); color: var(--ink); }
 .training-page { min-height: 100vh; padding: 20rpx 30rpx calc(190rpx + env(safe-area-inset-bottom)); }
 .training-page.has-rest { padding-bottom: calc(350rpx + env(safe-area-inset-bottom)); }
-.training-page.show-summary { padding-bottom: calc(240rpx + env(safe-area-inset-bottom)); }
+.training-page.show-summary { padding-bottom: calc(180rpx + env(safe-area-inset-bottom)); }
 button { color: inherit; border-radius: 0; }
 button[disabled] { opacity: .4; color: inherit; }
 .primary-button { border-radius: 28rpx; min-height: 96rpx; font-size: 30rpx; font-weight: 600; letter-spacing: 0; }
@@ -76,6 +76,7 @@ button[disabled] { opacity: .4; color: inherit; }
 .sheet-title { font-size: 38rpx; font-weight: 650; }
 .sheet-subtitle { font-size: 24rpx; color: var(--ink-dim); margin-top: 4rpx; }
 .training-page .collapse-button { width: 112rpx; flex: 0 0 112rpx; min-width: 0; min-height: 88rpx; border: 1rpx solid var(--line-strong); border-radius: 32rpx; background: var(--surface); color: var(--ink); font-size: 24rpx; display: flex; align-items: center; justify-content: center; }
+.collapse-caret { width: 13rpx; height: 13rpx; margin: -6rpx 0 0 8rpx; border-right: 3rpx solid currentColor; border-bottom: 3rpx solid currentColor; transform: rotate(45deg); }
 .timer-ring { position: relative; width: 390rpx; height: 390rpx; margin: 30rpx auto; border-radius: 50%; box-shadow: var(--signal-glow), inset 0 0 40rpx var(--signal-soft); }
 .ring-track { position: absolute; inset: 0; border: 16rpx solid var(--surface-2); border-radius: 50%; }
 .ring-half { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; }
@@ -116,7 +117,7 @@ button[disabled] { opacity: .4; color: inherit; }
 .recap-name { flex: 1; min-width: 0; overflow-wrap: break-word; }
 .recap-volume { color: var(--signal); flex-shrink: 0; }
 .summary-saved { font-size: 23rpx; margin-top: 30rpx; color: var(--ink-dim); }
-.summary-bottom .text-button { width: 100%; min-height: 88rpx; font-size: 24rpx; color: var(--ink-dim); }
+.training-page .summary-bottom .bottom-actions > button { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 104rpx; padding: 18rpx 12rpx; font-size: 28rpx; }
 .pressed { opacity: .75; }
 .media-credit { color: var(--ink-dim); font-size: 20rpx; margin: 20rpx 0; }
 

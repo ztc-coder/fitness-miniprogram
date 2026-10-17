@@ -78,7 +78,15 @@ test('计划入口复用既有导航，展示模板保留草稿和启动条件',
   expect(template).toContain('bindtap="onResumeDraft" disabled="{{starting}}"');
   expect(template).toContain('bindtap="onStartTraining" disabled="{{starting}}"');
   expect(template).toContain('data-index="{{index}}" binderror="onImageError"');
-  expect(JSON.parse(fs.readFileSync('pages/today/today.json', 'utf8')).navigationBarTitleText).toBe('FORGE');
+  expect(JSON.parse(fs.readFileSync('pages/today/today.json', 'utf8')).navigationBarTitleText).toBe('撸铁小账本');
+});
+
+test('首页、全局导航和开发者工具项目名称保持一致', () => {
+  const name = '撸铁小账本';
+  expect(JSON.parse(fs.readFileSync('app.json', 'utf8')).window.navigationBarTitleText).toBe(name);
+  expect(JSON.parse(fs.readFileSync('pages/today/today.json', 'utf8')).navigationBarTitleText).toBe(name);
+  expect(JSON.parse(fs.readFileSync('project.config.json', 'utf8')).projectname).toBe(name);
+  expect(JSON.parse(fs.readFileSync('package.json', 'utf8')).description).toContain(name);
 });
 
 test('加载后的真实动作图片白底 normal，不染色', () => {

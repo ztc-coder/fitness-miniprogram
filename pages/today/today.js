@@ -132,7 +132,6 @@ Page(themePage({
       return;
     }
     this._starting = true;
-    this.setData({ starting: true });
     if (!draft) {
       this.createTrainingDraft(plan, null);
       return;
@@ -178,6 +177,7 @@ Page(themePage({
       }
       // 单次覆盖写：失败时旧草稿仍在，不先删旧数据，也不提交或推进。
       wx.setStorageSync(TRAINING_DRAFT_KEY, session);
+      // 防连点由 _starting JS 锁负责，不禁用按钮，避免跳转期间出现灰色残影。
       this.setData({ hasDraft: true, draftInfo: this.buildDraftInfo(session) });
     } catch (err) {
       this.releaseStart();

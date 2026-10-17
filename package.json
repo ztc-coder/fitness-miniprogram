@@ -1,10 +1,11 @@
 {
   "name": "fitness-miniprogram",
   "version": "0.1.0",
-  "description": "健身训练小程序 MVP - 第 N 天循环力量训练打卡工具",
+  "description": "撸铁小账本 - 第 N 天循环力量训练打卡工具",
   "private": true,
   "scripts": {
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "check:package": "node scripts/check-package-size.js"
   },
   "devDependencies": {
     "@cloudbase/manager-node": "^5.8.8",

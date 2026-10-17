@@ -71,13 +71,13 @@
     <view class="recap-heading"><text>这次的积累</text><text class="recap-meta">{{summary.completedSets}} 组已记录</text></view>
     <view wx:for="{{summary.exercises}}" wx:key="key" class="recap-row"><view class="recap-name"><view>{{item.name}}</view><view class="recap-meta">{{item.completed}} 组完成</view></view><text class="recap-volume mono">{{item.volumeText}}</text></view>
     <view class="summary-saved">本次训练已保存</view>
-    <view class="bottom-bar summary-bottom"><button class="primary-button" bindtap="onSummaryBackToday">回到今天</button><button class="text-button" bindtap="onSummaryViewRecords">查看训练记录</button></view>
+    <view class="bottom-bar summary-bottom"><view class="bottom-actions"><button class="secondary-button" bindtap="onSummaryViewRecords">查看训练记录</button><button class="primary-button" bindtap="onSummaryBackToday">回到今天</button></view></view>
   </view>
 
   <view wx:if="{{restExpanded && restActive && !showSummary}}" class="rest-backdrop" catchtouchmove="onBlockTouch">
     <view class="rest-sheet" role="dialog" aria-label="组间休息">
       <view class="sheet-handle"></view>
-      <view class="sheet-heading"><view><view class="sheet-title">组间休息</view><view class="sheet-subtitle">调整呼吸，恢复力量迎接下一组</view></view><button class="collapse-button" bindtap="onCollapseRest">收起 ⌄</button></view>
+      <view class="sheet-heading"><view><view class="sheet-title">组间休息</view><view class="sheet-subtitle">调整呼吸，恢复力量迎接下一组</view></view><button class="collapse-button" bindtap="onCollapseRest">收起<view class="collapse-caret"></view></button></view>
       <scroll-view class="rest-body" scroll-y="{{true}}" show-scrollbar="{{false}}">
       <view class="timer-ring">
         <view class="ring-ticks"><view wx:for="{{restTicks}}" wx:key="*this" class="ring-tick" style="transform: rotate({{item}}deg)"></view></view>
