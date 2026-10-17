@@ -102,9 +102,10 @@ describe('savePlan 本地写穿', () => {
       });
   });
 
-  test('云端成功时用返回的正式 id 替换本地 local_ 记录', () => {
+  test('云端成功时用返回的正式 id 替换本地 local_ 记录', async () => {
     const { storage } = mockWx({ cloudOk: true });
     const db = loadDb();
+    await require('./helpers/cloud-runtime').enableCloud();
     return db.savePlan(buildLocalPlan()).then((saved) => {
       expect(saved.id).toBe('cloud_generated_id');
       expect(storage['fitness:plans']).toHaveLength(1);

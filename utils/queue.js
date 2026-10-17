@@ -1,3 +1,4 @@
+const storage = require('./owner-storage');
 /**
  * 提交队列执行器
  * 本地完成日志先成立;这里注入真实网络请求,无网自动排队重试。
@@ -5,6 +6,7 @@
 const domain = require('./domain');
 const db = require('./db');
 const log = require('./training-log');
+const service = require('./cloud-service');
 
 const QUEUE_KEY = 'fitness:pendingQueue';
 const RETRY_DELAY_MS = 15000;
@@ -12,13 +14,13 @@ const RETRY_DELAY_MS = 15000;
 let flushing = null;
 
 function getQueue() {
-  const legacy = wx.getStorageSync(QUEUE_KEY) || [];
+  const legacy = storage.getStorageSync(QUEUE_KEY) || [];
   return legacy.filter(s => !log.read().some(e => e.session.id === s.id))
     .concat(log.read().filter(e => !e.sessionSynced || !e.planSynced).map(e => e.session));
 }
 
 function saveQueue(queue) {
-  wx.setStorageSync(QUEUE_KEY, queue);
+  storage.setStorageSync(QUEUE_KEY, queue);
 }
 
 function isOnline() {
@@ -35,7 +37,7 @@ function isOnline() {
  */
 function push(session) {
   if (getCompletedSession(session.id)) return flush();
-  const queue = domain.enqueueSession(wx.getStorageSync(QUEUE_KEY) || [], session);
+  const queue = domain.enqueueSession(storage.getStorageSync(QUEUE_KEY) || [], session);
   saveQueue(queue);
   return flush();
 }
@@ -63,8 +65,8 @@ function complete(session, now = Date.now()) {
     }]));
     // All subsequent writes are repairable; the log already establishes completion.
     try {
-      const draft = wx.getStorageSync('fitness:trainingDraft');
-      if (draft && draft.id === final.id) wx.removeStorageSync('fitness:trainingDraft');
+      const draft = storage.getStorageSync('fitness:trainingDraft');
+      if (draft && draft.id === final.id) storage.removeStorageSync('fitness:trainingDraft');
     } catch (err) { /* residual draft */ }
     Promise.resolve().then(flush).catch(() => {});
     return Promise.resolve(final);
@@ -72,9 +74,13 @@ function complete(session, now = Date.now()) {
 }
 
 function flush() {
+  if (!service.ready()) return Promise.resolve(getQueue());
   if (flushing) return flushing;
+  const token = service.snapshot();
   flushing = Promise.resolve().then(isOnline).then(async online => {
     while (true) {
+      service.assertCurrent(token);
+      if (!service.ready()) break;
       const pending = getQueue();
       const decision = domain.decideSubmission(pending, online);
       if (decision.action === 'idle' || decision.action === 'queued') break;
@@ -83,17 +89,20 @@ function flush() {
       try {
         if (!entry || !entry.sessionSynced) {
           await db.submitSession(target);
+          service.assertCurrent(token);
           if (entry) log.update(target.id, { sessionSynced: true });
-          else saveQueue(domain.dequeueSession(wx.getStorageSync(QUEUE_KEY) || [], target.id));
+          else saveQueue(domain.dequeueSession(storage.getStorageSync(QUEUE_KEY) || [], target.id));
         }
         if (entry && !entry.planSynced && !log.isPlanDeleted(entry.plan.id)) {
           await db.syncCompletedPlan(entry.plan);
+          service.assertCurrent(token);
           log.update(target.id, { planSynced: true });
         }
       } catch (err) {
+        service.assertCurrent(token);
         console.warn('session 提交失败,进入重试队列', err);
         if (!entry) {
-          try { saveQueue(domain.markAttemptFailed(wx.getStorageSync(QUEUE_KEY) || [], target.id)); } catch (writeError) { /* retry original */ }
+          try { saveQueue(domain.markAttemptFailed(storage.getStorageSync(QUEUE_KEY) || [], target.id)); } catch (writeError) { /* retry original */ }
         }
         break;
       }
@@ -106,7 +115,10 @@ function flush() {
 /**
  * 监听网络恢复,自动重试队列。
  */
+let watching = false;
 function watchNetwork() {
+  if (watching || !service.ready() || typeof wx.onNetworkStatusChange !== 'function') return;
+  watching = true;
   wx.onNetworkStatusChange((res) => {
     if (res.isConnected) {
       setTimeout(flush, 500);

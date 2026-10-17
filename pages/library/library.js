@@ -1,3 +1,5 @@
+const { ownerPage } = require('../../utils/owner-page');
+const storage = require('../../utils/owner-storage');
 /**
  * 动作库:离线浏览发布目录、搜索、七类部位键 + 器械原值两维胶囊多选
  * 三种打开方式:
@@ -32,7 +34,7 @@ function toggleKey(selected, key) {
     : selected.filter((item) => item !== key);
 }
 
-Page(themePage({
+Page(ownerPage(themePage({
   data: {
     query: '',
     equipmentKeys: [],
@@ -230,7 +232,7 @@ Page(themePage({
 
   /** 训练中加练:只写训练草稿,不写计划 */
   addToDraft(exerciseId) {
-    const draft = wx.getStorageSync(DRAFT_KEY);
+    const draft = storage.getStorageSync(DRAFT_KEY);
     const item = lib.findById(exerciseId);
     if (!draft || !item) return false;
     if (queue.getCompletedSession(draft.id)) {
@@ -238,7 +240,7 @@ Page(themePage({
       return false;
     }
     try {
-      wx.setStorageSync(
+      storage.setStorageSync(
         DRAFT_KEY,
         domain.addSessionExercise(domain.upgradeTrainingDraft(draft), {
           exerciseId: item.id,
@@ -355,4 +357,4 @@ Page(themePage({
   onClosePicker() {
     this.setData({ pickerVisible: false });
   },
-}));
+})));

@@ -147,14 +147,11 @@ test('完成小结双向切换不改变本地完成事实、统计与队列且�
   ids.forEach(setId => page.onToggleSet(event({ setId })));
   wx.removeStorageSync = jest.fn(key => storage.delete(key));
   wx.getNetworkType = jest.fn(({ success }) => success({ networkType: 'none' }));
-  wx.cloud = { database: () => {
-    const query = { orderBy: () => query, limit: () => query, get: () => Promise.resolve({ data: [
+  storage.set('fitness:pendingQueue', [
       { id: 'previous', planId: 'plan', dayId: 'push', submittedAt: 900000, exercises: [
         { equipment: 'barbell', sets: [{ weight: 30, reps: 10 }] },
       ] },
-    ] }) };
-    return { collection: () => query };
-  } };
+  ]);
   await page.onFinish();
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
   expect(page.data.showSummary).toBe(true);

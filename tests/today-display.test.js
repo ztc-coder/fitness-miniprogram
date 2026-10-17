@@ -53,7 +53,7 @@ test('动作数量、组数、循环位置和下次训练使用当前计划真�
   expect(view).toMatchObject({ exerciseCount: 2, totalSets: 6, dayNum: '02', dayTotal: '02', nextDayName: '背部' });
   expect(view.exercises[0]).toMatchObject({ name: '原计划动作名', prescription: '4 × 8' });
   expect(view.exercises[0].note).toContain('45 kg');
-  expect(view.exercises[0].imageSrc).toMatch(/^cloud:\/\//);
+  expect(view.exercises[0].imageSrc).toBe('');
   expect(view.exercises[1]).toMatchObject({ imageSrc: '', note: '自重 · 额外负重 0 kg' });
   expect(plan.cycleDays[1].exercises[0].imageSrc).toBeUndefined();
 });

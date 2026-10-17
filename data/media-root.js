@@ -23,9 +23,14 @@ const MEDIA_ROOT = 'cloud://cloud1-d2ga0mned4bbf9b29.636c-cloud1-d2ga0mned4bbf9b
  * 拼接媒体地址;前缀未配置或路径为空时返回空串(调用方据此降级 glyph)。
  * root 参数仅供测试注入,业务代码一律用默认 MEDIA_ROOT。
  */
-function resolveMedia(path, root = MEDIA_ROOT) {
+function resolveAsset(path, root = MEDIA_ROOT) {
   if (!root || !path) return '';
   return root.replace(/\/+$/, '') + '/' + String(path).replace(/^\/+/, '');
 }
 
-module.exports = { MEDIA_ROOT, resolveMedia };
+function resolveMedia(path, root = MEDIA_ROOT) {
+  if (!require('../utils/cloud-service').ready()) return '';
+  return resolveAsset(path, root);
+}
+
+module.exports = { MEDIA_ROOT, resolveMedia, resolveAsset };

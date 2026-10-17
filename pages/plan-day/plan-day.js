@@ -1,3 +1,4 @@
+const { ownerPage } = require('../../utils/owner-page');
 /**
  * 训练日详情:管理当天动作列表(统一目标、调顺序、删除),动作库入口
  */
@@ -8,7 +9,7 @@ const { resolveMedia } = require('../../data/media-root');
 
 const { themePage } = require('../../utils/theme');
 
-Page(themePage({
+Page(ownerPage(themePage({
   data: {
     planId: '',
     dayId: '',
@@ -104,6 +105,7 @@ Page(themePage({
       placeholderText: '格式:组数x次数x重量,如 4x8x60',
       content: `${item.sets}x${item.targetReps}x${item.targetWeight}`,
       success: (res) => {
+        if (!this.isCurrentOwner()) return;
         if (!res.confirm || !res.content) return;
         const match = String(res.content).match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)/);
         if (!match) {
@@ -135,4 +137,4 @@ Page(themePage({
       url: `/pages/library/library?planId=${this.data.planId}&dayId=${this.data.dayId}`,
     });
   },
-}));
+})));

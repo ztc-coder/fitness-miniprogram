@@ -72,7 +72,7 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
   let setDataCalls;
   let pendingCallbacks;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
     page = null;
     setDataCalls = [];
@@ -85,6 +85,7 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
       setStorageSync: () => {},
       navigateBack: () => {},
     };
+    await require('./helpers/cloud-runtime').enableCloud();
     require('../pages/library/library');
     page = Object.assign({}, page, {
       data: JSON.parse(JSON.stringify(page.data)),
@@ -291,7 +292,7 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
     expect(/[^\x00-\x7F]/.test(page.data.detail.equipmentZh)).toBe(true);
   });
 
-  test('pick=1 加练入口不变:选中后写入训练草稿并返回', () => {
+  test('pick=1 加练入口不变:选中后写入训练草稿并返回', async () => {
     const draft = { exercises: [] };
     const stored = {};
     global.wx = {
@@ -302,6 +303,7 @@ describe('动作库页面:原值胶囊多选、一次提交与分页预热', () 
       navigateBack: jest.fn(),
     };
 
+    await require('./helpers/cloud-runtime').enableCloud();
     page.onLoad({ pick: '1' });
     expect(page.data.pickMode).toBe(true);
 

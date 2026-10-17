@@ -1,3 +1,4 @@
+const { ownerPage } = require('../../utils/owner-page');
 /**
  * 记录 tab:
  *  视图一(先做):按训练场次 session 时间线倒序回看
@@ -15,7 +16,7 @@ const METRICS = [
   { key: 'e1rm', label: '估算 1RM · 预留' },
 ];
 
-Page(themePage({
+Page(ownerPage(themePage({
   data: {
     view: 'trend',
     sessions: [],
@@ -155,4 +156,4 @@ Page(themePage({
     }
     this.setData({ metric: key, metricLabel: label, showMetricSheet: false });
   },
-}));
+})));

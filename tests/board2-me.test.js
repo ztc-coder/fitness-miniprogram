@@ -51,7 +51,7 @@ test('offline month fields use domain stats from merged local history without wr
   expect(page.data.monthHours).toBe('1.5');
   expect(page.data.monthProgress).toBeCloseTo(2 / 31 * 100);
   expect(page.data.pendingCount).toBe(1);
-  expect(page.data.openid).toBe('test-openid');
+  expect(page.data.openid).toBe('');
   expect(page.data.networkStatus).toContain('无网络');
   expect(JSON.stringify(storage)).toBe(original);
   expect(wx.setStorageSync).not.toHaveBeenCalled();
@@ -82,13 +82,14 @@ test('settings, offline flush and informational handlers retain existing behavio
   storage['fitness:settings'] = { unit: 'lb', offlineMode: false };
   storage['fitness:pendingQueue'] = [session('pending', Date.now())];
   await page.onShow();
-  expect(page.data).toMatchObject({ unit: 'lb', offlineMode: false, pendingCount: 1 });
+  expect(page.data).toMatchObject({ unit: 'lb', offlineMode: true, pendingCount: 1 });
   page.onToggleOffline();
-  expect(storage['fitness:settings']).toEqual({ unit: 'lb', offlineMode: true });
+  expect(storage['fitness:settings']).toEqual({ unit: 'lb', offlineMode: false });
+  expect(wx.showModal).toHaveBeenCalled();
   page.onFlushQueue();
   for (let i = 0; i < 20; i++) await Promise.resolve();
   expect(page.data.pendingCount).toBe(1);
-  expect(wx.showToast).toHaveBeenCalledWith({ title: '剩余 1 条待重试', icon: 'none' });
+  expect(wx.showToast).toHaveBeenCalledWith({ title: '仅本地保存；请先启用或重试本人云服务', icon: 'none' });
   page.onShowLoginInfo();
   expect(wx.showModal).toHaveBeenLastCalledWith(expect.objectContaining({ title: '登录状态' }));
   page.onShowLicense();

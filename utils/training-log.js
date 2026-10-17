@@ -1,7 +1,8 @@
+const storage = require('./owner-storage');
 /** 单键同步写是本地完成提交点;云成功后也保留历史。 */
 const KEY = 'fitness:completedTraining';
-function read() { return wx.getStorageSync(KEY) || []; }
-function write(entries) { wx.setStorageSync(KEY, entries); }
+function read() { return storage.getStorageSync(KEY) || []; }
+function write(entries) { storage.setStorageSync(KEY, entries); }
 function update(id, changes) {
   write(read().map(entry => entry.session.id === id ? Object.assign({}, entry, changes) : entry));
 }

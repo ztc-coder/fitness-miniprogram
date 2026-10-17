@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const { EXERCISES } = require('../data/exercises.js');
-const { MEDIA_ROOT, resolveMedia } = require('../data/media-root.js');
+const { MEDIA_ROOT, resolveAsset: resolveMedia } = require('../data/media-root.js');
 
 const ENV_ID = 'cloud1-d2ga0mned4bbf9b29';
 const CLOUD_ROOT = 'exercises';

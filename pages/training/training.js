@@ -1,3 +1,5 @@
+const { ownerPage } = require('../../utils/owner-page');
+const storage = require('../../utils/owner-storage');
 /**
  * 训练中:单次训练全程本地缓存,结束时整体提交
  * 逐组确认与时间戳间歇；本地完成后云端异步重试
@@ -17,7 +19,7 @@ const clockText = seconds => {
   return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
 };
 
-Page(themePage({
+Page(ownerPage(themePage({
   data: {
     session: null,
     reloadBlocked: true,
@@ -49,7 +51,7 @@ Page(themePage({
 
   onLoad() {
     try {
-      const draft = wx.getStorageSync(DRAFT_KEY);
+      const draft = storage.getStorageSync(DRAFT_KEY);
       if (!draft) {
         this.blockReload();
         wx.showToast({ title: '没有进行中的训练', icon: 'none' });
@@ -72,7 +74,7 @@ Page(themePage({
     if (this._finishLocked || this._unloaded || this.data.showSummary) return;
     if (!this.data.session || this.data.reloadBlocked) return;
     try {
-      const draft = wx.getStorageSync(DRAFT_KEY);
+      const draft = storage.getStorageSync(DRAFT_KEY);
       if (draft && draft.id === this.data.session.id) {
         const completed = queue.getCompletedSession(draft.id);
         if (completed) {
@@ -106,7 +108,7 @@ Page(themePage({
 
   adoptDraft(draft) {
     const upgraded = domain.upgradeTrainingDraft(draft);
-    if (upgraded !== draft) wx.setStorageSync(DRAFT_KEY, upgraded);
+    if (upgraded !== draft) storage.setStorageSync(DRAFT_KEY, upgraded);
     this._inputEdits = {};
     this.setData({ session: upgraded, reloadBlocked: false, errorText: '' }, () => this.renderExercises());
   },
@@ -279,7 +281,7 @@ Page(themePage({
     if (!this.canEdit()) return false;
     const previous = this.data.session;
     try {
-      wx.setStorageSync(DRAFT_KEY, nextSession);
+      storage.setStorageSync(DRAFT_KEY, nextSession);
     } catch (err) {
       this.setData({ errorText: '本机保存失败，未应用本次操作。请释放存储空间后重试。' });
       this.renderExercises();
@@ -368,6 +370,7 @@ Page(themePage({
       ...(this.data.theme === 'light' ? { itemColor: '#20262B' } : {}),
       itemList: ['跳过剩余组', '恢复跳过组', '移除未练动作'],
       success: (res) => {
+        if (!this.isCurrentOwner()) return;
         if (!this.canRecord()) return;
         const ref = this.findSet(anchorId);
         if (!ref) return;
@@ -514,11 +517,12 @@ Page(themePage({
         content: `已完成 ${progress.completed} 组，剩余 ${progress.pending} 组将跳过。保存实际成绩后，计划进入下一训练日。`,
         confirmText: '保存结束', cancelText: '继续记录',
         success: result => {
+          if (!this.isCurrentOwner()) return;
           this.releaseConfirmation();
           if (!result.confirm || !this.canRecord()) { resolve(); return; }
           // 系统弹窗期间可能切后台或从其他入口更新草稿，确认只对眼前版本生效。
           try {
-            const latest = wx.getStorageSync(DRAFT_KEY);
+            const latest = storage.getStorageSync(DRAFT_KEY);
             if (!latest || JSON.stringify(latest) !== JSON.stringify(session)) {
               this.setData({ errorText: '训练记录已变化，请重新读取后确认结束。' });
               this.onShow();
@@ -610,4 +614,4 @@ Page(themePage({
   onSummaryViewRecords() {
     wx.switchTab({ url: '/pages/records/records' });
   },
-}));
+})));

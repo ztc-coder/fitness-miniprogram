@@ -45,6 +45,7 @@ afterEach(() => {
 
 test('超过 50 场且无本地历史时，读取完整云端历史供累计和本月统计', async () => {
   const { db, sessions, requests, now } = setup();
+  await require('./helpers/cloud-runtime').enableCloud();
   const result = await db.fetchAllSessions();
   expect(result).toEqual(sessions);
   expect(requests).toEqual([0, 20, 40, 60].map(offset => ({ offset, count: 20 })));
@@ -53,6 +54,7 @@ test('超过 50 场且无本地历史时，读取完整云端历史供累计和�
 
 test('汇总页面使用完整云端历史，月度环封顶但不截断真实场次和容量', async () => {
   const { now } = setup();
+  await require('./helpers/cloud-runtime').enableCloud();
   jest.spyOn(Date, 'now').mockReturnValue(now);
   let definition;
   global.Page = value => { definition = value; };
@@ -77,6 +79,7 @@ test('汇总页面使用完整云端历史，月度环封顶但不截断真实�
 
 test('云端、本地完成日志和队列同 id 去重，本地新成绩优先且不写入存储', async () => {
   const { db, storage, sessions } = setup();
+  await require('./helpers/cloud-runtime').enableCloud();
   const local = { ...sessions[0], dayName: '本地版本' };
   const pending = { ...sessions[0], id: 'pending-only' };
   storage['fitness:completedTraining'] = [{ session: local, sessionSynced: false, planSynced: true }];
@@ -90,6 +93,7 @@ test('云端、本地完成日志和队列同 id 去重，本地新成绩优先�
 
 test.each([0, 20])('第 %i 条开始断网时仍返回已读取与本地记录', async failAt => {
   const { db, storage } = setup({ failAt });
+  await require('./helpers/cloud-runtime').enableCloud();
   storage['fitness:pendingQueue'] = [{ id: 'offline', startedAt: 1, submittedAt: 2 }];
   const result = await db.fetchAllSessions();
   expect(result).toHaveLength(failAt + 1);

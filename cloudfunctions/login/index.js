@@ -5,9 +5,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 exports.main = async () => {
   const wxContext = cloud.getWXContext();
-  return {
-    openid: wxContext.OPENID,
-    appid: wxContext.APPID,
-    unionid: wxContext.UNIONID,
-  };
+  if (typeof wxContext.OPENID !== 'string' || !wxContext.OPENID.trim()) {
+    throw new Error('缺少可信微信身份');
+  }
+  return { openid: wxContext.OPENID };
 };

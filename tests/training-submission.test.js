@@ -1,3 +1,4 @@
+const { enableCloud } = require('./helpers/cloud-runtime');
 const domain = require('../utils/domain');
 function environment() {
   const storage = {};
@@ -65,7 +66,7 @@ test('gate rejects pending and all-skipped, missing plan completes without inven
   expect(await db.fetchPlans()).toEqual([]);
 });
 test('cloud stable-id retries preserve submitted time, ignore zero ack and retain history after sync', async () => {
-  const { queue, db } = environment();
+  const { queue, db } = environment(); await enableCloud();
   const s = finished();
   const final = await queue.complete(s, 500);
   let ack = { stats: { created: 0, updated: 0 } };
@@ -83,7 +84,7 @@ test('cloud stable-id retries preserve submitted time, ignore zero ack and retai
   expect(await db.fetchSessions()).toEqual([final]);
 });
 test('offline cursor beats old cloud across fetch and seed migration paths', async () => {
-  const { storage, queue, db } = environment();
+  const { storage, queue, db } = environment(); await enableCloud();
   storage['fitness:plans'] = [plan()];
   await queue.complete(finished(), 500);
   const get = () => Promise.resolve({ data: [Object.assign({}, plan(), { _id: 'p' })] });
@@ -92,7 +93,7 @@ test('offline cursor beats old cloud across fetch and seed migration paths', asy
   expect((await db.ensureSeedPlans())[0].cursor).toBe(1);
 });
 test('local plan remapping and ack-write failure retry never duplicate advancement or upload', async () => {
-  const { storage, queue, db } = environment();
+  const { storage, queue, db } = environment(); await enableCloud();
   const p = plan('local_plan_x'); storage['fitness:plans'] = [p];
   const final = await queue.complete(finished(p), 500);
   await queue.flush();
@@ -116,7 +117,7 @@ test('local plan remapping and ack-write failure retry never duplicate advanceme
   expect(ids.filter(id => id === final.id)).toHaveLength(2);
 });
 test('seed migration syncs a completed local plan through stable mapping, then retry keeps one plan', async () => {
-  const { storage, queue, db } = environment();
+  const { storage, queue, db } = environment(); await enableCloud();
   const p = plan('local_plan_seed'); storage['fitness:plans'] = [p];
   await queue.complete(finished(p),500); await queue.flush();
   const remote = new Map();
@@ -130,7 +131,7 @@ test('seed migration syncs a completed local plan through stable mapping, then r
   expect((await db.fetchPlans())[0].cursor).toBe(1);
 });
 test('legacy queue retries remain compatible and cannot enqueue a completed id again', async () => {
-  const { storage, queue } = environment();
+  const { storage, queue } = environment(); await enableCloud();
   const final = await queue.complete(finished(),500); await queue.flush();
   await queue.push(final);
   expect(queue.getQueue()).toHaveLength(1);
@@ -144,7 +145,7 @@ test('legacy queue retries remain compatible and cannot enqueue a completed id a
   expect(queue.getQueue()).toHaveLength(0);
 });
 test('cloud duplicates cannot replace canonical completion and session uploads strip server/runtime fields', async () => {
-  const { queue, db } = environment();
+  const { queue, db } = environment(); await enableCloud();
   const s = finished(); s._id = 'server'; s._openid = 'owner'; s.attempts = 3;
   const final = await queue.complete(s,500); await queue.flush();
   const set = jest.fn(() => Promise.resolve({stats:{updated:1,created:0}}));
@@ -157,7 +158,7 @@ test('cloud duplicates cannot replace canonical completion and session uploads s
   expect(await db.fetchSessions()).toEqual([final]);
 });
 test.each(['p', 'local_plan_deleted'])('deleting completed plan %s cancels plan work but retains history across retry', async id => {
-  const { storage, queue, db } = environment();
+  const { storage, queue, db } = environment(); await enableCloud();
   const p = plan(id); storage['fitness:plans'] = [p];
   const final = await queue.complete(finished(p), 500); await queue.flush();
   await db.deletePlan(id);
@@ -172,7 +173,7 @@ test.each(['p', 'local_plan_deleted'])('deleting completed plan %s cancels plan 
   expect(queue.getCompletedSession(final.id)).toEqual(final);
 });
 test.each(['raw', 'alias'])('deletion during inflight completed plan set by %s id never revives it', async mode => {
-  const { storage, queue, db } = environment();
+  const { storage, queue, db } = environment(); await enableCloud();
   const p = plan('local_plan_race'); storage['fitness:plans'] = [p];
   const final = await queue.complete(finished(p),500); await queue.flush();
   let release, entered;
@@ -207,7 +208,7 @@ test('deletion marker failure reports failure and cache cleanup failure recovers
   expect(require('../utils/queue').getCompletedSession(final.id)).toEqual(final);
 });
 test('queue head blocks later work on failure and plan-only retries never upload or advance again', async () => {
-  const {storage,queue,db} = environment(); storage['fitness:plans'] = [plan()];
+  const {storage,queue,db} = environment(); storage['fitness:plans'] = [plan()]; await enableCloud();
   storage['fitness:pendingQueue'] = [{id:'legacy',exercises:[]}];
   const final = await queue.complete(finished(),500); await queue.flush();
   const writes = []; let failSession = true, failPlan = true;
@@ -228,7 +229,7 @@ test('queue head blocks later work on failure and plan-only retries never upload
   expect(queue.getQueue()).toEqual([]);
 });
 test('original local save callback cannot resurrect a plan deleted after completion', async () => {
-  const {storage,queue,db} = environment(); const p = plan('local_plan_save');
+  const {storage,queue,db} = environment(); const p = plan('local_plan_save'); await enableCloud();
   let release;
   const removed = [];
   wx.cloud.database = () => ({collection: () => ({add: () => new Promise(resolve => {release = resolve;}),doc: id => ({remove: () => {removed.push(id);return Promise.resolve({});}})})});

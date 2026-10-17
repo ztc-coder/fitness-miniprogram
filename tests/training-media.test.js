@@ -1,12 +1,13 @@
 describe('训练页动作详情媒体反查', () => {
   let page;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
     global.Page = (definition) => {
       page = definition;
     };
-    global.wx = {};
+    global.wx = { getStorageSync: () => undefined, setStorageSync() {} };
+    await require('./helpers/cloud-runtime').enableCloud();
     require('../pages/training/training');
     page = Object.assign({}, page, {
       data: JSON.parse(JSON.stringify(page.data)),

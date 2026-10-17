@@ -1,0 +1,9 @@
+{
+  "name": "personal-data",
+  "version": "1.0.0",
+  "description": "可信身份私人数据访问",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
