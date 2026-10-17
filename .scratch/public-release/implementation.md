@@ -43,3 +43,4 @@
 - 事务最低 SDK 要求 1.7.0，当前 `~2.6.3` 支持；云函数可用 `runTransaction`，事务内只允许单记录操作，可对多记录/多集合操作，不使用 `where` 批量写事务。
 - 官方资料：[事务指南](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/database/transaction)、[runTransaction](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/reference-sdk-api/database/Database.runTransaction.html)、[安全规则](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/database/security-rules.html)。运行时代码必须核对具体 SDK 返回值与错误，不把任意读取失败当作不存在。
 - 仓库外共享笔记 `/tmp/public-release-cloudbase-research.md` 供第02/03票参考；真实 SDK、规则与事务竞态仍须第05票测试环境实测。
+- 精确版本补核：官方 npm 发布源码显示 `wx-server-sdk@2.6.3` 的 `runTransaction` 直接返回回调值，新版文档的 `{result, errMsg}` 包装不能照搬。默认缺失文档 `get()` 抛 `errCode:-1` 及明确的缺失消息；`-1` 不是专用不存在码，禁止吞掉全部读取错误。此修正已交第02票；包版本与实际云端部署仍需核对。
