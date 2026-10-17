@@ -24,3 +24,4 @@
 | [0009](./0009-seven-part-library-filter.md) | 动作库部位筛选改为七类训练部位 | 已采纳 |
 | [0010](./0010-explicit-set-results-and-local-completion.md) | 逐组显式结果、草稿兼容与整场本地完成 | 已采纳；实现与复审完成，待真机验收 |
 | [0011](./0011-checklist-training-and-independent-rest.md) | 自由勾选记录、独立间歇与 v2 草稿 | 已采纳；用户已确认规则和视觉 |
+| [0012](./0012-public-release-and-conflict-preservation.md) | 免费公开工具首版最小发布闭环；冲突副本与备份延后 | 范围已采纳；本轮仅落规格，尚未实施 |
