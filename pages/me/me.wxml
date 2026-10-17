@@ -79,6 +79,18 @@
 
   <view class="section-kicker">关于</view>
   <view class="setting-list about-list">
+    <view class="setting-row" bindtap="onOpenHelp" data-section="privacy" role="button" aria-label="隐私说明与公开支持">
+      <view class="setting-name">隐私说明与公开支持</view>
+      <text class="setting-chevron">›</text>
+    </view>
+    <view class="setting-row" bindtap="onOpenHelp" data-section="data" role="button" aria-label="数据管理指引">
+      <view class="setting-name">数据管理指引</view>
+      <text class="setting-chevron">›</text>
+    </view>
+    <view class="setting-row" bindtap="onOpenHelp" data-section="help" role="button" aria-label="使用帮助与训练安全">
+      <view class="setting-name">使用帮助与训练安全</view>
+      <text class="setting-chevron">›</text>
+    </view>
     <view class="setting-row" bindtap="onShowLicense" role="button" aria-label="查看媒体与图库授权状态：待处理">
       <view class="icon-tile" aria-hidden="true">▤</view>
       <view class="setting-name">媒体与图库授权</view>
