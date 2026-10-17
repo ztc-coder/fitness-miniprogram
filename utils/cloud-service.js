@@ -46,7 +46,7 @@ async function enable() {
       require('./queue').watchNetwork();
       return snapshot();
     } catch (err) {
-      if (version === epoch) { owner = ''; status = 'failed'; }
+      if (version === epoch) { owner = ''; status = 'failed'; changed(); }
       throw err;
     } finally { if (version === epoch) starting = null; }
   })();

@@ -15,6 +15,7 @@ Page(themePage({
   data: {
     pendingCount: 0,
     offlineMode: true,
+    cloudFailed: false,
     unit: 'kg',
     openid: '',
     networkStatus: '检测中…',
@@ -29,6 +30,7 @@ Page(themePage({
     this.setData({
       pendingCount: queue.getQueue().length,
       offlineMode: !state.consent,
+      cloudFailed: state.status === 'failed',
       unit: settings.unit || 'kg',
       openid: service.ready() ? state.owner : '',
     });
@@ -65,9 +67,9 @@ Page(themePage({
   },
 
   onToggleOffline(e) {
-    if (service.snapshot().consent && (service.ready() || (e && e.detail.value))) {
+    if (service.snapshot().consent && (service.ready() || (e && e.detail && e.detail.value))) {
       service.disable();
-      this.setData({ offlineMode: true, openid: '', monthSessions: 0, monthHours: '0.0', monthProgress: 0 });
+      this.setData({ offlineMode: true, cloudFailed: false, openid: '', monthSessions: 0, monthHours: '0.0', monthProgress: 0 });
       wx.showToast({ title: '已停止新增云请求；在途请求可能已完成，云数据未删除', icon: 'none' });
       return;
     }
@@ -76,14 +78,14 @@ Page(themePage({
       content: '将使用微信身份保存和同步训练计划、训练记录，并按需加载远程动作图片/GIF。不采集手机号或头像昵称。不同意仍可完整本地训练。可在此停用新增云请求；停用不会删除云数据。在途请求不能撤回。云端全量删除入口尚待交付，目前不应作为正式发布版本。产品同意不等于微信平台隐私接口授权。',
       confirmText: '同意启用',
       success: async res => {
-        if (!res.confirm) { this.setData({ offlineMode: true }); return; }
+        if (!res.confirm) { this.setData({ offlineMode: !service.snapshot().consent }); return; }
         try {
           const state = await service.enable();
-          this.setData({ offlineMode: false, openid: state.owner, monthSessions: 0, monthHours: '0.0', monthProgress: 0 });
+          this.setData({ offlineMode: false, cloudFailed: false, openid: state.owner, monthSessions: 0, monthHours: '0.0', monthProgress: 0 });
           this.onClaimLocalData();
         } catch (err) {
-          this.setData({ offlineMode: false, openid: '' });
-          wx.showToast({ title: '云服务身份获取失败；本地可用，点击开关重试', icon: 'none' });
+          this.setData({ offlineMode: false, cloudFailed: true, openid: '' });
+          wx.showToast({ title: '身份获取失败；本地可用，请点「重试云服务」', icon: 'none' });
         }
       },
     });
@@ -110,7 +112,7 @@ Page(themePage({
       title: '登录状态',
       content: this.data.openid
         ? `已使用静默 openid 登录:${this.data.openid.slice(0, 12)}…`
-        : '仅本地模式或身份获取失败。可使用离线开关启用/重试云服务，不影响本地训练。',
+        : '仅本地模式或身份获取失败。关闭离线开关可启用云服务；失败后请点「重试云服务」，不影响本地训练。',
       showCancel: false,
     });
   },

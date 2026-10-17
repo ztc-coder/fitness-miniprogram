@@ -75,6 +75,7 @@
       <text class="setting-chevron">›</text>
     </view>
   </view>
+  <button wx:if="{{cloudFailed}}" class="login-pill" bindtap="onToggleOffline">重试云服务</button>
   <view class="queue-note">{{networkStatus}}</view>
   <button bindtap="onClaimLocalData">认领匿名本地数据（启用云服务后）</button>
 
