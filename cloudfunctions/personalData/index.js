@@ -1,47 +1,56 @@
 const cloud = require('wx-server-sdk');
 const { createHash } = require('crypto');
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV, throwOnNotFound: false });
+const hash = value => createHash('sha256').update(value).digest('hex');
+const boundary = require('./write-boundary');
 
-/** 管理 SDK 绕过客户端规则，因此每个操作都必须从可信上下文限定所有者。 */
+/** All personal writes lock the same owner metadata document inside the transaction.
+ * Ticket03 must advance generation through this same boundary, never a parallel writer.
+ */
 exports.main = async (event = {}) => {
   const owner = cloud.getWXContext().OPENID;
   if (typeof owner !== 'string' || !owner.trim()) throw new Error('缺少可信微信身份');
+  const db = cloud.database({ throwOnNotFound: false });
+  const metadataId = boundary.metadataId(owner);
+  if (event.action === 'state') {
+    const res = await db.collection(boundary.COLLECTION).doc(metadataId).get();
+    return { generation: res.data ? res.data.generation : 0 };
+  }
   if (!['plans', 'sessions'].includes(event.collection)) throw new Error('不支持的集合');
-  if (!['list', 'add', 'set', 'update', 'remove'].includes(event.action)) throw new Error('不支持的操作');
-  const collection = cloud.database().collection(event.collection);
   if (event.action === 'list') {
-    const field = event.collection === 'plans' ? 'createdAt' : 'submittedAt';
     const skip = Number.isSafeInteger(event.skip) && event.skip >= 0 ? event.skip : 0;
     const limit = Number.isSafeInteger(event.limit) && event.limit > 0 ? Math.min(100, event.limit) : 20;
-    return collection.where({ _openid: owner }).orderBy(field, event.collection === 'plans' ? 'asc' : 'desc')
-      .skip(skip).limit(limit).get();
+    return db.collection(event.collection).where({ _openid: owner })
+      .orderBy(event.collection === 'plans' ? 'createdAt' : 'submittedAt', event.collection === 'plans' ? 'asc' : 'desc')
+      .orderBy('_id', 'asc').skip(skip).limit(limit).get();
   }
-  const fields = event.collection === 'plans'
-    ? ['id', 'name', 'cursor', 'active', 'cycleDays', 'createdAt', 'updatedAt']
-    : ['id', 'planId', 'planName', 'dayId', 'dayName', 'dayIndex', 'startedAt', 'submittedAt', 'flowVersion', 'exercises'];
-  const data = { _openid: owner };
-  for (const key of fields) if (event.data && event.data[key] !== undefined) data[key] = event.data[key];
-  if (event.action === 'add') return collection.add({ data });
+  if (!['set', 'remove'].includes(event.action)) throw new Error('所有写入必须使用版本化 set/remove');
   if (typeof event.id !== 'string' || !event.id || event.id.length > 256 || event.id.includes('/')) throw new Error('无效文档 ID');
-  // 查询不泄露其他人的数据；猜中现有文档也不能修改/删除。
-  const scopedId = 'owned_' + createHash('sha256').update(owner + '\0' + event.id).digest('hex');
-  const existing = await collection.where({ _id: event.id }).limit(1).get();
-  let doc = existing.data[0];
-  let id = event.id;
-  if (doc && doc._openid !== owner) throw new Error('无权访问该文档');
-  if (!doc) {
-    id = scopedId;
-    const scoped = await collection.where({ _id: id }).limit(1).get();
-    doc = scoped.data[0];
-  }
-  if (doc && doc._openid !== owner) throw new Error('无权访问该文档');
-  if (event.action === 'remove') return doc ? collection.doc(id).remove() : { stats: { removed: 0 } };
-  if (event.action === 'update') {
-    if (!doc) throw new Error('无权访问或文档不存在');
-    delete data._openid;
-    return collection.doc(id).update({ data });
-  }
-  // 新建幂等写使用本人命名空间，不让前端挑选全局新文档 ID。
-  const result = await collection.doc(id).set({ data });
-  return { ...result, _id: id };
+  return boundary.withOwnerWrite(db, owner, event.generation, async (txn, meta) => {
+    const collection = txn.collection(event.collection);
+    const original = await collection.doc(event.id).get();
+    if (original.data && original.data._openid !== owner) throw new Error('无权访问该文档');
+    const id = original.data ? event.id : 'owned_' + hash(owner + '\0' + event.id);
+    const res = original.data ? original : await collection.doc(id).get();
+    const current = res.data;
+    if (current && current._openid !== owner) throw new Error('无权访问该文档');
+    if (typeof event.operationId !== 'string' || !event.operationId || event.operationId.length > 256) throw new Error('缺少幂等操作标识');
+    if (current && current.operationId === event.operationId) {
+      return { _id: id, revision: current.revision, acknowledged: true };
+    }
+    const revision = current ? (current.revision || 0) : 0;
+    if (!Number.isSafeInteger(event.expectedRevision) || event.expectedRevision !== revision || (current && current.deleted)) throw new Error('版本已过期或计划已删除；本地修改保留待处理');
+    if (event.collection === 'sessions' && (current || event.action === 'remove')) throw new Error('训练记录不可变');
+    const fields = event.collection === 'plans'
+      ? ['name', 'cursor', 'active', 'cycleDays', 'createdAt', 'updatedAt']
+      : ['planId', 'planName', 'dayId', 'dayName', 'dayIndex', 'startedAt', 'submittedAt', 'flowVersion', 'exercises'];
+    const data = { _openid: owner, id: (current && current.revision && current.id) || event.id,
+      revision: revision + 1, generation: meta.generation, operationId: event.operationId,
+      deleted: event.action === 'remove' };
+    if (!data.deleted) for (const key of fields) if (event.data && event.data[key] !== undefined) data[key] = event.data[key];
+    // A tombstone keeps only the minimum barrier, not the deleted plan content.
+    if (data.deleted) data.createdAt = (current && current.createdAt) || 0;
+    await collection.doc(id).set({ data });
+    return { _id: id, revision: data.revision, acknowledged: true };
+  });
 };

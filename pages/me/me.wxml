@@ -65,17 +65,21 @@
         <switch checked="{{offlineMode}}" color="{{theme === 'light' ? '#C3ED42' : '#3ee6a0'}}" bindchange="onToggleOffline" aria-label="离线训练模式" />
       </view>
     </view>
-    <view class="setting-row" bindtap="onFlushQueue" role="button" aria-label="手动同步待同步训练记录">
+    <view class="setting-row" bindtap="onFlushQueue" role="button" aria-label="手动同步计划与训练记录">
       <view class="icon-tile" aria-hidden="true">♧</view>
       <view class="setting-main">
-        <view class="setting-name">待同步训练记录</view>
-        <view class="setting-sub">点击可立即手动触发云端同步</view>
+        <view class="setting-name">计划与训练同步</view>
+        <view class="setting-sub">点击重试；本地保存不等于云端确认</view>
       </view>
       <text class="setting-value accent mono">{{pendingCount}} 条</text>
       <text class="setting-chevron">›</text>
     </view>
   </view>
   <button wx:if="{{cloudFailed}}" class="login-pill" bindtap="onToggleOffline">重试云服务</button>
+  <view class="queue-note">计划：{{syncStatus.plans.state}} · {{syncStatus.plans.pending}} 项；训练：{{syncStatus.sessions.state}} · {{syncStatus.sessions.pending}} 项</view>
+  <view class="queue-note">云端读取：计划 {{readStatus.plans}}；训练 {{readStatus.sessions}}</view>
+  <view class="queue-note" wx:for="{{syncStatus.plans.details}}" wx:key="id">计划 {{item.id}} · 已尝试 {{item.attempts}} 次 · {{item.error || '等待云端确认'}}</view>
+  <view class="queue-note" wx:for="{{syncStatus.sessions.details}}" wx:key="id">训练 {{item.id}} · 已尝试 {{item.attempts}} 次 · {{item.error || '等待云端确认'}}</view>
   <view class="queue-note">{{networkStatus}}</view>
   <button bindtap="onClaimLocalData">认领匿名本地数据（启用云服务后）</button>
 

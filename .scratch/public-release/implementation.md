@@ -44,3 +44,11 @@
 - 官方资料：[事务指南](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/database/transaction)、[runTransaction](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/reference-sdk-api/database/Database.runTransaction.html)、[安全规则](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/database/security-rules.html)。运行时代码必须核对具体 SDK 返回值与错误，不把任意读取失败当作不存在。
 - 仓库外共享笔记 `/tmp/public-release-cloudbase-research.md` 供第02/03票参考；真实 SDK、规则与事务竞态仍须第05票测试环境实测。
 - 精确版本补核：官方 npm 发布源码显示 `wx-server-sdk@2.6.3` 的 `runTransaction` 直接返回回调值，新版文档的 `{result, errMsg}` 包装不能照搬。默认缺失文档 `get()` 抛 `errCode:-1` 及明确的缺失消息；`-1` 不是专用不存在码，禁止吞掉全部读取错误。此修正已交第02票；包版本与实际云端部署仍需核对。
+
+## 第02票源码交付
+
+- 分支 `feat/public-release-02`；开始前确认基于01集成 `4d3b299`，已合入 integration `8b98f5b`，交付前合入 `e80db8d`（保留01复审修复）。
+- 持久计划set/remove、不可变训练重试、owner/epoch单飞、版本/墓碑/代际统一事务写边界、完整分页及两类型状态已实现；接口和03交接见 `docs/durable-sync.md`。
+- TDD red/green及真实云main贯通测试见02 tracker；最终聚焦3套30项，全量 `npm test -- --runInBand --silent` 为40套通过、528通过、29既有跳过。源码包体1,195,154 bytes/86文件通过；变更JS语法和diff检查通过。
+- 固定 personalData wx-server-sdk 2.6.3；使用手动startTransaction返回业务结果。精确源码显示该版本runTransaction直接回传callbackRes，不能套用新版文档包装。init显式not-found选项，不吞任意get错误。
+- **仅源码证据**：真实SDK/事务、deny-all权限、双用户、真机验证仍Blocked。03未实现全量删除/清本机/撤回；新增元数据集合必须deny-all客户端，所有后续写入必须复用共享元数据事务边界。未部署、未push、未执行生产构建；父发布任务保持open。

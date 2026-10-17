@@ -92,7 +92,7 @@ test('offline cursor beats old cloud across fetch and seed migration paths', asy
   expect((await db.fetchPlans())[0].cursor).toBe(1);
   expect((await db.ensureSeedPlans())[0].cursor).toBe(1);
 });
-test('local plan remapping and ack-write failure retry never duplicate advancement or upload', async () => {
+test('stable local plan id and ack-write failure retry never duplicate advancement or upload', async () => {
   const { storage, queue, db } = environment(); await enableCloud();
   const p = plan('local_plan_x'); storage['fitness:plans'] = [p];
   const final = await queue.complete(finished(p), 500);
@@ -104,7 +104,7 @@ test('local plan remapping and ack-write failure retry never duplicate advanceme
   wx.getNetworkType = ({ success }) => success({ networkType: 'wifi' });
   const write = wx.setStorageSync;
   let fail = true;
-  wx.setStorageSync = (key, value) => { if (fail) { fail = false; throw Error('ack full'); } write(key, value); };
+  wx.setStorageSync = (key, value) => { if (fail && key.endsWith('fitness:completedTraining') && JSON.stringify(value).includes('"sessionSynced":true')) { fail = false; throw Error('ack full'); } write(key, value); };
   await queue.flush();
   expect(queue.getQueue()).toHaveLength(1);
   await queue.flush();
@@ -113,10 +113,10 @@ test('local plan remapping and ack-write failure retry never duplicate advanceme
   expect((await db.fetchPlans())[0].cursor).toBe(1);
   const localPlans = db.getLocalPlans();
   expect(localPlans).toHaveLength(1);
-  expect(localPlans[0].id).not.toBe(p.id);
+  expect(localPlans[0].id).toBe(p.id);
   expect(ids.filter(id => id === final.id)).toHaveLength(2);
 });
-test('seed migration syncs a completed local plan through stable mapping, then retry keeps one plan', async () => {
+test('seed migration syncs a completed local plan through stable id, then retry keeps one plan', async () => {
   const { storage, queue, db } = environment(); await enableCloud();
   const p = plan('local_plan_seed'); storage['fitness:plans'] = [p];
   await queue.complete(finished(p),500); await queue.flush();
@@ -124,7 +124,7 @@ test('seed migration syncs a completed local plan through stable mapping, then r
   wx.cloud.database = () => ({collection: name => ({orderBy: () => ({get: () => Promise.resolve({data: name === 'plans' ? [...remote.values()].filter(d => d.cycleDays) : []})}), doc: id => ({set: ({data}) => {remote.set(id,Object.assign({},data,{_id:id}));return Promise.resolve({stats:{created:1}});}})})});
   const seeded = await db.ensureSeedPlans();
   expect(seeded[0].cursor).toBe(1);
-  expect(seeded[0].id).not.toBe(p.id);
+  expect(seeded[0].id).toBe(p.id);
   wx.getNetworkType = ({success}) => success({networkType:'wifi'});
   await queue.flush();
   expect((await db.fetchPlans())).toHaveLength(1);
@@ -161,20 +161,20 @@ test.each(['p', 'local_plan_deleted'])('deleting completed plan %s cancels plan 
   const { storage, queue, db } = environment(); await enableCloud();
   const p = plan(id); storage['fitness:plans'] = [p];
   const final = await queue.complete(finished(p), 500); await queue.flush();
-  await db.deletePlan(id);
+  await db.deletePlan(id); await queue.flush();
   expect(db.getLocalPlans()).toEqual([]);
   const writes = [];
   wx.getNetworkType = ({success}) => success({networkType:'wifi'});
   wx.cloud.database = () => ({collection: name => ({doc: docId => ({set: ({data}) => {writes.push([name,docId]); return Promise.resolve({stats:{created:1}});},remove: () => Promise.resolve({})}), orderBy: () => ({get: () => Promise.resolve({data:[Object.assign({},p,{_id:id})]})})})});
   await queue.flush();
-  expect(writes).toEqual([['sessions', final.id]]);
+  expect(writes).toEqual([['sessions', final.id], ['plans', id]]);
   expect(await db.fetchPlans()).toEqual([]);
   expect(queue.getQueue()).toEqual([]);
   expect(queue.getCompletedSession(final.id)).toEqual(final);
 });
-test.each(['raw', 'alias'])('deletion during inflight completed plan set by %s id never revives it', async mode => {
+test.each(['p_race', 'local_plan_race'])('deletion during inflight completed plan %s set never revives it', async id => {
   const { storage, queue, db } = environment(); await enableCloud();
-  const p = plan('local_plan_race'); storage['fitness:plans'] = [p];
+  const p = plan(id); storage['fitness:plans'] = [p];
   const final = await queue.complete(finished(p),500); await queue.flush();
   let release, entered;
   const waiting = new Promise(resolve => { entered = resolve; });
@@ -185,11 +185,11 @@ test.each(['raw', 'alias'])('deletion during inflight completed plan set by %s i
   }), orderBy: () => ({get: () => Promise.resolve({data:[...remote.values()]})})})});
   wx.getNetworkType = ({success}) => success({networkType:'wifi'});
   const syncing = queue.flush(); await waiting;
-  await db.deletePlan(mode === 'raw' ? p.id : 'completed_' + p.id);
+  await db.deletePlan(p.id);
   release(); await syncing;
   expect(db.getLocalPlans()).toEqual([]);
   expect(await db.fetchPlans()).toEqual([]);
-  expect(removed).toEqual(['completed_' + p.id,'completed_' + p.id]);
+  expect(removed).toEqual([p.id]);
   await queue.flush();
   expect(queue.getQueue()).toEqual([]);
   expect(queue.getCompletedSession(final.id)).toEqual(final);
@@ -228,17 +228,23 @@ test('queue head blocks later work on failure and plan-only retries never upload
   expect(db.getLocalPlans()[0].cursor).toBe(1);
   expect(queue.getQueue()).toEqual([]);
 });
-test('original local save callback cannot resurrect a plan deleted after completion', async () => {
-  const {storage,queue,db} = environment(); const p = plan('local_plan_save'); await enableCloud();
-  let release;
-  const removed = [];
-  wx.cloud.database = () => ({collection: () => ({add: () => new Promise(resolve => {release = resolve;}),doc: id => ({remove: () => {removed.push(id);return Promise.resolve({});}})})});
-  const saving = db.savePlan(p);
-  const final = await queue.complete(finished(p),500); await queue.flush();
+test('original stable-id save callback cannot resurrect a plan deleted after completion', async () => {
+  const {queue,db} = environment(); const p = plan('local_plan_save'); await enableCloud();
+  let release, entered;
+  const waiting = new Promise(resolve => { entered = resolve; });
+  const removed = []; let first = true;
+  wx.getNetworkType = ({success}) => success({networkType:'wifi'});
+  wx.cloud.database = () => ({collection: name => ({doc: id => ({
+    set: () => name === 'plans' && first ? new Promise(resolve => { first=false; release=resolve; entered(); }) : Promise.resolve({acknowledged:true}),
+    remove: () => {removed.push(id);return Promise.resolve({acknowledged:true});},
+  })})});
+  await db.savePlan(p);
+  const syncing = queue.flush(); await waiting;
+  const final = await queue.complete(finished(p),500);
   await db.deletePlan(p.id);
-  release({_id:'cloud_saved'}); await saving;
+  release({acknowledged:true}); await syncing;
   expect(db.getLocalPlans()).toEqual([]);
-  expect(removed).toEqual(['cloud_saved']);
+  expect(removed).toEqual([p.id]);
   expect(queue.getCompletedSession(final.id)).toEqual(final);
 });
 test('partial completion requires explicit preparation before queue can save or advance', async () => {

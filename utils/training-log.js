@@ -26,7 +26,7 @@ function deletePlan(id) {
 function overlayPlans(plans) {
   const result = plans.filter(plan => !isPlanDeleted(plan.id));
   read().forEach(entry => {
-    if (!entry.plan || entry.planSynced || isPlanDeleted(entry.plan.id)) return;
+    if (!entry.plan || entry.planSynced || entry.planQueued || isPlanDeleted(entry.plan.id)) return;
     const id = resolvePlanId(entry.plan.id);
     const index = result.findIndex(p => p.id === id || p.id === entry.plan.id);
     if (index < 0) result.push(Object.assign({}, entry.plan, { id }));
