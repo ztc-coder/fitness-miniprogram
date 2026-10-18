@@ -11,6 +11,13 @@ function envelope(key) {
   const legacy = wx.getStorageSync(key);
   return { version: 1, buckets: legacy === undefined || legacy === '' ? [] : [{ owner: '', value: legacy }] };
 }
+// A durable envelope is authoritative, including any still-unclaimed anonymous bucket.
+// Keep it even when empty: it also proves a remaining bare key is an obsolete backup.
+// If removal fails, propagate the error; retry/restart can repair from this same envelope.
+function persistEnvelope(key, saved) {
+  wx.setStorageSync('fitness:owned:' + key, saved);
+  wx.removeStorageSync(key);
+}
 function readOwner(key, owner) {
   const bucket = envelope(key).buckets.find(b => b.owner === owner);
   return bucket && bucket.value;
@@ -25,14 +32,14 @@ function setStorageSync(key, value) {
   }
   const saved = envelope(key);
   saved.buckets = saved.buckets.filter(b => b.owner !== owner).concat([{ owner, value }]);
-  wx.setStorageSync('fitness:owned:' + key, saved);
+  persistEnvelope(key, saved);
 }
 function removeStorageSync(key) {
   if (key !== 'fitness:deletionOperation') revision++;
   if (!service.snapshot().owner && !wx.getStorageSync('fitness:owned:' + key)) return wx.removeStorageSync(key);
   const saved = envelope(key);
   saved.buckets = saved.buckets.filter(b => b.owner !== service.snapshot().owner);
-  wx.setStorageSync('fitness:owned:' + key, saved);
+  persistEnvelope(key, saved);
 }
 function claimPreview() {
   const entries = readOwner('fitness:completedTraining', '') || [];
@@ -59,7 +66,7 @@ function claimAnonymous(owner) {
     } else {
       saved.buckets = saved.buckets.map(b => b.owner === '' ? { owner, value: b.value } : b);
     }
-    wx.setStorageSync('fitness:owned:' + key, saved);
+    persistEnvelope(key, saved);
   }
 }
 function clearPrivate({ all = false, owner = service.snapshot().owner, keepOperation = false } = {}) {
@@ -67,13 +74,12 @@ function clearPrivate({ all = false, owner = service.snapshot().owner, keepOpera
   for (const key of KEYS) {
     if (keepOperation && key === 'fitness:deletionOperation') continue;
     if (all) {
-      wx.removeStorageSync('fitness:owned:' + key);
       wx.removeStorageSync(key);
+      wx.removeStorageSync('fitness:owned:' + key);
     } else {
       const saved = envelope(key);
       saved.buckets = saved.buckets.filter(b => b.owner !== owner);
-      wx.setStorageSync('fitness:owned:' + key, saved);
-      if (!owner) wx.removeStorageSync(key);
+      persistEnvelope(key, saved);
     }
   }
 }

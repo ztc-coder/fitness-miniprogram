@@ -76,3 +76,16 @@
 - 补充恢复安全回归：首次/二次取消、确认后新草稿、网络失败、epoch 变化、云新 job 变化、当前云任务未完成、部分本机清理失败后的持久 ID 与 UI 如实报告。原同 job 幂等重试、其他 owner/匿名保留及存储失败回归保留。
 - 最终聚焦3套43通过；全量41套577通过/29既有跳过（606项），相对564通过基线新增13通过，无新增 skip。命令为 `$JEST tests/data-deletion.test.js tests/public-help-page.test.js tests/public-info-check.test.js --runInBand --coverage=false --silent` 与 `$JEST --coverage --runInBand --silent`，日志 `/tmp/ticket03-p1-{focused,full}.log`。
 - 源码包体1,217,757 bytes/87文件；变更JS语法及差异检查通过。公开信息检查仍预期退出1：运营者、两个公开联系方式、人工 verified 四项阻断。无真实云/设备、安装、生产构建、部署或push；不改变最小技术元数据保留策略，不增加全 owner 清理路径。第05票最终验收汇总由父代理追加。
+
+## finalcode-review P1：裸键迁移副本清理
+
+- 私人键只有在**没有有效 owner 信封**时才把裸值视为尚未认领的匿名数据。既有代码的信封一旦写入便是唯一权威版本（含匿名/其他 owner 桶），后续匿名写入也进入匿名桶；同名裸键不再是另一个匿名区。旧安装由已认领信封遗留的裸副本按此确定性来源处理，不靠 openid 或内容猜归属。
+- 所有转为信封的写入路径（set/remove、明确认领、按 owner 清理）统一先成功持久化信封，再移除同名裸键；任一 get/set 失败不会先删唯一裸值。真正未认领裸值先进入匿名桶，按 owner 删除只过滤目标 owner，仍保留匿名及其他 owner。启用同意本身不认领。
+- 信封本身也是中断修复依据，不另存个人快照/新 marker：移除裸键失败抛错，已提交信封（即使空桶）继续保留，不回退读取裸值；重新显式认领或按 owner 清理会再次移除副本。全量删除只有云确认和本机裸副本清理均成功后才返回 deleted；失败继续保留 deletionOperation、返回 retry，重启可用原任务补清。
+- 仅「清全部本机」移除全部 owner/匿名信封；先删裸键再删信封，避免裸键移除失败时丢失已存归属。不是跨键原子操作，部分失败仍须重试。
+- 本轮新增8项删除/迁移回归（原37项 → 45项）：匿名创建/逐组完成→明确认领→全量删除后直接检查平台存储无完整快照；提交后 remove 失败及重启认领；旧安装重复副本的删除失败/重启补清；get/set 失败不丢唯一副本；set/remove 转换保留真实匿名桶；全部本机清理失败保持信封归属。原双设备测试中人为在已有信封外添加的“匿名裸值”改为真实运行时使用的匿名桶，保留而非删减匿名/foreign 断言。
+- 独立 Red：`$JEST tests/data-deletion.test.js --runInBand --coverage=false --silent` 为1失败/37通过（deleted 后裸 plans 仍在）；Green 主切片38通过，完整边界45通过。日志 `/tmp/final-p1-{red,green,edge}.log`。只用已确认数据公开 API / Page / 云入口 seam，mock 限 wx/云/存储/时间。
+
+P2 历史详情同轮修复：详情沿用 ownerPage/epoch 防护，改用与历史列表相同的 `fetchAllSessions()`，新设备61场云历史可打开第61场，快照容量/组显示及全历史统计不变。`tests/session-history-read.test.js` 新增3项（原5 → 8项），包括身份切换/清除期间第4页迟到不恢复旧详情。Red 为1失败/5通过（session 为 null），Green 8通过；日志 `/tmp/final-p2-{red,green}.log`。
+
+最终全量/源码检查见03 tracker；这些是本机源码与平台边界 mock 证据，不替代真实云/真机验收，不修改第05票既有 checked SHA 证据。

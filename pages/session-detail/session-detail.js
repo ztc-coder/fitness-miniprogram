@@ -17,7 +17,7 @@ Page(ownerPage(themePage({
   },
 
   onLoad(options) {
-    return db.fetchSessions(50).then((sessions) => {
+    return db.fetchAllSessions().then((sessions) => {
       if (!this.isCurrentOwner()) return;
       const s = sessions.find((item) => (item.id || item._id) === options.id);
       if (!s) {

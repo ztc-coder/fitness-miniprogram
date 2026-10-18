@@ -395,7 +395,7 @@ test.each(['unexecuted', 'lost-response'])('双设备：A 的 %s 任务被 B 的
   let service = require('../utils/cloud-service'); await service.enable();
   let db = require('../utils/db'); await db.savePlan({ id: 'a-local', name: '旧本机', cycleDays: [] }); await require('../utils/queue').flush();
   require('../utils/owner-storage').setStorageSync('fitness:trainingDraft', { id: 'a-draft' });
-  a.saved.set('fitness:plans', [{ id: 'anonymous' }]);
+  a.saved.get('fitness:owned:fitness:plans').buckets.push({ owner: '', value: [{ id: 'anonymous' }] });
   a.saved.get('fitness:owned:fitness:plans').buckets.push({ owner: 'foreign', value: [{ id: 'foreign-plan' }] });
   const callA = wx.cloud.callFunction;
   wx.cloud.callFunction = async args => {
@@ -431,8 +431,10 @@ test.each(['unexecuted', 'lost-response'])('双设备：A 的 %s 任务被 B 的
   expect(page.data.dataResult).toContain('已协调当前身份本机');
   expect(management.getDeletion()).toBeNull();
   expect(require('../utils/db').getLocalPlans()).toEqual([]);
-  expect(a.saved.get('fitness:plans')).toEqual([{ id: 'anonymous' }]);
-  expect(a.saved.get('fitness:owned:fitness:plans').buckets).toEqual([{ owner: 'foreign', value: [{ id: 'foreign-plan' }] }]);
+  expect(a.saved.has('fitness:plans')).toBe(false);
+  expect(a.saved.get('fitness:owned:fitness:plans').buckets).toEqual([
+    { owner: '', value: [{ id: 'anonymous' }] }, { owner: 'foreign', value: [{ id: 'foreign-plan' }] },
+  ]);
   expect(require('../utils/cloud-service').snapshot().consent).toBe(false);
   await require('../utils/cloud-service').enable();
   expect((await require('../utils/db').fetchPlans()).map(p => p.id)).toEqual(['b-new']);
@@ -523,4 +525,117 @@ test('恢复 UI 的部分本机清理失败如实报告未完成，原任务可�
   expect(page.data.dataResult).toContain('协调未完成'); expect(page.data.dataResult).toContain('部分清理失败');
   expect(page.data.deleting).toBe(false);
   expect(management.getDeletion()).toMatchObject({ state: 'superseded' });
+});
+
+test('匿名创建完成后显式认领并全量删除：平台裸键和 owner 桶均不遗留完整个人快照', async () => {
+  const { saved } = runtime();
+  const db = require('../utils/db'), domain = require('../utils/domain'), local = require('../utils/owner-storage');
+  const plan = { id: 'anonymous-plan', name: '匿名训练', cursor: 0, cycleDays: [{ dayId: 'push', exercises: [{ exerciseId: '0025', equipment: 'barbell', sets: 1, targetWeight: 20, targetReps: 10 }] }] };
+  await db.savePlan(plan);
+  let draft = domain.snapshotSession(plan);
+  draft = domain.completeTrainingSet(draft, draft.exercises[0].sets[0].id, 200);
+  local.setStorageSync('fitness:trainingDraft', draft);
+  const final = await require('../utils/queue').complete(draft, 500);
+  expect(saved.has('fitness:completedTraining')).toBe(true);
+  const service = require('../utils/cloud-service'); await service.enable();
+  expect(db.getLocalPlans()).toEqual([]); // enabling is not permission to claim
+  local.claimAnonymous('A');
+  expect((await db.fetchAllSessions()).some(s => s.id === final.id)).toBe(true);
+  service.disable();
+  expect(await require('../utils/data-management').deleteAll()).toMatchObject({ status: 'deleted' });
+  for (const key of ['plans', 'trainingDraft', 'pendingQueue', 'completedTraining', 'planSync']) {
+    expect(saved.has('fitness:' + key)).toBe(false);
+    expect(saved.get('fitness:owned:fitness:' + key).buckets).toEqual([]);
+  }
+  expect(JSON.stringify([...saved])).not.toContain('anonymous-plan');
+});
+
+test('认领在信封提交后移除裸键失败：重启保留权威信封，显式重试补清而不重复认领', async () => {
+  const { saved } = runtime();
+  saved.set('fitness:plans', [{ id: 'claimed' }]);
+  saved.set('fitness:trainingDraft', { id: 'not-yet-claimed' });
+  await require('../utils/cloud-service').enable();
+  const remove = wx.removeStorageSync;
+  wx.removeStorageSync = key => { if (key === 'fitness:plans') throw Error('remove failed'); return remove(key); };
+  expect(() => require('../utils/owner-storage').claimAnonymous('A')).toThrow('remove failed');
+  expect(saved.get('fitness:owned:fitness:plans')).toEqual({ version: 1, buckets: [{ owner: 'A', value: [{ id: 'claimed' }] }] });
+  expect(saved.get('fitness:plans')).toEqual([{ id: 'claimed' }]);
+  expect(saved.has('fitness:owned:fitness:trainingDraft')).toBe(false);
+  jest.resetModules(); wx.removeStorageSync = remove;
+  await require('../utils/cloud-service').restore();
+  const local = require('../utils/owner-storage');
+  expect(local.claimPreview()).toMatchObject({ plans: 0, drafts: 1 });
+  local.claimAnonymous('A');
+  expect(saved.has('fitness:plans')).toBe(false);
+  expect(saved.has('fitness:trainingDraft')).toBe(false);
+  expect(local.getStorageSync('fitness:plans')).toEqual([{ id: 'claimed' }]);
+  expect(local.getStorageSync('fitness:trainingDraft')).toEqual({ id: 'not-yet-claimed' });
+});
+
+test('旧安装已认领信封与裸副本：全部删除须等裸键清理成功，重启重试保留匿名和外来桶', async () => {
+  const { saved } = runtime();
+  saved.set('fitness:plans', [{ id: 'obsolete-claimed' }]);
+  saved.set('fitness:owned:fitness:plans', { version: 1, buckets: [
+    { owner: 'A', value: [{ id: 'obsolete-claimed' }] },
+    { owner: 'B', value: [{ id: 'foreign' }] },
+    { owner: '', value: [{ id: 'real-anonymous' }] },
+  ] });
+  saved.set('fitness:trainingDraft', { id: 'unclaimed-raw' }); // no envelope, genuinely anonymous
+  const remove = wx.removeStorageSync;
+  wx.removeStorageSync = key => { if (key === 'fitness:plans') throw Error('remove failed'); return remove(key); };
+  const management = require('../utils/data-management');
+  expect(await management.deleteAll()).toMatchObject({ status: 'retry', message: 'remove failed' });
+  expect(management.getDeletion()).toMatchObject({ state: 'cloud-confirmed' });
+  expect(saved.get('fitness:owned:fitness:plans').buckets).toEqual([
+    { owner: 'B', value: [{ id: 'foreign' }] }, { owner: '', value: [{ id: 'real-anonymous' }] },
+  ]);
+  jest.resetModules(); wx.removeStorageSync = remove;
+  expect(await require('../utils/data-management').deleteAll()).toMatchObject({ status: 'deleted' });
+  expect(saved.has('fitness:plans')).toBe(false);
+  expect(saved.get('fitness:owned:fitness:trainingDraft').buckets).toEqual([{ owner: '', value: { id: 'unclaimed-raw' } }]);
+  expect(saved.get('fitness:owned:fitness:plans').buckets).toHaveLength(2);
+});
+
+test.each(['get', 'set'])('认领平台 %s 失败不能移除唯一裸值，重试后仍可恢复', async failure => {
+  const { saved } = runtime(); saved.set('fitness:plans', [{ id: 'only-copy' }]);
+  await require('../utils/cloud-service').enable();
+  const method = failure + 'StorageSync', original = wx[method];
+  wx[method] = (key, ...args) => {
+    if (key === 'fitness:owned:fitness:plans') throw Error('storage failed');
+    return original(key, ...args);
+  };
+  expect(() => require('../utils/owner-storage').claimAnonymous('A')).toThrow('storage failed');
+  expect(saved.get('fitness:plans')).toEqual([{ id: 'only-copy' }]);
+  expect(saved.has('fitness:owned:fitness:plans')).toBe(false);
+  wx[method] = original;
+  require('../utils/owner-storage').claimAnonymous('A');
+  expect(require('../utils/db').getLocalPlans()).toEqual([{ id: 'only-copy' }]);
+  expect(saved.has('fitness:plans')).toBe(false);
+});
+
+test.each(['set', 'remove'])('首次 owner %s 将真正匿名裸值保存到匿名桶，不认领也不留裸副本', async action => {
+  const { saved } = runtime(); saved.set('fitness:trainingDraft', { id: 'anonymous-draft' });
+  await require('../utils/cloud-service').enable();
+  const local = require('../utils/owner-storage');
+  if (action === 'set') local.setStorageSync('fitness:trainingDraft', { id: 'owner-draft' });
+  else local.removeStorageSync('fitness:trainingDraft');
+  expect(saved.has('fitness:trainingDraft')).toBe(false);
+  expect(local.claimPreview().drafts).toBe(1);
+  local.clearPrivate({ owner: 'A' });
+  expect(saved.get('fitness:owned:fitness:trainingDraft').buckets).toEqual([{ owner: '', value: { id: 'anonymous-draft' } }]);
+});
+
+test('清全部本机裸键移除失败不先丢弃信封归属，重试才清所有身份', () => {
+  const { saved } = runtime();
+  saved.set('fitness:plans', [{ id: 'old-copy' }]);
+  saved.set('fitness:owned:fitness:plans', { version: 1, buckets: [{ owner: 'B', value: [{ id: 'foreign' }] }] });
+  const remove = wx.removeStorageSync;
+  wx.removeStorageSync = key => { if (key === 'fitness:plans') throw Error('remove failed'); return remove(key); };
+  const management = require('../utils/data-management');
+  expect(() => management.clearLocal()).toThrow('remove failed');
+  expect(saved.get('fitness:owned:fitness:plans').buckets[0].owner).toBe('B');
+  wx.removeStorageSync = remove;
+  expect(management.clearLocal().status).toBe('local-cleared');
+  expect(saved.has('fitness:plans')).toBe(false);
+  expect(saved.has('fitness:owned:fitness:plans')).toBe(false);
 });

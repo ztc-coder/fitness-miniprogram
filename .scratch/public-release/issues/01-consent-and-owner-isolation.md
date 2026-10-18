@@ -37,3 +37,12 @@ User separately authorized local implementation/commits/integration, not deploym
 - Final focused command: `$JEST tests/consent-owner.test.js tests/board2-me.test.js --runInBand --coverage=false --silent`: 2 suites, 14 passed. Full `$JEST --runInBand --silent`: 39 suites, 519 passed / 29 skipped / 548 total. `git diff --check` passed. `$JEST` is the preinstalled shared binary described in `docs/consent-owner-isolation.md`; no dependencies installed.
 - Evidence is source-level Page/data/service execution with wx/cloud/storage boundaries mocked; WXML binding inspection is not native rendering or device interaction evidence. Real cloud permissions, dual-user and device verification remain **Blocked**. No build/deployment/push, no ticket02 sync or ticket03 deletion semantic change, no production release claim.
 - Retry cancellation follow-up within P2: an added real modal-cancel assertion was red (`offlineMode` incorrectly became true while consent remained granted). Cancellation now reflects actual consent, leaves the retry action visible, and does not pretend to withdraw consent. Focused 14/14 and full 39 suites / 519 passed / 29 skipped were rerun successfully after this change; final integration merge check remained already up to date.
+
+## finalcode-review 全部两项收尾（P1 认领副本 / P2 详情分页）
+
+- 工作分支 `fix/public-release-final-findings` 从干净集成 `10548fd` 开始（含 `07a23a6` / `8c7ccf9`），交付前快进合入 `feat/public-release` 的 `80cd133`（父双轴审查记录）。不修改05历史 checked SHA 证据，最终复审文件由父代理另写。
+- P1：私人键转为信封的全部路径先 durable set、后移除裸副本；有效信封作为权威数据及中断修复依据，不新建快照/owner 推断。移除失败传播给显式认领/删除，重启补清；真正未认领匿名和其他 owner 仍保留原桶。全量删除须补清成功才返回 deleted。详见 `docs/data-deletion.md`。
+- P2：详情 `fetchSessions(50)` → `fetchAllSessions()`，不增协议、跳过或改统计；ownerPage guard 保持。新设备第61场真实 Page 生命周期回归，另含身份/清理失效时迟到响应。
+- Red/Green：P1 新回归1失败/37通过 → 38通过，再加边界共45通过；P2 新回归1失败/5通过 → 8通过。日志 `/tmp/final-p1-{red,green,edge}.log`、`/tmp/final-p2-{red,green}.log`。
+- 聚焦 `$JEST tests/data-deletion.test.js tests/consent-owner.test.js tests/session-history-read.test.js tests/records-history-theme.test.js --runInBand --coverage=false --silent`：4套71通过；完整 `$JEST --coverage --runInBand --silent`：41套588通过/29既有跳过/617项，比577基线新增11通过，无新增 skip。日志 `/tmp/final-{focused,full}.log`。既有虚拟 owner 平台夹具修正裸键名 backing 的移除别名语义；真实裸键安全另由独立平台 Map 边界检查，不 mock 内部模块。
+- `npm run check:package`：1,218,018 bytes/87文件，低于2MiB，仅源码估算；JS/JSON语法及diff检查通过。`check:public-info` 仍预期退出1：运营者、两公开联系方式、verified四项缺真实资料。无依赖安装、真实云、设备、构建、push或部署，不作生产放行结论。完整记录同03票。
