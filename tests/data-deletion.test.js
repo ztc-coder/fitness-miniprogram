@@ -363,3 +363,164 @@ test('删除初始状态请求期间新增的本机数据也要求重新确认�
   expect((await pending).status).toBe('local-changed');
   expect(local.getStorageSync('fitness:trainingDraft')).toEqual({ id: 'new-during-state' });
 });
+test('超过100条删除未完成后重新启用及网络冲刷，保留本人本机全部待确认数据直到显式重试', async () => {
+  jest.useFakeTimers();
+  try {
+    runtime(); let reconnect;
+    wx.onNetworkStatusChange = listener => { reconnect = listener; };
+    const service = require('../utils/cloud-service'); await service.enable();
+    const db = require('../utils/db'), local = require('../utils/owner-storage'), queue = require('../utils/queue');
+    for (let i = 0; i < 101; i++) await db.savePlan({ id: 'many' + i, name: 'plan', cycleDays: [] });
+    await queue.flush();
+    local.setStorageSync('fitness:trainingDraft', { id: 'keep-draft' });
+    local.setStorageSync('fitness:pendingQueue', [{ id: 'keep-session', syncGeneration: 0 }]);
+    const management = require('../utils/data-management');
+    expect((await management.deleteAll()).status).toBe('retry');
+    const operation = management.getDeletion();
+    await service.enable(); reconnect({ isConnected: true }); jest.advanceTimersByTime(1000);
+    await queue.flush();
+    await expect(require('../utils/personal-cloud').generation()).rejects.toThrow('重试删除');
+    expect(await db.fetchPlans()).toHaveLength(101);
+    expect(db.getLocalPlans()).toHaveLength(101);
+    expect(local.getStorageSync('fitness:trainingDraft')).toEqual({ id: 'keep-draft' });
+    expect(queue.getQueue()).toEqual([{ id: 'keep-session', syncGeneration: 0 }]);
+    expect(management.getDeletion()).toEqual(operation);
+    expect((await management.deleteAll()).status).toBe('deleted');
+    expect(db.getLocalPlans()).toEqual([]);
+  } finally { jest.clearAllTimers(); jest.useRealTimers(); }
+});
+// Two independent wx storage areas, one trusted cloud owner; module resets model device restarts.
+test.each(['unexecuted', 'lost-response'])('双设备：A 的 %s 任务被 B 的新删除替代，只能检查并双确认协调当前身份', async mode => {
+  const a = runtime(), wxA = wx;
+  let service = require('../utils/cloud-service'); await service.enable();
+  let db = require('../utils/db'); await db.savePlan({ id: 'a-local', name: '旧本机', cycleDays: [] }); await require('../utils/queue').flush();
+  require('../utils/owner-storage').setStorageSync('fitness:trainingDraft', { id: 'a-draft' });
+  a.saved.set('fitness:plans', [{ id: 'anonymous' }]);
+  a.saved.get('fitness:owned:fitness:plans').buckets.push({ owner: 'foreign', value: [{ id: 'foreign-plan' }] });
+  const callA = wx.cloud.callFunction;
+  wx.cloud.callFunction = async args => {
+    if (args.data && args.data.action === 'deleteAll' && mode === 'unexecuted') throw Error('发送前断网');
+    const result = await callA(args);
+    if (args.data && args.data.action === 'deleteAll') throw Error('响应丢失');
+    return result;
+  };
+  let management = require('../utils/data-management'); expect((await management.deleteAll()).status).toBe('retry');
+  const original = management.getDeletion();
+  jest.resetModules(); runtime();
+  service = require('../utils/cloud-service'); await service.enable();
+  expect((await require('../utils/data-management').deleteAll()).status).toBe('deleted');
+  // New data after B's completion must not be erased by A reusing an old completion/job.
+  await service.enable(); db = require('../utils/db');
+  await db.savePlan({ id: 'b-new', name: '删除后新数据', cycleDays: [] }); await require('../utils/queue').flush();
+  jest.resetModules(); global.wx = wxA; wx.cloud.callFunction = callA;
+  management = require('../utils/data-management');
+  expect((await management.deleteAll()).status).toBe('retry');
+  expect(management.getDeletion()).toEqual(original);
+  wx.showModal = jest.fn(); wx.showToast = jest.fn();
+  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
+  await page.onRecoverDeletion();
+  expect(management.getDeletion()).toMatchObject({ id: original.id, generation: original.generation, state: 'superseded' });
+  const first = wx.showModal.mock.calls[0][0];
+  expect(first.content).toContain('当前本人身份：A'); expect(first.content).toContain('代际');
+  expect(first.content).toContain('1 份进行中草稿'); expect(first.content).toContain('不会删除当前云端新数据');
+  expect(require('../utils/owner-storage').getStorageSync('fitness:trainingDraft')).toEqual({ id: 'a-draft' });
+  first.success({ confirm: true });
+  expect(require('../utils/db').getLocalPlans()).toHaveLength(1);
+  await wx.showModal.mock.calls[1][0].success({ confirm: true });
+  expect(page.data.dataResult).toContain('已协调当前身份本机');
+  expect(management.getDeletion()).toBeNull();
+  expect(require('../utils/db').getLocalPlans()).toEqual([]);
+  expect(a.saved.get('fitness:plans')).toEqual([{ id: 'anonymous' }]);
+  expect(a.saved.get('fitness:owned:fitness:plans').buckets).toEqual([{ owner: 'foreign', value: [{ id: 'foreign-plan' }] }]);
+  expect(require('../utils/cloud-service').snapshot().consent).toBe(false);
+  await require('../utils/cloud-service').enable();
+  expect((await require('../utils/db').fetchPlans()).map(p => p.id)).toEqual(['b-new']);
+});
+async function supersededRecovery() {
+  const a = runtime(), wxA = wx;
+  await require('../utils/cloud-service').enable();
+  await require('../utils/db').savePlan({ id: 'retain', cycleDays: [] });
+  require('../utils/owner-storage').setStorageSync('fitness:trainingDraft', { id: 'retain-draft' });
+  const call = wx.cloud.callFunction;
+  wx.cloud.callFunction = async args => {
+    if (args.data && args.data.action === 'deleteAll') throw Error('发送前断网');
+    return call(args);
+  };
+  expect((await require('../utils/data-management').deleteAll()).status).toBe('retry');
+  jest.resetModules(); runtime();
+  expect((await require('../utils/data-management').deleteAll()).status).toBe('deleted');
+  jest.resetModules(); global.wx = wxA; wx.cloud.callFunction = call;
+  const management = require('../utils/data-management');
+  const token = await management.authorizeDeletion();
+  const inspection = await management.inspectDeletion(token);
+  return { ...a, management, inspection, call };
+}
+test.each(['network', 'local', 'epoch', 'cloud-job'])('替代任务的协调再次核实 %s，变化或失败不清本机也不报成功', async change => {
+  const { management, inspection, call } = await supersededRecovery();
+  const local = require('../utils/owner-storage');
+  if (change === 'network') wx.cloud.callFunction = async () => { throw Error('核实断网'); };
+  if (change === 'local') local.setStorageSync('fitness:trainingDraft', { id: 'new-draft' });
+  if (change === 'epoch') require('../utils/cloud-service').disable();
+  if (change === 'cloud-job') {
+    // Another real client deletes again while A's confirmation is open.
+    const wxA = wx; jest.resetModules(); runtime();
+    expect((await require('../utils/data-management').deleteAll()).status).toBe('deleted');
+    global.wx = wxA; wx.cloud.callFunction = call;
+  }
+  expect((await management.recoverDeletion(inspection)).status).toBe('retry');
+  expect(local.getStorageSync('fitness:trainingDraft')).toEqual({ id: change === 'local' ? 'new-draft' : 'retain-draft' });
+  expect(management.getDeletion()).toMatchObject({ state: 'superseded', generation: 0 });
+});
+test('替代任务协调的部分本机写失败保留原 ID，重新检查确认可完成而不重删云端', async () => {
+  const { management, inspection } = await supersededRecovery();
+  const set = wx.setStorageSync;
+  wx.setStorageSync = (key, value) => {
+    if (key.includes('fitness:completedTraining')) throw Error('部分清理存储失败');
+    set(key, value);
+  };
+  expect(await management.recoverDeletion(inspection)).toMatchObject({ status: 'retry', message: '部分清理存储失败' });
+  expect(management.getDeletion()).toMatchObject({ id: inspection.operationId, generation: 0, state: 'superseded' });
+  wx.setStorageSync = set;
+  const token = await management.authorizeDeletion();
+  expect(await management.recoverDeletion(await management.inspectDeletion(token))).toMatchObject({ status: 'recovered', generation: 1 });
+  expect(management.getDeletion()).toBeNull();
+});
+test('其他设备的新任务仍 deleting 时只标记替代、不协调放弃本机；完成后才能再次检查确认', async () => {
+  const { management, inspection } = await supersededRecovery();
+  const { main } = require('../cloudfunctions/personalData');
+  for (let i = 0; i < 101; i++) await main(write('later' + i, 1));
+  expect(await main({ action: 'deleteAll', operationId: 'peer-incomplete', generation: 1 })).toMatchObject({ deleting: true, deleted: false });
+  await expect(management.inspectDeletion(inspection.token)).rejects.toThrow('尚未完成');
+  expect(management.getDeletion()).toMatchObject({ id: inspection.operationId, generation: 0, state: 'superseded', supersededBy: { id: 'peer-incomplete', generation: 2 } });
+  expect(require('../utils/owner-storage').getStorageSync('fitness:trainingDraft')).toEqual({ id: 'retain-draft' });
+  expect((await management.recoverDeletion(inspection)).status).toBe('retry');
+  expect(await main({ action: 'deleteAll', operationId: 'peer-incomplete', generation: 1 })).toMatchObject({ deleted: true });
+  expect((await management.recoverDeletion(await management.inspectDeletion(inspection.token))).status).toBe('recovered');
+});
+test.each(['first-cancel', 'second-cancel', 'local-change'])('恢复 UI 的 %s 不放弃本机或替代任务记录', async choice => {
+  const { management } = await supersededRecovery();
+  wx.showModal = jest.fn(); wx.showToast = jest.fn();
+  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
+  await page.onRecoverDeletion();
+  wx.showModal.mock.calls[0][0].success({ confirm: choice !== 'first-cancel' });
+  if (choice === 'local-change') require('../utils/owner-storage').setStorageSync('fitness:trainingDraft', { id: 'new-after-confirmation' });
+  if (choice !== 'first-cancel') await wx.showModal.mock.calls[1][0].success({ confirm: choice !== 'second-cancel' });
+  expect(management.getDeletion()).toMatchObject({ state: 'superseded', generation: 0 });
+  expect(require('../utils/db').getLocalPlans()).toHaveLength(1);
+  expect(require('../utils/owner-storage').getStorageSync('fitness:trainingDraft')).toEqual({ id: choice === 'local-change' ? 'new-after-confirmation' : 'retain-draft' });
+});
+test('恢复 UI 的部分本机清理失败如实报告未完成，原任务可再次检查，不挂在处理中', async () => {
+  const { management } = await supersededRecovery();
+  wx.showModal = jest.fn(); wx.showToast = jest.fn();
+  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
+  await page.onRecoverDeletion(); wx.showModal.mock.calls[0][0].success({ confirm: true });
+  const set = wx.setStorageSync;
+  wx.setStorageSync = (key, value) => { if (key.includes('fitness:completedTraining')) throw Error('部分清理失败'); set(key, value); };
+  await wx.showModal.mock.calls[1][0].success({ confirm: true });
+  expect(page.data.dataResult).toContain('协调未完成'); expect(page.data.dataResult).toContain('部分清理失败');
+  expect(page.data.deleting).toBe(false);
+  expect(management.getDeletion()).toMatchObject({ state: 'superseded' });
+});

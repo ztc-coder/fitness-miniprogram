@@ -88,6 +88,7 @@
   <button bindtap="onWithdrawConsent">撤回云服务同意</button>
   <button bindtap="onClearLocal">清除本机全部训练数据</button>
   <button bindtap="onDeleteAll" disabled="{{deleting}}">{{deleting ? '删除处理中…' : '删除本人全部个人数据 / 重试'}}</button>
+  <button bindtap="onRecoverDeletion" disabled="{{deleting}}">检查被其他设备替代的删除任务 / 协调本机</button>
   <button bindtap="onReconcile">确认删除屏障后重新使用</button>
   <view class="queue-note" aria-live="polite">{{dataResult}}</view>
 

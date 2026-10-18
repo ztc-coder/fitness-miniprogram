@@ -24,6 +24,7 @@ async function deleteAll(authorization) {
       return res.result;
     };
     let operation = getDeletion();
+    if (operation && operation.state === 'superseded') return { status: 'recovery-required', message: '旧删除任务已被其他设备替代，请检查并确认协调本机；不会复用旧完成结果' };
     if (!operation) {
       const state = await call({ action: 'state' });
       if (!Number.isSafeInteger(state.generation)) throw Error('无法确认删除代际');
@@ -50,6 +51,42 @@ async function deleteAll(authorization) {
     return { status: 'retry', message: err.message || '删除未确认，请重试' };
   }
 }
+/** Explicit recovery only: inspect the latest job without rebinding the durable old request. */
+async function inspectDeletion(token) {
+  service.assertCurrent(token);
+  if (service.snapshot().consent) throw Error('请单独授权检查删除任务');
+  const version = storage.version(), operation = getDeletion();
+  if (!operation) throw Error('本机没有待恢复的删除任务');
+  const res = await wx.cloud.callFunction({ name: 'personalData', data: { action: 'state' } });
+  service.assertCurrent(token);
+  if (storage.version() !== version || !getDeletion() || getDeletion().id !== operation.id) throw Error('本机数据或任务已变化，请重新检查');
+  const state = res.result;
+  if (!state || state.error || !Number.isSafeInteger(state.generation) || !state.deletion ||
+      !state.deletion.id || state.deletion.id === operation.id || state.generation <= operation.generation) {
+    throw Error('未确认旧任务被替代，请重试原删除任务；本机未清理');
+  }
+  const supersededBy = { id: state.deletion.id, generation: state.generation };
+  storage.setStorageSync(OPERATION_KEY, { ...operation, state: 'superseded', supersededBy });
+  if (state.deleting || state.deletion.status !== 'completed') throw Error('当前云端删除尚未完成，请先在发起设备重试；本机未清理');
+  return { token, version, operationId: operation.id, generation: state.generation, deletionId: state.deletion.id };
+}
+async function recoverDeletion(inspection) {
+  let token = inspection && inspection.token;
+  try {
+    const { version, operationId, generation, deletionId } = inspection;
+    service.assertCurrent(token);
+    if (storage.version() !== version) throw Error('本机数据已变化，请重新查看范围并确认');
+    const current = await inspectDeletion(token); // never trust a cached completion after the confirmations
+    if (current.operationId !== operationId || current.generation !== generation || current.deletionId !== deletionId ||
+        storage.version() !== version) throw Error('云端任务或本机数据已变化，请重新检查并确认');
+    service.invalidate();
+    token = service.snapshot();
+    storage.clearPrivate({ owner: token.owner, keepOperation: true });
+    storage.setStorageSync('fitness:syncGeneration', generation);
+    storage.removeStorageSync(OPERATION_KEY); // last: partial storage failure retains the recovery task
+    return { status: 'recovered', generation, scope: token };
+  } catch (err) { return { status: 'retry', message: err.message || '协调未确认，请重新检查', scope: token }; }
+}
 async function reconcile() {
   const token = service.snapshot();
   if (!service.ready()) throw Error('请先主动同意启用云服务');
@@ -64,4 +101,4 @@ async function reconcile() {
   storage.setStorageSync('fitness:syncGeneration', res.result.generation);
   return { status: 'reconciled' };
 }
-module.exports = { withdraw, clearLocal, deleteAll, getDeletion, reconcile, preview: storage.lossPreview, authorizeDeletion: service.authorizeDeletion };
+module.exports = { withdraw, clearLocal, deleteAll, getDeletion, inspectDeletion, recoverDeletion, reconcile, preview: storage.lossPreview, authorizeDeletion: service.authorizeDeletion };

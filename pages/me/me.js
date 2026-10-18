@@ -129,6 +129,27 @@ Page(themePage({
     finally { this.setData({ deleting: false }); }
   },
 
+  async onRecoverDeletion() {
+    if (this.data.deleting) return;
+    this.setData({ deleting: true, dataResult: '检查云端当前删除任务；尚未清理本机…' });
+    try {
+      const token = await management.authorizeDeletion();
+      const inspection = await management.inspectDeletion(token);
+      const operation = management.getDeletion(), loss = management.preview();
+      confirmTwice(this, '旧删除任务已被其他设备替代，协调本机？',
+        `当前本人身份：${token.owner}。本机旧任务 ${operation.id}（代际 ${operation.generation}）已被云任务 ${inspection.deletionId}（代际 ${inspection.generation}）替代，云端当前删除已完成。不会复用旧完成结果，不会删除当前云端新数据。仅放弃当前身份本机 ${loss.plans} 个计划、历史、${loss.drafts} 份进行中草稿、${loss.pending} 项待同步任务及旧删除任务，采用当前代际。不会清除其他身份或匿名区，保留偏好、保持停云；取消则保留本机。执行前将再次联网核实。`, async () => {
+          this.setData({ deleting: true });
+          const result = await management.recoverDeletion(inspection);
+          if (!result.scope || !isCurrent(result.scope)) { this.setData({ deleting: false }); return; }
+          this.resetPrivateView();
+          this.setData({ deleting: false, dataResult: result.status === 'recovered'
+            ? '已协调当前身份本机；当前云任务完成已核实，未执行新一轮云删除。其他身份及匿名区保留，云服务仍停用。'
+            : `协调未完成：${result.message}；请重新检查，不代表已清理` });
+        });
+    } catch (err) { this.setData({ dataResult: `检查未完成：${err.message}` }); }
+    finally { this.setData({ deleting: false }); }
+  },
+
   onReconcile() {
     confirmTwice(this, '确认删除屏障后的重新使用？',
       '云端删除完成后，清除当前身份本机残留的计划、历史、草稿和任务，再采用新代际。旧任务不会改绑重传，其他身份及匿名区不受影响。需要先主动同意云服务；此操作不恢复已删数据。', async () => {
