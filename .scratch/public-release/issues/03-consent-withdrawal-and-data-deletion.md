@@ -34,3 +34,13 @@
 - `node scripts/check-package-size.js`：1,212,695 bytes / 87文件，低于2 MiB，仅源码估算。
 - JS语法及 `git diff --check` 通过；`node scripts/check-public-info.js` 按预期退出1，仅运营者、两个公开联系方式、人工 verified 仍阻断，不再错误称元数据披露缺失。
 - 日志：`/tmp/ticket03-focused-final.log`、`/tmp/ticket03-full-final.log`；JEST为已有共享依赖 `/Users/ztc/fitness-miniprogram/node_modules/.bin/jest`，没有安装依赖。
+
+## P1 双设备恢复 / 待确认删除保护修复
+
+- 基于集成 `4d645c9`，交付前快进合入最新 `feat/public-release`：`ec2df6c`。仅修改03代码/测试/说明，不改05文档及默认 AppID/env/media。
+- P1a：公开 `inspectDeletion(token)` + `recoverDeletion(inspection)`，Page 新增「检查被其他设备替代的删除任务 / 协调本机」。检查最新不同 job/推进代际，旧任务标记 superseded 但原 ID/代际不变；当前云任务完成后展示本人损失及新旧任务/代际，再经两次确认与执行前联网核实，仅放弃当前 owner 本机残留/旧任务。其他 owner、匿名及当前云端新数据不动；不复用旧 ack、不隐式重绑或新发云删除。
+- P1b：personal-cloud 在任何自动屏障清理前检查自有 deletionOperation，并在 state 响应后复查。未完成删除重新启用/网络冲刷保留计划、草稿、队列、任务；无自有待确认任务的旧设备仍自动清过期缓存。
+- TDD：双设备公开客户端 + 真实云入口，A 请求未执行/B完成新 job、A丢完成响应/B再删除两例 Red 2失败/25通过 → Green 27通过；101计划单次删除未完成 Red（旧屏障自动清理失效 epoch）→ Green 保留本机/同 ID 显式重试完成。日志 `/tmp/ticket03-p1a-{red,green}.log`、`/tmp/ticket03-p1b-{red,green}.log`。只 mock wx/云SDK/存储/时间，无业务模块 mock。
+- 新增13通过，保留原564通过/29既有 skip。最终聚焦3套43通过；完整 `--coverage --runInBand --silent`：41套577通过/29跳过/共606项，无新增 skip。过滤复跑显示的非匹配项不计 skip 变更。日志 `/tmp/ticket03-p1-{focused,full}.log`。
+- 源码包体1,217,757 bytes/87文件；变更JS `node --check` 和 `git diff --check` 通过。公开资料检查预期退出1，仅运营者、两个联系方式、人工verified四项阻断。第05票验收最终汇总由父代理追加。
+- **仍是源码/mock证据**：真实云SDK/事务冲突、deny-all部署、微信双身份、设备/网络及最终编译包体验收 Blocked。未安装依赖、生产构建、部署或push；未改变元数据保留策略，未增加全owner清理。

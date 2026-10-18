@@ -43,10 +43,13 @@ async function generation() {
   const storage = require('./owner-storage');
   const token = service.snapshot();
   if (!service.ready()) throw new Error('仅本地模式');
+  // An owned deletion must be explicitly retried/recovered, never auto-wiped by its own barrier.
+  if (storage.getStorageSync('fitness:deletionOperation')) throw new Error('请先重试删除并完成本机清理，再重新使用云服务');
   const res = await wx.cloud.callFunction({ name: 'personalData', data: { action: 'state' } });
   service.assertCurrent(token);
   if (!res.result || !Number.isSafeInteger(res.result.generation)) throw new Error('无法确认云端代际');
   const state = res.result;
+  if (storage.getStorageSync('fitness:deletionOperation')) throw new Error('请先重试删除并完成本机清理，再重新使用云服务');
   const saved = storage.getStorageSync('fitness:syncGeneration');
   const barrier = storage.getStorageSync('fitness:syncBarrier');
   if ((saved === undefined || saved === '' ? 0 : saved) !== state.generation ||
@@ -58,7 +61,6 @@ async function generation() {
     throw new Error('云端删除屏障已改变，旧本机数据已失效；请确认后重新使用');
   }
   if (barrier || state.deleting) throw new Error('请确认云端删除完成并协调本机数据后重新使用');
-  if (storage.getStorageSync('fitness:deletionOperation')) throw new Error('请先重试删除并完成本机清理，再重新使用云服务');
   return state.generation;
 }
 module.exports = { database, generation };
