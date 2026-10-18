@@ -44,3 +44,12 @@
 - 新增13通过，保留原564通过/29既有 skip。最终聚焦3套43通过；完整 `--coverage --runInBand --silent`：41套577通过/29跳过/共606项，无新增 skip。过滤复跑显示的非匹配项不计 skip 变更。日志 `/tmp/ticket03-p1-{focused,full}.log`。
 - 源码包体1,217,757 bytes/87文件；变更JS `node --check` 和 `git diff --check` 通过。公开资料检查预期退出1，仅运营者、两个联系方式、人工verified四项阻断。第05票验收最终汇总由父代理追加。
 - **仍是源码/mock证据**：真实云SDK/事务冲突、deny-all部署、微信双身份、设备/网络及最终编译包体验收 Blocked。未安装依赖、生产构建、部署或push；未改变元数据保留策略，未增加全owner清理。
+
+## finalcode-review P1/P2 收尾（源码/mock）
+
+- 分支 `fix/public-release-final-findings`，干净基线 `10548fd` 含 `07a23a6`、审查目标 `8c7ccf9`；交付前合入父集成当前 tip `80cd133`。同一 worker/worktree 修复最终全部两项，不动默认AppID/env/media或05既有 checked SHA。
+- P1：所有写信封的路径 durable set 后才移除裸键；有效信封兼作修复来源，get/set 失败不删唯一原件，remove失败保留信封并传播错误。当前 owner 删除补清旧安装已认领裸副本，匿名/其他 owner 桶保留；真正匿名裸值先保全到匿名桶，不静默认领。全量删除清理失败保留任务、返回 retry，重启仍复用原删除 ID；清全部本机先移除裸键再移除信封避免归属回退。精确语义见删除/同意文档。
+- P1 Red：匿名创建/逐组完成→明确认领→全删返回 deleted 后，平台裸 plans 仍在（1失败/37通过）；Green 主切片38通过。新增 get/set/remove故障、重启认领/全删修复、旧信封副本、真正匿名及 foreign保留、set/remove 转换、清全部本机故障，共45专项通过（新增8项）。原双设备fixture用运行时真实匿名桶代替已有信封外人为写入裸值，保留数据断言未跳过。
+- P2 Red：61条云历史无本地完成日志，第61条详情 session=null（1失败/5通过）；详情改为完整分页 API 后8通过，新增3项包含迟到页在身份切换/删除后不能恢复渲染、快照容量/成绩及完整统计保持不变。旧不存在历史主题测试改期待分页大小20，原提示/返回延时/只读断言均保留。
+- `$JEST` 使用已有 `/Users/ztc/fitness-miniprogram/node_modules/.bin/jest`；聚焦4套71通过，完整 `--coverage --runInBand --silent`：41套588通过/29既有skip/617项，577基线新增11通过，无新增skip。日志 `/tmp/final-p1-{red,green,edge}.log`、`/tmp/final-p2-{red,green}.log`、`/tmp/final-{focused,full}.log`。旧云平台适配器用裸键名虚拟映射 owner 桶，修复移除别名语义；本轮真实裸副本回归用独立Map存储检查，不用该适配器、不mock业务模块。
+- `npm run check:package` 1,218,018 bytes/87文件通过；JS语法、19JSON解析及diff检查通过。`npm run check:public-info` 预期退出1，仅运营者、两公开联系方式及verified仍阻断。无安装、云访问、设备、生产构建、部署或push。真实SDK/云隔离/双身份/真机/最终编译包体与公开资料仍Blocked；最终复审报告由父代理另写。

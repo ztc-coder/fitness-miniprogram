@@ -7,8 +7,8 @@
 ## 架构与公共接口
 
 - `utils/cloud-service.js`：`restore / enable / disable / ready / snapshot / assertCurrent / subscribe`。产品同意单独保存于 `fitness:cloudConsent === true`；旧 openid、旧 offlineMode、平台隐私状态均不授予同意。启动仅恢复明确同意；取身份失败保留本地能力，状态为 failed，设置开关可重试或停用。停用立即阻断新请求并失效旧响应，但不能取消已经到达服务端的写入，不删除云端数据。
-- `utils/owner-storage.js`：私人键通过 `getStorageSync / setStorageSync / removeStorageSync` 访问。新匿名数据继续存裸键；进入身份区后以 `fitness:owned:<原键>` 的 `{version:1,buckets:[{owner,value}]}` 信封保存，旧裸键只当作匿名区。旧 openid 不参与推断；未验证身份的冷启动不读其他所有者缓存。主题/设置不属于私人训练命名空间。
-- `claimPreview / claimAnonymous(expectedOwner)`：先显示完整当前身份、计划/去重场次/草稿数量；只有用户明确确认归属才迁移匿名区。取消不展示、不上传匿名区。其他所有者桶永远不参与认领；当前身份已有同类数据时拒绝覆盖，不做隐式合并。每键写失败保留剩余匿名数据，已迁移键可再次认领补完；没有备份/跨设备冲突功能。
+- `utils/owner-storage.js`：私人键通过 `getStorageSync / setStorageSync / removeStorageSync` 访问。新匿名数据继续存裸键；进入身份区后以 `fitness:owned:<原键>` 的 `{version:1,buckets:[{owner,value}]}` 信封保存，没有有效信封时，裸键才当作匿名区；有效信封（包括匿名桶）是唯一权威版本，同名裸键是待清理的迁移副本。旧 openid 不参与推断；未验证身份的冷启动不读其他所有者缓存。主题/设置不属于私人训练命名空间。
+- `claimPreview / claimAnonymous(expectedOwner)`：先显示完整当前身份、计划/去重场次/草稿数量；只有用户明确确认归属才迁移匿名区。取消不展示、不上传匿名区。其他所有者桶永远不参与认领；当前身份已有同类数据时拒绝覆盖，不做隐式合并。每键先持久化信封再移除裸副本；读/写失败不移除唯一裸值，移除失败保留权威信封并报错，已迁移键可在重启后再次明确认领或按 owner 清理补完；没有备份/跨设备冲突功能。
 - `utils/owner-page.js`：包裹私人 Page 生命周期与用户动作。代际变化清空已渲染旧数据/停止训练资源；旧异步渲染与延迟确认不继续写入。重新显示旧页面时重新进入今天页。
 - `utils/db.js` 原公共 API 保留，数据侧全部经过所有者存储；异步 CRUD 对身份/停用代际做响应检查。`utils/personal-cloud.js` 是个人云 RPC 适配，不再调用客户端 `wx.cloud.database()`。
 - `utils/queue.js` 仍是训练完成日志执行器，只有本人云服务 ready 后才执行网络检测/上传；网络监听最多注册一次，停用期间重试为空操作。
@@ -69,3 +69,10 @@
 `cloud-service.authorizeDeletion()` 独立校验身份、保持产品同意为 false，不启动常规同步/媒体；data-management 提供撤回、清全部本机、仅本人云端全量删除及显式代际协调。清本机覆盖全部身份与匿名区，全量删除成功仅清当前 owner，均保留主题/单位。请求前后的 epoch/本机版本检查及清理前失效避免迟到回调写回；清除失败保留原删除 ID 可重试。
 
 Page 确认认领后先核对云端代际；代际不匹配的匿名旧数据保留且拒绝认领，迟到确认按 epoch/本机变更失效。匿名认领也递增本机版本，不能让先前的损失确认清掉新认领的数据。详见 `docs/data-deletion.md`。此前01契约示例是历史交接说明，运行时版本协议以02/03文档为准。
+
+
+## finalcode-review P1/P2 补充（本机源码证据）
+
+- 所有信封写入（包括 owner set/remove/clear）成功后移除同名裸键，修复旧安装明确认领后仍残留完整个人快照的问题；信封兼作修复来源，移除失败不能宣告全量删除成功。匿名/foreign 数据保留在原桶，不因该清理自动认领；无信封的真正匿名裸值先持久化为匿名桶后才移除裸表示。具体中断和重试语义见 `docs/data-deletion.md` 的 finalcode-review 节。
+- 历史详情与列表统一完整分页读取，不再只取前50场；ownerPage 及过期响应防护不变。61场无本地日志的真实 Page.onLoad 回归验证第61场快照/容量，迟到第4页遇身份切换或本机删除不渲染。
+- 本轮聚焦4套71通过，完整41套588通过/29既有跳过（617项，相对577基线新增11通过，无新增 skip）。平台旧夹具把裸键名作为虚拟 owner 桶 backing；适配器区分这类别名与真实裸副本，物理迁移安全由独立真实 Map 存储回归覆盖，不 mock 业务模块。详细 Red/Green、完整和源码检查见01/03 tracker；没有真实云/设备/部署证据。

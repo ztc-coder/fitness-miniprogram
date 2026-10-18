@@ -17,6 +17,7 @@ function setup(cloudSessions = []) {
   const storage = {};
   const reads = [];
   const writes = jest.fn((key, value) => { storage[key] = value; });
+  const removes = jest.fn();
   const cloudWrite = jest.fn(() => { throw Error('history must be read only'); });
   const collection = {
     orderBy() {
@@ -31,7 +32,7 @@ function setup(cloudSessions = []) {
     add: cloudWrite, doc: () => ({ set: cloudWrite, update: cloudWrite, remove: cloudWrite }),
   };
   global.wx = {
-    getStorageSync: key => storage[key], setStorageSync: writes, removeStorageSync: jest.fn(),
+    getStorageSync: key => storage[key], setStorageSync: writes, removeStorageSync: removes,
     cloud: { database: () => ({ collection: () => collection }) },
     navigateTo: jest.fn(), navigateBack: jest.fn(), showToast: jest.fn(),
     setNavigationBarColor: jest.fn(), setBackgroundColor: jest.fn(), setBackgroundTextStyle: jest.fn(),
@@ -44,7 +45,7 @@ function setup(cloudSessions = []) {
     return { ...definition, data: JSON.parse(JSON.stringify(definition.data)),
       setData(patch, callback) { Object.assign(this.data, patch); if (callback) callback(); } };
   }
-  return { storage, writes, cloudWrite, reads, open, theme: require('../utils/theme') };
+  return { storage, writes, removes, cloudWrite, reads, open, theme: require('../utils/theme') };
 }
 afterEach(() => {
   jest.restoreAllMocks();
@@ -52,7 +53,7 @@ afterEach(() => {
 });
 
 test('记录再次显示恢复双向主题，保留页签、动作与指标弹层，原刷新每次仅读取一次且历史不写', async () => {
-  const { storage, writes, cloudWrite, reads, open, theme } = setup([session('old', NOW)]);
+  const { storage, writes, removes, cloudWrite, reads, open, theme } = setup([session('old', NOW)]);
   await require('./helpers/cloud-runtime').enableCloud();
   writes.mockClear();
   storage['fitness:pendingQueue'] = [session('local', NOW - 86400000, 30)];
@@ -78,7 +79,7 @@ test('记录再次显示恢复双向主题，保留页签、动作与指标弹�
   expect(page.data).toMatchObject({ theme: 'dark', view: 'trend', selectedExercise: '引体', showMetricSheet: true });
   expect(reads).toEqual(Array(3).fill({ offset: 0, count: 20 }));
   expect(writes).not.toHaveBeenCalled();
-  expect(wx.removeStorageSync).not.toHaveBeenCalled();
+  expect(removes).not.toHaveBeenCalled();
   expect(cloudWrite).not.toHaveBeenCalled();
   expect(JSON.stringify({ ...storage, 'fitness:settings': undefined })).toBe(before);
 });
@@ -213,7 +214,7 @@ test('不存在的历史仍提示并按原延时返回，不因主题变更重�
     expect(page.data).toMatchObject({ theme: 'light', session: null });
     expect(wx.showToast).toHaveBeenCalledWith({ title: '记录不存在', icon: 'none' });
     page.onShow(); await settled();
-    expect(reads).toEqual([{ offset: 0, count: 50 }]);
+    expect(reads).toEqual([{ offset: 0, count: 20 }]);
     jest.advanceTimersByTime(599);
     expect(wx.navigateBack).not.toHaveBeenCalled();
     jest.advanceTimersByTime(1);
