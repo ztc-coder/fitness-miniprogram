@@ -31,7 +31,7 @@ npm run check:public-info
 同意/所有者隔离、持久同步及个人数据清理已有源码与 mock 自动回归；不等于已部署或真实云端权限已验收。未同意时可本地训练，不取身份/同步/远程媒体；同意后静默身份与本人同步。撤回不是云删除，清本机不是全端删除，离线设备不能即时远程擦除。
 
 - [本轮验收矩阵与版本证据](docs/public-release-acceptance.md)：第05票保持 **open / ready-for-human / Blocked**，尚缺真实双微信、设备及最终编译包。
-- [公开发布父规格](.scratch/public-release/issue.md)、[实施记录](.scratch/public-release/implementation.md)、[人工闸门](.scratch/public-release/human-clearance.md)：不因本地测试通过关闭父任务或第01/02/03全局验收；最终双轴审查尚未完成。
+- [公开发布父规格](.scratch/public-release/issue.md)、[实施记录](.scratch/public-release/implementation.md)、[双轴审查](.scratch/public-release/code-review.md)、[人工闸门](.scratch/public-release/human-clearance.md)：源码双轴审查及修复复测完成，无待处理P0–P2；不因本地结果关闭父任务或第01/02/03真实验收。
 - [同意与隔离](docs/consent-owner-isolation.md)、[可靠同步](docs/durable-sync.md)、[数据删除](docs/data-deletion.md)、[隐私核对](docs/public-privacy-checklist.md)。
 
 ## 权利与人工阻断

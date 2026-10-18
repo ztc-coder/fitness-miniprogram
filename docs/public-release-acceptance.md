@@ -1,6 +1,6 @@
 # 第05票：独立部署与发布专项验收证据
 
-**结论：open / ready-for-human / Blocked，不是 done。** 文档和本地检查已交付，真实双身份/设备、独立云规则/SDK及最终编译包体验证均未进行。两个P1聚焦修复仍由另一代理处理（data-management / personal-cloud / me / 删除测试）；本票不重复修复。最终合并后须重新跑完整运行证据及最终双轴审查，不能宣称发布范围无 P0–P2。
+**结论：open / ready-for-human / Blocked，不是 done。** 源码、本地回归和双轴审查已完成，结果见文末最新节；早期基线记录按时间保留，不作为当前结果。真实双身份/设备、独立云规则/SDK及最终编译包体验证均未进行，仍不能宣称完整发布验收通过。
 
 ## 版本、环境和实际结果
 
@@ -96,3 +96,15 @@ git merge-base HEAD feat/public-release
 - 最终双轴审查正在执行，固定起点 `f049ef5dc2951169aac2938a65d81d762b0579da`，审查源码树 `8c7ccf9` 与上述合并提交一致。未在结果返回前宣称审查通过。
 
 本节仍只涵盖本地源码/mock与静态检查；22项真实矩阵、人工资料与授权阻断不变。
+
+## 最终审查修复后的运行与收尾证据
+
+- UTC 实际执行：`2026-10-18T01:49:12Z` 起。最终功能源码：`63fbf370a004c48c346b25f333f778e6ca7973be`（修复提交 `2ea54f9`）；两者 tree 均为 `a7987705ade71ebbf883d6bca115850afa022f96`。其后只补交付文档/票据状态。
+- `npm test -- --runInBand --silent`：exit0，**41套通过、588项通过、29项既有跳过，共617项**，无snapshot；`/tmp/public-release-accepted-tests.log`。
+- `npm run check:package`：exit0，**1,218,018 bytes / 87文件**，剩余858.5KiB；`/tmp/public-release-accepted-package.log`。仍非编译包体。
+- `npm run check:public-info`：预期 exit1；真实运营者、隐私渠道、支持渠道与 verified 四项仍缺失，`/tmp/public-release-accepted-info.log`。元数据说明已就实际实现披露。
+- 95个跟踪JS语法、19个JSON解析和 `git diff --check` 通过；仅主工作区，无遗留实施 worktree；文档收尾前工作区 clean。
+- 最终双轴审查：Standards 全范围及增量均 APPROVE；Spec 首轮P1裸副本/P2旧详情分页已由同一代理修复，定向复审 APPROVE，无待处理P0–P2。完整分轴记录见 [审查报告](../.scratch/public-release/code-review.md)。这只是源码审查，非真实权限/事务保证。
+- 本轮未安装依赖、未生产构建、未云端部署、未push、未提审。无URL/本地设计基准/稳定设备状态，未进行视觉验收；不声称真实WXML、计时声音振动已通过。
+
+第01/02/03保留源码完成、真实验证待人工状态；第04机制范围done；第05/06与父issue继续open。下一步仅能在维护者提供隔离环境/设备、真实公开资料与媒体授权，并另行授权后继续真实验收/发布流程。

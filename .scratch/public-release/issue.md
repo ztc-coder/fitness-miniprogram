@@ -1,11 +1,17 @@
 ---
 title: 免费公开小程序首版最小发布闭环
-labels: [ready-for-agent]
+labels: [ready-for-human]
 status: open
 created: 2026-10-17
 ---
 
 # 免费公开小程序首版最小发布闭环
+
+## 本轮实施状态（更新）
+
+用户已另行授权本地实施、提交及集成，分支 `feat/public-release`。01/02/03源码、04机制与05部署/验收文档已交付；最终功能合并 `63fbf37`，双轴审查修复后通过，本机41套588项通过、29既有跳过。下文“仅落规格/未实施”保留为最初规格基线，不是本轮结果。
+
+**父 issue 仍 open / ready-for-human / Blocked。** 没有独立云环境、真实双用户/设备及最终编译包证据；媒体授权、真实公开资料、平台材料与生产授权均未解除。未部署、生产构建、push或提审。当前证据以 [实施记录](implementation.md)、[审查](code-review.md)、[验收矩阵](../../docs/public-release-acceptance.md) 和 [人工闸门](human-clearance.md) 为准。
 
 ## 状态与授权边界
 
