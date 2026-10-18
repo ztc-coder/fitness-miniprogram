@@ -82,3 +82,17 @@ git merge-base HEAD feat/public-release
 ## 文档完成后的复跑与基线确认
 
 2026-10-18T01:36:52Z（实际 `date -u`）：上述相同 `PATH=… npm test -- --runInBand --silent` 再跑 exit0，41套通过、564通过/29既有skip/593总计，耗时2.714s，日志 `/tmp/ticket05-final-tests.log`。`git diff --check` exit0。此时 `git rev-parse HEAD feat/public-release` 和 `git merge-base HEAD feat/public-release` 三个结果仍均为 `4d645c99f6d01566b5989a15c52bb172b07fb96e`，确认文档基于交付检查时的集成tip，尚未包含后续P1修复。只运行本地测试，不是最终合并后运行证据。
+
+## 删除 P1 修复合并后的集成验证
+
+以下覆盖上述旧基线之后的代码，不能将旧结果与本节混写：
+
+- UTC 实际执行时间：`2026-10-18T01:41:03Z` 起；源码完整 SHA：`07a23a6915fed89334a068a53781e9d84822489a`，包含 `8c7ccf9` 删除恢复/失败本地保护修复及第05票文档。
+- 主工作区 `feat/public-release`，Node `v22.22.3`、npm `10.9.8`；无额外安装。
+- `npm test -- --runInBand --silent`：exit0，**41套通过，577通过、29既有跳过，共606项**；日志 `/tmp/public-release-final-tests.log`。
+- `npm run check:package`：exit0，**1,217,757 bytes / 87文件**，低于2MiB，日志 `/tmp/public-release-final-package.log`。仅源码体积，未编译。
+- `npm run check:public-info`：预期 exit1，仍阻断真实运营者、隐私联系、支持联系、人工 verified 四项；日志 `/tmp/public-release-final-public-info.log`。
+- 全部跟踪 **95个JS语法、19个JSON解析**通过；`git diff --check` 通过；`git worktree list` 只剩主工作区，临时实施 worktree 已由工具清理，主工作区 clean（本节文档编辑前）。
+- 最终双轴审查正在执行，固定起点 `f049ef5dc2951169aac2938a65d81d762b0579da`，审查源码树 `8c7ccf9` 与上述合并提交一致。未在结果返回前宣称审查通过。
+
+本节仍只涵盖本地源码/mock与静态检查；22项真实矩阵、人工资料与授权阻断不变。
