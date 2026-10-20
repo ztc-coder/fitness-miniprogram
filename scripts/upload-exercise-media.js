@@ -12,8 +12,8 @@ const fs = require('fs');
 const path = require('path');
 const { EXERCISES } = require('../data/exercises.js');
 const { MEDIA_ROOT, resolveAsset: resolveMedia } = require('../data/media-root.js');
+const { envId: ENV_ID } = require('../config/cloud-env.js');
 
-const ENV_ID = 'cloud1-d2ga0mned4bbf9b29';
 const CLOUD_ROOT = 'exercises';
 const DEFAULT_SRC = '/tmp/exercises-dataset';
 
@@ -456,6 +456,11 @@ async function main() {
   const execute = hasFlag(argv, '--execute');
   const dryRun = !execute;
 
+  if (!ENV_ID) {
+    console.error('未配置云环境:先在 config/cloud-env.js 填写自己的 envId(不要沿用原运营者环境),本轮不执行同步。');
+    process.exit(1);
+  }
+
   const targets = buildUploadTargets(EXERCISES);
   const plan = planUploads(srcDir, targets);
   printPlan(srcDir, plan, EXERCISES.length);
@@ -511,7 +516,7 @@ async function main() {
   }
 
   console.log('同步完成:远端受管对象与最终目录一致。');
-  console.log('请确认 data/media-root.js 的 MEDIA_ROOT 为桶根(形如 cloud://' + ENV_ID + '.<bucket-suffix>,不要 /exercises)。');
+  console.log('请确认 config/cloud-env.js 的 mediaRoot 为桶根(形如 cloud://' + ENV_ID + '.<bucket-suffix>,不要 /exercises)。');
 }
 
 if (require.main === module) {

@@ -2,17 +2,19 @@
 
 微信原生力量训练记录工具：第 N 天循环计划、逐组打卡、完成历史、离线动作目录和浅深主题。动作库为 1,295 条非 cardio 目录，支持关键词(含俗称别名)/七类部位/器械原值筛选。成绩先在本地成立，逐组记录不联网；首版不支持多设备并发编辑或备份恢复。
 
-## 安全起点：克隆后不要直接运行启云
+## 安全起点：没有自己的云环境，就不要启云
 
-**仓库按维护者选择保留既有默认 AppID、云环境 ID 和媒体根，并非自行部署安全默认值，也没有运行时配置拦截。** 自行部署者必须在任何产品同意、云初始化或删除授权之前，将以下三项全部替换为自己独立环境的值；旧安装需先在不启动小程序的情况下清除开发者工具本地存储，避免已存同意自动启云。不要连接或共享原运营者的生产环境。
+**仓库不带可用的部署默认值：`project.config.json` 的 `appid` 为空，`config/cloud-env.js` 的 `envId`、`mediaRoot` 也为空。** 这不是“能用只是没换”，也不是可以忽略的占位——启动时 `utils/cloud-service` 会硬拦截：不初始化 `wx.cloud`、不恢复旧同意、不请求远程媒体，只弹窗说明「云能力已禁用」，本地计划、训练、历史与动作库照常可用（与未同意时的边界一致）。所以干净 clone 不会误连原运营者的云环境。
 
-| 必须替换 | 位置 |
-|---|---|
-| 自己的 AppID | `project.config.json` → `appid` |
-| 自己的环境 ID | `utils/cloud-service.js` → `ENV_ID` |
-| 自己有权使用的存储桶/域名根 | `data/media-root.js` → `MEDIA_ROOT` |
+要启用云同步，必须把三项都换成自己的值，填完重启：
 
-AppID/环境定位符不是密钥；它们仍不能作为“可以使用他人环境”的许可。禁止向仓库提交私人凭据、管理密钥、身份日志或未批准的联系方式。完整步骤见 [独立部署指南](docs/independent-deployment.md)，不要沿用旧版“只部署 login、仅创建者可写”的操作。
+| 必须替换 | 位置 | 说明 |
+|---|---|---|
+| 自己的 AppID | `project.config.json` → `appid` | 开发者工具导入时选择自己主体的小程序 |
+| 自己的环境 ID | `config/cloud-env.js` → `envId` | 缺失或仍是原运营者环境时云能力保持禁用 |
+| 自己有权使用的存储桶/域名根 | `config/cloud-env.js` → `mediaRoot` | 可留空：媒体逐级降级为占位，不阻塞训练 |
+
+`npm run check:cloud-env` 会检查 `project.config.json` 的 `appid`、`config/cloud-env.js` 的三项，以及是否仍是原运营者基线；任一项没填好就退出 1。这仍然是人工替换与人工核对，不是自动部署。旧安装需先在不启动小程序的情况下清除开发者工具本地存储，避免已存同意自动启云。不要连接或共享原运营者的生产环境。AppID/环境定位符不是密钥；它们仍不能作为“可以使用他人环境”的许可。禁止向仓库提交私人凭据、管理密钥、身份日志或未批准的联系方式。完整步骤见 [独立部署指南](docs/independent-deployment.md)，不要沿用旧版“只部署 login、仅创建者可写”的操作。
 
 ## 本地检查（不部署、不编译）
 
@@ -21,10 +23,11 @@ AppID/环境定位符不是密钥；它们仍不能作为“可以使用他人�
 ```bash
 npm test -- --runInBand --silent
 npm run check:package
+npm run check:cloud-env
 npm run check:public-info
 ```
 
-`check:public-info` 当前**预期退出 1 / Blocked**：真实运营者、支持/隐私联系渠道尚未填写且未人工核实。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
+`check:cloud-env` 当前**预期退出 1 / Blocked**：仓库刻意不带部署默认值（空 `appid`、空 `envId`），填好自己的值才会通过，且通过只代表配置齐了，不代表云环境可用。`check:public-info` 当前**预期退出 1 / Blocked**：真实运营者、支持/隐私联系渠道尚未填写且未人工核实。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
 
 ## 实现与发布状态
 
@@ -36,11 +39,11 @@ npm run check:public-info
 
 ## 动作媒体：仓库里没有，部署时怎么补
 
-仓库**不含任何真实动作图片/GIF**：目录里只有路径字符串（`exercises/images/…jpg`、`exercises/videos/…gif`），文件既不在 git 里，也不随 npm 或任何发布物分发。媒体根是单一配置点 `data/media-root.js` → `MEDIA_ROOT`（默认值与必须替换的要求见上一节）。
+仓库**不含任何真实动作图片/GIF**：目录里只有路径字符串（`exercises/images/…jpg`、`exercises/videos/…gif`），文件既不在 git 里，也不随 npm 或任何发布物分发。媒体根是单一配置点 `config/cloud-env.js` → `mediaRoot`（`data/media-root.js` 的 `MEDIA_ROOT` 由此派生；空值 = 未配置，见上一节）。
 
 部署者按自己拿到的素材三选一：
 
-1. **用自己有权使用的存储**：媒体放进自己 CloudBase 桶或 HTTPS 域名的 `exercises/images/`、`exercises/videos/` 前缀下，把 `MEDIA_ROOT` 改成自己的桶根（不要再带 `/exercises`）。
+1. **用自己有权使用的存储**：媒体放进自己 CloudBase 桶或 HTTPS 域名的 `exercises/images/`、`exercises/videos/` 前缀下，把 `mediaRoot`（派生为 `MEDIA_ROOT`）改成自己的桶根（不要再带 `/exercises`）。
 2. **换自有素材**：保持同样的相对路径（`exercises/images/<id>-<hash>.jpg`、`exercises/videos/<id>-<hash>.gif`）与 180×180 规格，界面无需改动。
 3. **什么都不放**：干净 clone 照样可编译、`npm test` 可跑。运行时媒体逐级降级——详情为 **分解 GIF → JPEG 示意图 → 首字占位**，列表缩略图加载失败只清那一行，今天页回 `↔` 图形、计划日回缩略占位；训练、打卡、历史流程都不受阻塞。
 

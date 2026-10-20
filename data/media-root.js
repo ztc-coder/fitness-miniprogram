@@ -11,13 +11,18 @@
  *  - HTTPS:
  *      'https://<your-domain>'
  *
- * 已配置为实际 CloudBase 环境(Region ap-shanghai)的 fileID 桶根,
- * 目录相对路径拼上即得 cloud:// fileID(小程序端直接用 <image>/<video> 加载)。
+ * 部署配置在 config/cloud-env.js 的 mediaRoot(默认空 = 未配置);这里派生 MEDIA_ROOT。
+ * 未配置时媒体地址解析为空串,界面逐级降级为占位,不影响训练流程。
+ * 仍指向原运营者存储桶的值按未配置处理,避免误连他人存储。
  *
  * ⚠️ 媒体版权归 Gym visual(https://gymvisual.com/),个人自用,
  * 禁止热链 GitHub / jsDelivr 公开再分发。
  */
-const MEDIA_ROOT = 'cloud://cloud1-d2ga0mned4bbf9b29.636c-cloud1-d2ga0mned4bbf9b29-1456520720';
+const cloudEnv = require('../config/cloud-env');
+const { isLegacyMediaRoot } = require('../utils/cloud-env');
+
+const configuredRoot = typeof cloudEnv.mediaRoot === 'string' ? cloudEnv.mediaRoot.trim() : '';
+const MEDIA_ROOT = isLegacyMediaRoot(configuredRoot) ? '' : configuredRoot;
 
 /**
  * 拼接媒体地址;前缀未配置或路径为空时返回空串(调用方据此降级 glyph)。

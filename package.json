@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest --coverage",
     "check:public-info": "node scripts/check-public-info.js",
-    "check:package": "node scripts/check-package-size.js"
+    "check:package": "node scripts/check-package-size.js",
+    "check:cloud-env": "node scripts/check-cloud-env.js"
   },
   "devDependencies": {
     "@cloudbase/manager-node": "^5.8.8",

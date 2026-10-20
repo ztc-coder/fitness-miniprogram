@@ -1,6 +1,8 @@
 /** 产品同意独立于平台隐私授权；旧 openid/离线设置不能替代同意。 */
+const cloudEnv = require('../config/cloud-env');
+const { getCloudIssues, text } = require('./cloud-env');
+
 const KEY = 'fitness:cloudConsent';
-const ENV_ID = 'cloud1-d2ga0mned4bbf9b29';
 let owner = '';
 let consent = false;
 let epoch = 0;
@@ -20,6 +22,22 @@ function invalidate() {
   epoch += 1;
   changed();
 }
+/** 当前编译出的 AppID：未配置/旧基础库/游客模式都拿不到可信值时返回空串。 */
+function detectedAppId() {
+  try {
+    const info = typeof wx.getAccountInfoSync === 'function' ? wx.getAccountInfoSync() : null;
+    return text(info && info.miniProgram && info.miniProgram.appId);
+  } catch (err) {
+    return '';
+  }
+}
+/** 部署配置阻断项；非空表示不允许启云（见 config/cloud-env.js）。 */
+function configIssues() { return getCloudIssues(cloudEnv, { appId: detectedAppId() }); }
+function configured() { return configIssues().length === 0; }
+function assertConfigured() {
+  const issues = configIssues();
+  if (issues.length) throw new Error('云能力未配置，已禁用：' + issues.join('；'));
+}
 function disable() {
   consent = false;
   status = 'local';
@@ -29,7 +47,9 @@ function disable() {
 }
 function initialize() {
   if (!wx.cloud) throw new Error('当前微信版本不支持云服务');
-  if (!initialized) { wx.cloud.init({ env: ENV_ID, traceUser: false }); initialized = true; }
+  // 硬校验在 init 之前：未配置自己的环境时绝不初始化云，避免连到原运营者环境。
+  assertConfigured();
+  if (!initialized) { wx.cloud.init({ env: text(cloudEnv.envId), traceUser: false }); initialized = true; }
 }
 /** Purpose-specific authorization: never sets product consent or starts queue/media service. */
 async function authorizeDeletion() {
@@ -45,6 +65,15 @@ async function authorizeDeletion() {
   return snapshot();
 }
 async function enable() {
+  const issues = configIssues();
+  if (issues.length) {
+    // 未配置自己的云环境：不写同意、不初始化云，保持与"未同意"一致的本地能力。
+    consent = false;
+    status = 'local';
+    starting = null;
+    changed();
+    throw new Error('云能力未配置，保持本地模式：' + issues.join('；'));
+  }
   wx.setStorageSync(KEY, true);
   consent = true;
   if (ready()) return snapshot();
@@ -72,7 +101,25 @@ async function enable() {
   return starting;
 }
 function restore() {
+  if (!configured()) {
+    // 启动即拦截：不读旧同意、不初始化云；本地训练照常可用。
+    consent = false;
+    status = 'local';
+    return Promise.resolve(snapshot());
+  }
   try { consent = wx.getStorageSync(KEY) === true; } catch (err) { consent = false; }
   return consented() ? enable() : Promise.resolve(snapshot());
 }
-module.exports = { subscribe, ready, snapshot, assertCurrent, enable, disable, restore, invalidate, authorizeDeletion };
+module.exports = {
+  subscribe,
+  ready,
+  snapshot,
+  assertCurrent,
+  enable,
+  disable,
+  restore,
+  invalidate,
+  authorizeDeletion,
+  configured,
+  configIssues,
+};

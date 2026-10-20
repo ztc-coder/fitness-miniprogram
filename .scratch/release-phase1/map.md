@@ -29,6 +29,7 @@
 
 - [根 LICENSE 与全量许可核对](.scratch/release-phase1/issues/02-license.md)：MIT 已落地（`Copyright (c) 2026 ztc-coder`），`THIRD-PARTY.md` 逐类记录来源/许可/义务；**关键更正是仓库内从来没有 Gym visual 媒体**——`images/` 只有 20 个自制 tabBar 图标，随仓库分发且带第三方义务的只有 MIT 的动作目录文本与中文动作名（保留上游版权行即可），npm 564 包全为 dev 依赖、音频 CC0、无字体。
 - [媒体与代码解耦：占位素材与独立媒体包](.scratch/release-phase1/issues/03-media-decoupling.md)：仓库守住「媒体不进来」（`tests/media-decoupling.test.js` 6 条守卫：不得跟踪媒体文件、`images/` 只许 tabBar 图标、文档文案、`.gitignore` 兜住 `exercises/`+`media-pack/`、`app.json` 引用文件齐全），缺媒体走既有降级链不阻塞训练；媒体根仍是 `data/media-root.js` 的 `MEDIA_ROOT` 单点，默认值替换留给 #05；媒体包需 Gym visual 书面授权后才落地，本票关闭不等于已授权。干净 clone 实测 42 套 593 passed。
+- [默认 AppID 与云环境防误连硬校验](.scratch/release-phase1/issues/05-cloud-guard.md)：硬编码实为 4 处（`utils/cloud-service.js` 的 `ENV_ID`、`data/media-root.js` 的 `MEDIA_ROOT`、`project.config.json` 的 `appid`、`scripts/upload-exercise-media.js` 的独立 `ENV_ID`），全部改为从单一配置点 `config/cloud-env.js` 读取、默认空值；未配置时 `utils/cloud-service.js` 在 `wx.cloud.init` 前硬拦截、`app.js` 启动弹「云能力已禁用」、`restore()` 不恢复旧同意，本地训练与动作库不受影响；`npm run check:cloud-env` 自动检查（仓库刻意空值故当前 exit 1）；新增 `tests/cloud-env.test.js` 覆盖两侧，全量 45 套 / 650 passed。
 
 ## Not yet specified
 

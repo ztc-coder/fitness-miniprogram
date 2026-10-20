@@ -19,7 +19,7 @@
 - 云数据库集合：`plans`、`sessions`，权限设为「仅创建者可读写」。
 - 云函数：`cloudfunctions/login`，只做静默 openid 登录。
 - 云存储：承载动作图片与 GIF，按需加载，不进主包。
-- 环境 ID 配置在 `app.js` 顶部常量 `ENV_ID`。
+- 环境 ID 与媒体根配置在 `config/cloud-env.js`（`utils/cloud-service.js`、`data/media-root.js` 从这里取值）；默认空值即未配置，启动会禁用云能力，见 [独立部署指南](../independent-deployment.md) 第 1 节。
 
 ## Consequences（后果）
 

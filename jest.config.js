@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.js'],
+  setupFiles: ['<rootDir>/tests/setup-cloud-env.js'],
   collectCoverageFrom: ['utils/domain.js', 'data/exercises.js'],
   coverageThreshold: {
     global: {
