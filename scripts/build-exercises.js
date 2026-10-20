@@ -133,11 +133,31 @@ function writeCatalog(options) {
   return { chunks, snapshotPath };
 }
 
-function main() {
-  const result = generateCatalog();
-  writeCatalog(result);
+/** 解析 --src <数据集目录> / --out <输出目录>;缺省时行为与以往完全一致。 */
+function parseArgs(argv) {
+  const options = {};
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--src') {
+      if (!argv[i + 1]) throw new Error('--src 需要一个数据集目录,该目录须含 exercises.json 与 name_zh.json');
+      options.srcDir = argv[i + 1];
+      i += 1;
+    } else if (argv[i] === '--out') {
+      if (!argv[i + 1]) throw new Error('--out 需要一个输出目录');
+      options.outDir = argv[i + 1];
+      i += 1;
+    } else {
+      throw new Error(`未知参数:${argv[i]}(可用:--src <数据集目录> --out <输出目录>)`);
+    }
+  }
+  return options;
+}
+
+function main(argv = []) {
+  const options = parseArgs(argv);
+  const result = generateCatalog({ srcDir: options.srcDir });
+  writeCatalog({ ...result, outDir: options.outDir });
   console.log(`catalog: ${result.catalog.length} 条`);
 }
 
-module.exports = { generateCatalog, buildCatalog: generateCatalog, writeCatalog, writeCatalogChunks: writeCatalog, CHUNK_SIZE };
-if (require.main === module) main();
+module.exports = { generateCatalog, buildCatalog: generateCatalog, writeCatalog, writeCatalogChunks: writeCatalog, parseArgs, CHUNK_SIZE };
+if (require.main === module) main(process.argv.slice(2));

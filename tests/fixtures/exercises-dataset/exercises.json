@@ -1,0 +1,32 @@
+[
+  {
+    "id": "9102",
+    "name": "fixture row",
+    "category": "back",
+    "body_part": "back",
+    "equipment": "barbell",
+    "target": "lats",
+    "image": "images/9102-Fixtur1.jpg",
+    "gif_url": "videos/9102-Fixtur1.gif"
+  },
+  {
+    "id": "9101",
+    "name": "fixture press",
+    "category": "chest",
+    "body_part": "chest",
+    "equipment": "barbell",
+    "target": "pectorals",
+    "image": "images/9101-Fixtur2.jpg",
+    "gif_url": "videos/9101-Fixtur2.gif"
+  },
+  {
+    "id": "9103",
+    "name": "fixture squat",
+    "category": "upper legs",
+    "body_part": "upper legs",
+    "equipment": "body weight",
+    "target": "quads",
+    "image": "images/9103-Fixtur3.jpg",
+    "gif_url": "videos/9103-Fixtur3.gif"
+  }
+]

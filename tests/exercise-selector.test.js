@@ -16,6 +16,10 @@ const ROOT = path.join(__dirname, '..');
 const CORE_FILE = path.join(ROOT, 'tools/exercise-selector/core.js');
 const INDEX_FILE = path.join(ROOT, 'tools/exercise-selector/index-data.js');
 const BUILD_FILE = path.join(ROOT, 'tools/exercise-selector/build-index.js');
+// 生成器/索引测试默认读仓库夹具,不依赖机器上的 /tmp/exercises-dataset。
+const FIXTURE_DIR = path.join(__dirname, 'fixtures/exercises-dataset');
+// 只有"与完整上游数据集(1324 条)逐条比对"两条需要真实数据集:
+//   放好 /tmp/exercises-dataset,或 DATASET_DIR=<目录> npm test;缺数据集时显式跳过。
 const HAS_DATASET = fs.existsSync(buildIndex.SRC_JSON);
 
 /** 上游 snake_case 行(默认是一条合法数据) */
@@ -92,7 +96,7 @@ describe('内置精简索引(1324 条)', () => {
     expect(new Set(index.map((item) => item.equipment)).size).toBe(28);
   });
 
-  (HAS_DATASET ? test : test.skip)('与上游 exercises.json 逐条一致(字段映射无丢失)', () => {
+  (HAS_DATASET ? test : test.skip)('[需完整数据集] 与上游 exercises.json 逐条一致(字段映射无丢失)', () => {
     const raw = JSON.parse(fs.readFileSync(buildIndex.SRC_JSON, 'utf8'));
     const nameZhMap = JSON.parse(fs.readFileSync(buildIndex.SRC_ZH, 'utf8'));
     expect(raw).toHaveLength(1324);
@@ -129,19 +133,22 @@ describe('生成器确定性', () => {
       .toThrow(/缺少源数据[\s\S]*curl/);
   });
 
-  (HAS_DATASET ? test : test.skip)('连续两次生成的字节完全一致', () => {
+  test('夹具数据集上连续两次生成的字节完全一致', () => {
     const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'exercise-index-'));
     const firstOut = path.join(outDir, 'first.js');
     const secondOut = path.join(outDir, 'second.js');
-    execFileSync('node', [BUILD_FILE, '--out', firstOut]);
-    execFileSync('node', [BUILD_FILE, '--out', secondOut]);
+    const env = Object.assign({}, process.env, { DATASET_DIR: FIXTURE_DIR });
+    execFileSync('node', [BUILD_FILE, '--out', firstOut], { env });
+    execFileSync('node', [BUILD_FILE, '--out', secondOut], { env });
     const first = fs.readFileSync(firstOut);
     const second = fs.readFileSync(secondOut);
     expect(first.equals(second)).toBe(true);
-    expect(first.toString('utf8')).toContain('1324 条精简索引');
+    expect(first.toString('utf8')).toContain('3 条精简索引');
+    expect(first.toString('utf8')).toContain('"id":"9101"');
+    expect(first.toString('utf8')).toContain('"nameZh":"夹具推举"');
   });
 
-  (HAS_DATASET ? test : test.skip)('磁盘内置索引与当前数据集生成结果一致,且为 1324 条', () => {
+  (HAS_DATASET ? test : test.skip)('[需完整数据集] 磁盘内置索引与当前数据集生成结果一致,且为 1324 条', () => {
     const { list, code } = buildIndex.buildIndex();
     expect(list).toHaveLength(1324);
     expect(fs.readFileSync(INDEX_FILE, 'utf8')).toBe(code);

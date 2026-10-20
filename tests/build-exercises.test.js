@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { generateCatalog, writeCatalog, CHUNK_SIZE } = require('../scripts/build-exercises');
+const { generateCatalog, writeCatalog, parseArgs, CHUNK_SIZE } = require('../scripts/build-exercises');
 const lockedExclusions = require('../scripts/catalog-exclusions');
 const { slugMap: realSlugMap, aliasesById: realAliases } = require('../scripts/hand-overrides');
 const published = require('../data/exercises');
@@ -444,6 +444,22 @@ describe('生成器:分片与版本快照', () => {
     expect(later.catalog).toEqual(first.catalog);
     expect(later.snapshot.dataset).toEqual(first.snapshot.dataset);
     expect(later.snapshot.generatedAt).not.toBe(first.snapshot.generatedAt);
+  });
+});
+
+describe('命令行参数', () => {
+  test('--src 指向真实数据集目录,缺省时沿用原有默认', () => {
+    expect(parseArgs([])).toEqual({});
+    expect(parseArgs(['--src', '/tmp/exercises-dataset'])).toEqual({ srcDir: '/tmp/exercises-dataset' });
+    expect(parseArgs(['--src', '/data/set', '--out', '/data/out'])).toEqual({
+      srcDir: '/data/set',
+      outDir: '/data/out',
+    });
+  });
+
+  test('--src 缺值或未知参数时报错', () => {
+    expect(() => parseArgs(['--src'])).toThrow(/--src 需要一个数据集目录/);
+    expect(() => parseArgs(['--unknown'])).toThrow(/未知参数:--unknown/);
   });
 });
 
