@@ -34,6 +34,20 @@ npm run check:public-info
 - [公开发布父规格](.scratch/public-release/issue.md)、[实施记录](.scratch/public-release/implementation.md)、[双轴审查](.scratch/public-release/code-review.md)、[人工闸门](.scratch/public-release/human-clearance.md)：源码双轴审查及修复复测完成，无待处理P0–P2；不因本地结果关闭父任务或第01/02/03真实验收。
 - [同意与隔离](docs/consent-owner-isolation.md)、[可靠同步](docs/durable-sync.md)、[数据删除](docs/data-deletion.md)、[隐私核对](docs/public-privacy-checklist.md)。
 
+## 动作媒体：仓库里没有，部署时怎么补
+
+仓库**不含任何真实动作图片/GIF**：目录里只有路径字符串（`exercises/images/…jpg`、`exercises/videos/…gif`），文件既不在 git 里，也不随 npm 或任何发布物分发。媒体根是单一配置点 `data/media-root.js` → `MEDIA_ROOT`（默认值与必须替换的要求见上一节）。
+
+部署者按自己拿到的素材三选一：
+
+1. **用自己有权使用的存储**：媒体放进自己 CloudBase 桶或 HTTPS 域名的 `exercises/images/`、`exercises/videos/` 前缀下，把 `MEDIA_ROOT` 改成自己的桶根（不要再带 `/exercises`）。
+2. **换自有素材**：保持同样的相对路径（`exercises/images/<id>-<hash>.jpg`、`exercises/videos/<id>-<hash>.gif`）与 180×180 规格，界面无需改动。
+3. **什么都不放**：干净 clone 照样可编译、`npm test` 可跑。运行时媒体逐级降级——详情为 **分解 GIF → JPEG 示意图 → 首字占位**，列表缩略图加载失败只清那一行，今天页回 `↔` 图形、计划日回缩略占位；训练、打卡、历史流程都不受阻塞。
+
+**媒体包**（取得授权后才考虑）：与目录相对路径同构的独立目录，1,295 条 × 2 项 = 2,590 个对象；只放进自己环境，不入库、不作为公开附件再分发。
+
+**署名与限制**：使用 Gym visual 媒体须保留 `© Gym visual — https://gymvisual.com/` 署名与 180×180 限制（详情页、计划日页已固定展示）。没有书面授权就不分发媒体包，也不能用 GitHub/jsDelivr 热链或镜像代替授权。逐条义务见 [THIRD-PARTY.md](THIRD-PARTY.md) §2.1，操作步骤见[独立部署指南](docs/independent-deployment.md) 第 4 节。
+
 ## 权利与人工阻断
 
 动作图片/GIF 版权归 Gym visual，须保留 `© Gym visual — https://gymvisual.com/` 署名及 180×180 限制；免费、克隆源码、媒体已上传均不等于获得公开使用/分发授权。书面授权、真实运营者/渠道、平台资格、隐私后台指引、隔离测试、配额费用预警和具体版本生产操作授权均待人工核实。

@@ -28,12 +28,14 @@
 <!-- 一票一行：关闭时追加，链接指向票，细节留在票里 -->
 
 - [根 LICENSE 与全量许可核对](.scratch/release-phase1/issues/02-license.md)：MIT 已落地（`Copyright (c) 2026 ztc-coder`），`THIRD-PARTY.md` 逐类记录来源/许可/义务；**关键更正是仓库内从来没有 Gym visual 媒体**——`images/` 只有 20 个自制 tabBar 图标，随仓库分发且带第三方义务的只有 MIT 的动作目录文本与中文动作名（保留上游版权行即可），npm 564 包全为 dev 依赖、音频 CC0、无字体。
+- [媒体与代码解耦：占位素材与独立媒体包](.scratch/release-phase1/issues/03-media-decoupling.md)：仓库守住「媒体不进来」（`tests/media-decoupling.test.js` 6 条守卫：不得跟踪媒体文件、`images/` 只许 tabBar 图标、文档文案、`.gitignore` 兜住 `exercises/`+`media-pack/`、`app.json` 引用文件齐全），缺媒体走既有降级链不阻塞训练；媒体根仍是 `data/media-root.js` 的 `MEDIA_ROOT` 单点，默认值替换留给 #05；媒体包需 Gym visual 书面授权后才落地，本票关闭不等于已授权。干净 clone 实测 42 套 593 passed。
 
 ## Not yet specified
 
 - **阶段二提审路径**：发布主体与类目资格、备案、生产 AppID 与云环境、后台《用户隐私保护指引》填报、提审材料与最终编译包检查。
 - **双用户云端隔离验收**：需要第二台真实设备 + 第二个微信号，当前无条件。触发条件：设备与身份齐备，或决定正式提审。届时拆成独立票。
 - **生产部署与提审的放行授权**：由谁在什么时点授权、留什么记录（第06票的 10 项全未勾即卡在此）。
+- **媒体包的授权与分发形态**：`#03` 已定「不入库、部署时自备」，但要真正对外提供媒体包，仍需 Gym visual 书面授权（主体/范围/期限/分发方式）+ 打包与校验方式 + 部署者获取入口；授权未落地前不拆票。
 
 ## Out of scope
 

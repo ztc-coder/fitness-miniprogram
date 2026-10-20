@@ -18,3 +18,7 @@ project.private.config.json
 
 # 本地视觉验收截图与诊断数据
 .pi/visual-tests/
+
+# 第三方动作媒体与自建媒体包绝不入库(只放自己有权使用的云存储)
+exercises/
+media-pack/
