@@ -16,7 +16,7 @@
 | `npm run check:public-info` | **exit1，预期Blocked**；operatorName、privacyContact、supportContact、verified四项缺失/未核实；不伪造成功 | `/tmp/ticket05-public-info.log` |
 | 下列静态循环 | exit0；全部95个跟踪JS语法检查、19个跟踪JSON解析通过 | 本节稳定计数 |
 | `git diff --check` | exit0；无空白错误 | 本节 |
-| `git ls-files '*LICENSE*' '*license*'` | 无输出；根LICENSE缺失，不代表第三方无许可要求 | 维护者决定授权，未补造LICENSE |
+| `git ls-files '*LICENSE*' '*license*'` | 无输出；当时根LICENSE缺失，不代表第三方无许可要求 | 维护者决定授权，未补造LICENSE（该轮基线 `4d645c9` 的事实记录；后续已由根 `LICENSE` + [THIRD-PARTY.md](../THIRD-PARTY.md) 补齐，见 README「许可」） |
 
 可复现静态检查（只读文件；不执行业务JS）：
 
