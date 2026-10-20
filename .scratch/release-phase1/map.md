@@ -19,7 +19,7 @@
   - 交付渠道 GitHub 公开仓库 + `v0.1.0` tag。
   - 可部署验收由维护者自己从零跑一遍并修文档。
   - 双用户/独立环境验收**不建票**，记入 fog，条件具备再拆。
-- **事实基线**：01–04 票源码已实现并合并 `63fbf37`；双轴审查 P0/P1 清零；`docs/public-release-acceptance.md` 的 M01–M22 真实结果行全为 `Blocked`；`config/public-info.js` 四项为空、`verified:false`，`check:public-info` 预期 exit 1。
+- **事实基线**：01–04 票源码已实现并合并 `63fbf37`；双轴审查 P0/P1 清零；`docs/public-release-acceptance.md` 的 M01–M22 真实结果行全为 `Blocked`；`config/public-info.js` 四项为空、`verified:false`，`check:public-info` 预期 exit 1（2026-10-20 起已由 #04 填真实资料并置 `verified:true`，检查转 exit 0；此处是当时基线）。
 - **媒体版权事实**：动作图片/GIF 归 **Gym visual**，须保留 `© Gym visual — https://gymvisual.com/` 与 180×180 限制；数据集文本 MIT（`hasaneyldrm/exercises-dataset`），媒体排除在 MIT 之外，且版权主张在 Gym visual / ExerciseDB / 仓库作者间冲突（ADR-0007）。**这些媒体从未在仓库里**：仓库只存 `exercises/images/…`、`exercises/videos/…` 路径字符串，真实文件在云存储。许可逐项结论见 `THIRD-PARTY.md`。
 - **技能**：动代码前读 `karpathy-guidelines`；跑不通先读 `diagnosing-bugs`。
 
@@ -32,6 +32,7 @@
 - [默认 AppID 与云环境防误连硬校验](.scratch/release-phase1/issues/05-cloud-guard.md)：硬编码实为 4 处（`utils/cloud-service.js` 的 `ENV_ID`、`data/media-root.js` 的 `MEDIA_ROOT`、`project.config.json` 的 `appid`、`scripts/upload-exercise-media.js` 的独立 `ENV_ID`），全部改为从单一配置点 `config/cloud-env.js` 读取、默认空值；未配置时 `utils/cloud-service.js` 在 `wx.cloud.init` 前硬拦截、`app.js` 启动弹「云能力已禁用」、`restore()` 不恢复旧同意，本地训练与动作库不受影响；`npm run check:cloud-env` 自动检查（仓库刻意空值故当前 exit 1）；新增 `tests/cloud-env.test.js` 覆盖两侧，全量 45 套 / 650 passed。
 
 - [隔离 npm test 对外部 /tmp 数据集的依赖](.scratch/release-phase1/issues/08-test-isolation.md)：`workspace-baseline.md` 记的那条失败其实早已消失（`tests/catalog.test.js` 已是 mkdtemp 夹具），真正残留的只是 `tests/exercise-selector.test.js` 三条「有 `/tmp/exercises-dataset` 才跑」的静默 skip；改为读新增仓库夹具 `tests/fixtures/exercises-dataset/`（3 条合成动作、无媒体）后，干净 clone 无外部数据集也 **43 套全过 / 610 passed / 28 skipped**（工作区 45 套 653 passed），两条「与完整上游数据集逐条一致」改名加 `[需完整数据集]` 前缀并写明启用条件；顺带发现票面假定的 `--src` 在 `scripts/build-exercises.js` 里根本不存在，按验收补齐 `--src` 与 `--out` 两个参数，缺省行为不变。
+- [填入真实运营者资料并让公开资料校验转绿](.scratch/release-phase1/issues/04-public-info.md)：HITL 已落地——维护者提供「赵天才 / 公开邮箱 15708489575@163.com / verified=true」，写入 `config/public-info.js`（`antiResurrection` 文案未改），`check:public-info` 转 **exit 0**，说明页同源渲染实测 `releaseBlocked=false`、两条渠道可复制。**关键澄清：平台后台的《用户隐私保护指引》≠ 仓库配置**，前者是审核材料、后者是小程序内展示与闸门数据源，不会自动同步，核对清单第 20 条要求两边一致。前置改造：两个把「配置必须为空、检查必须 exit 1」写死的测试改为「结论与当前配置一致」，否则填值那刻假红。保留风险：渠道可达性由维护者承诺、未实际发信；`verified` 由维护者拍板；该邮箱本地部分即手机号，公开邮箱等于该号码公开。
 
 ## Not yet specified
 

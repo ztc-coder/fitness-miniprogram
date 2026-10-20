@@ -27,7 +27,7 @@ npm run check:cloud-env
 npm run check:public-info
 ```
 
-`check:cloud-env` 当前**预期退出 1 / Blocked**：仓库刻意不带部署默认值（空 `appid`、空 `envId`），填好自己的值才会通过，且通过只代表配置齐了，不代表云环境可用。`check:public-info` 当前**预期退出 1 / Blocked**：真实运营者、支持/隐私联系渠道尚未填写且未人工核实。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
+`check:cloud-env` 当前**预期退出 1 / Blocked**：仓库刻意不带部署默认值（空 `appid`、空 `envId`），填好自己的值才会通过，且通过只代表配置齐了，不代表云环境可用。`check:public-info` 已通过（exit 0）：`config/public-info.js` 的运营者、公开隐私/支持渠道由维护者提供并置 `verified: true`。该文件随小程序公开打包——**你若部署自己的小程序，必须替换成你已批准的对外资料**，不要沿用维护者的联系方式；换成空值或示例值时检查会重新阻断（缺项 exit 1，占位文本同样拦截）。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
 
 `npm test` 不依赖仓库外的数据集：生成器与索引的用例默认读仓库夹具 `tests/fixtures/exercises-dataset/`（3 条合成动作，无媒体文件）。只有两条「与完整上游数据集逐条一致」的比对需要真实数据集，缺 `/tmp/exercises-dataset` 时显式跳过并注明启用条件——把数据集放好并设 `DATASET_DIR=<目录>` 后再跑就会自动启用。生成器本身仍可用 `node scripts/build-exercises.js --src <数据集目录> --out <输出目录>` 指向真实数据。
 

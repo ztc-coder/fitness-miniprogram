@@ -1,15 +1,26 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
 
-test('未提供真实公开资料时检查以失败退出并逐项指出发布阻断', () => {
+/**
+ * 结论必须与当前仓库配置一致：配置缺项时退出 1 并逐项指出阻断点，
+ * 资料齐全时退出 0。断言不写死"当前是空的"或"当前是齐的"，
+ * 因此填真实资料前后都成立，不会因配置变更而假红。
+ */
+test('检查脚本结论与当前配置一致：缺项退出 1 并逐项指出，齐全退出 0', () => {
+  const info = require('../config/public-info');
+  const { getPublicInfoIssues } = require('../utils/public-info');
+  const issues = getPublicInfoIssues(info);
   const result = spawnSync(process.execPath, [path.join(__dirname, '../scripts/check-public-info.js')], { encoding: 'utf8' });
-  expect(result.status).toBe(1);
-  expect(result.stderr).toContain('operatorName');
-  expect(result.stderr).toContain('privacyContact');
-  expect(result.stderr).toContain('supportContact');
+  if (issues.length === 0) {
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('公开资料配置检查通过');
+    expect(result.stderr).toBe('');
+  } else {
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('发布阻断');
+    issues.forEach(issue => expect(result.stderr).toContain(issue.split('：')[0]));
+  }
   expect(result.stderr).not.toContain('antiResurrection');
-  expect(result.stderr).toContain('verified');
-  expect(result.stderr).toContain('发布阻断');
 });
 
 test('占位政策不能通过，完整配置仍须人工核实；核实标记只表示本项不阻断', () => {
