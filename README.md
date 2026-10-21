@@ -18,16 +18,17 @@
 
 ## 本地检查（不部署、不编译）
 
-已有依赖时执行（本轮未安装依赖）：
+干净 clone 直接可跑（已实测：`npm ci` 装 564 个包，`npm test` 43 套 / 611 passed，详见[部署预演记录](docs/deployment-rehearsal.md)）：
 
 ```bash
+npm ci --no-audit --no-fund
 npm test -- --runInBand --silent
 npm run check:package
 npm run check:cloud-env
 npm run check:public-info
 ```
 
-`check:cloud-env` 当前**预期退出 1 / Blocked**：仓库刻意不带部署默认值（空 `appid`、空 `envId`），填好自己的值才会通过，且通过只代表配置齐了，不代表云环境可用。`check:public-info` 已通过（exit 0）：`config/public-info.js` 的运营者、公开隐私/支持渠道由维护者提供并置 `verified: true`。该文件随小程序公开打包——**你若部署自己的小程序，必须替换成你已批准的对外资料**，不要沿用维护者的联系方式；换成空值或示例值时检查会重新阻断（缺项 exit 1，占位文本同样拦截）。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
+`check:cloud-env` 当前**预期退出 1 / Blocked**：仓库刻意不带部署默认值（空 `appid`、空 `envId`），填好自己的值才会通过，且通过只代表配置齐了，不代表云环境可用（已实测：填入形状正确但实际不存在的值也会 exit 0，正说明它替代不了控制台核对）。填好 `config/cloud-env.js` 顶部三行后 `npm test` 仍应全绿（已实测）。`check:public-info` 已通过（exit 0）：`config/public-info.js` 的运营者、公开隐私/支持渠道由维护者提供并置 `verified: true`。该文件随小程序公开打包——**你若部署自己的小程序，必须替换成你已批准的对外资料**，不要沿用维护者的联系方式；换成空值或示例值时检查会重新阻断（缺项 exit 1，占位文本同样拦截）。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
 
 `npm test` 不依赖仓库外的数据集：生成器与索引的用例默认读仓库夹具 `tests/fixtures/exercises-dataset/`（3 条合成动作，无媒体文件）。只有两条「与完整上游数据集逐条一致」的比对需要真实数据集，缺 `/tmp/exercises-dataset` 时显式跳过并注明启用条件——把数据集放好并设 `DATASET_DIR=<目录>` 后再跑就会自动启用。生成器本身仍可用 `node scripts/build-exercises.js --src <数据集目录> --out <输出目录>` 指向真实数据。
 
@@ -63,4 +64,4 @@ npm run check:public-info
 - 动作目录文本与中文动作名来自 MIT 许可的上游数据集，随仓库分发并保留其版权与许可声明；`assets/audio/rest.wav` 为自制正弦波合成音，以 CC0 1.0 声明。
 - **动作图片/GIF 不随本仓库分发**，其版权归 Gym visual，MIT 不涉及这部分。逐项条款、署名义务与可重跑的复核命令见 [THIRD-PARTY.md](THIRD-PARTY.md)。
 
-本轮未部署、未运行生产构建、未推送、未操作真实云环境。没有稳定 URL、设计基准数据或设备可用于视觉验收，不宣称 UI/视觉或真机声音振动验收通过。
+本地半程（clone → 装依赖 → 测试 → 三项本地检查 → 填配置复跑）已在 2026-10-21 实际跑过并修掉两处卡点，见[部署预演记录](docs/deployment-rehearsal.md)；平台半程仍未部署、未运行生产构建、未推送、未操作真实云环境。没有稳定 URL、设计基准数据或设备可用于视觉验收，不宣称 UI/视觉或真机声音振动验收通过。

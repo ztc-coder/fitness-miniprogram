@@ -10,8 +10,10 @@ function restoreEnv() {
   });
 }
 
+// 显式置空，而不是删除：删除会让配置回落到 config/cloud-env.js 里部署者填的字面量，
+// 于是"未配置"夹具会随仓库是否填了真实值而失效（部署者按 README 填完配置后跑测试必红）。
 function useUnconfiguredDeployment() {
-  ENV_KEYS.forEach(key => { delete process.env[key]; });
+  ENV_KEYS.forEach(key => { process.env[key] = ''; });
 }
 
 function runtime(options = {}) {

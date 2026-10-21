@@ -1,21 +1,21 @@
 # 独立部署指南（第05票，操作清单而非已执行记录）
 
-本轮没有云环境/设备授权，**下列控制台、上传、预览和设备步骤全部未执行**。仅供获得独立测试环境授权后的维护者复现；不构成生产部署、提审或发布授权。状态见 [验收矩阵](public-release-acceptance.md)。
+**本地半程已实际跑过**（2026-10-21：干净 clone → `npm ci` → `npm test` 43 套全过 → 三项本地检查 → 填入配置复跑，并修掉两处卡点），记录见[部署预演记录](deployment-rehearsal.md)。**下列控制台、上传、预览和设备步骤全部未执行**：本轮没有云环境/设备授权，也没有开发者工具 GUI。仅供获得独立测试环境授权后的维护者复现；不构成生产部署、提审或发布授权。状态见 [验收矩阵](public-release-acceptance.md)。
 
 ## 1. 自有身份与隔离环境：先配置，后打开运行
 
 1. 通过微信公众平台创建/确认自己主体下的小程序，取得自己的 AppID；按后台实际要求核实主体、类目、备案及测试人员。不要使用原运营者 AppID 或借用生产数据。
 2. 在自己账号下创建独立 CloudBase 测试环境，确认区域、绑定 AppID、环境 ID、计费主体、管理员权限；生产另建，不与开发或其他自行部署者共享环境、数据或凭据。
-3. **不要先运行克隆项目。** 仓库刻意不带部署默认值：`project.config.json` 的 `appid` 为空，`config/cloud-env.js` 的 `envId`、`mediaRoot` 也为空。未填时启动会硬拦截（不初始化 `wx.cloud`、不恢复旧同意、弹窗说明云能力已禁用），不会落到原运营者环境；任何产品同意、`restore()`、`wx.cloud.init`、删除专用身份授权之前，三项必须换成自己的值并逐一与自己控制台核对：
+3. **不要先运行克隆项目。** 仓库刻意不带部署默认值：`project.config.json` 的 `appid` 为空，`config/cloud-env.js` 顶部的 `DEPLOY` 三个字面量（`appId`、`envId`、`mediaRoot`）也为空。未填时启动会硬拦截（不初始化 `wx.cloud`、不恢复旧同意、弹窗说明云能力已禁用），不会落到原运营者环境；任何产品同意、`restore()`、`wx.cloud.init`、删除专用身份授权之前，三项必须换成自己的值并逐一与自己控制台核对：
 
    | 配置 | 仓库现状（空值不是给你的默认值，旧基线也不是） | 替换位置 |
    |---|---|---|
-   | AppID | 空 | `project.config.json` 的 `appid`；`config/cloud-env.js` 的 `appId` 可选，仅用于一致性检查 |
-   | 环境 ID | 空 | `config/cloud-env.js` 的 `envId` |
-   | 媒体 ROOT | 空 | `config/cloud-env.js` 的 `mediaRoot`（`data/media-root.js` 的 `MEDIA_ROOT` 由此派生） |
+   | AppID | 空 | `project.config.json` 的 `appid`；`config/cloud-env.js` 顶部 `DEPLOY.appId` 可选，仅用于一致性检查 |
+   | 环境 ID | 空 | `config/cloud-env.js` 顶部 `DEPLOY.envId`（写成普通字符串，不要设环境变量：小程序运行时没有 `process.env`） |
+   | 媒体 ROOT | 空 | `config/cloud-env.js` 顶部 `DEPLOY.mediaRoot`（`data/media-root.js` 的 `MEDIA_ROOT` 由此派生） |
 
    `npm run check:cloud-env` 会检查三项是否已填、是否仍是原运营者基线、`appid` 形状与两处是否一致；它只是本地配置检查，仍须人工在控制台核对环境归属、权限与配额。三项中任一未填、仍等于旧基线、未知归属或与控制台不符，均 **Blocked，停止启动**。不要仅换 AppID；不要把原运营者值当成可用配置，也不要请求默认媒体测试。
-4. 开发者工具导入项目时核对 AppID；在首次编译运行前清除该测试安装的本地存储/旧同意（备份必要测试证据，不操作生产设备）。旧安装可能存有 `fitness:cloudConsent=true` 并在启动恢复同意。删除授权也会初始化云能力，不能作为跳过配置的路径。
+4. 开发者工具导入项目时核对 AppID（`appid` 为空时工具可能提示选择小程序或进入游客模式——这一表现本票未在工具里实测；按提示填入自己的 AppID，并确认与 `config/cloud-env.js` 的 `DEPLOY.appId` 一致）；在首次编译运行前清除该测试安装的本地存储/旧同意（备份必要测试证据，不操作生产设备）。旧安装可能存有 `fitness:cloudConsent=true` 并在启动恢复同意。删除授权也会初始化云能力，不能作为跳过配置的路径。
 5. 留存本地配置对照表：源码 SHA、自己的预期 AppID/环境/媒体根、实际值、核对人和 UTC 时间；公开仓库只放获批可公开定位符，不放 secret、token、管理证书、私钥、真实 openid、私人日志。没有任何理由共享原运营者私有凭据。
 
 ## 2. 个人集合与规则（必须先于客户端启云）
