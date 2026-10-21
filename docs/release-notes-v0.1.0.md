@@ -1,6 +1,6 @@
-# v0.1.0 发布说明（草稿，未打 tag）
+# v0.1.0 发布说明
 
-> 状态：**草稿**。打 `v0.1.0` tag 与推送公开仓库需维护者明确授权，见 [票 06](.scratch/release-phase1/issues/06-phase1-release.md)。
+> 状态：**已发布**（2026-10-21）。仓库公开、`v0.1.0` tag 与 GitHub Release 同日落地，见 [票 06](.scratch/release-phase1/issues/06-phase1-release.md)。
 
 ## 这是什么
 
