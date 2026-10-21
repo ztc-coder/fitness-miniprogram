@@ -1,9 +1,11 @@
 ---
 labels: [ready-for-human]
-status: open
+status: done
 ---
 
 # 06: 人工解除阻断并确认发布
+
+> **历史留档（2026-10-21 关闭，未放行）**：本票 10 项均**未勾选**，关闭只表示「本 effort 不再跟踪」，不表示发布阻断已解除。阶段一交付已由 release-phase1 票 06 完成（仓库 public + `v0.1.0` tag/Release），而正式提审仍受媒体书面授权、后台隐私指引核对、生产配置、剩余验收行与人工放行授权阻断；这些留在 [`.scratch/release-phase1/map.md`](../../release-phase1/map.md) 的 `Not yet specified`。
 
 **What to build:** 维护者核实版权、真实隐私资料、平台资格与生产配置，明确判断是否具备正式发布条件；只有阻断全部解除且获得独立授权后，才执行生产部署和提交审核。
 

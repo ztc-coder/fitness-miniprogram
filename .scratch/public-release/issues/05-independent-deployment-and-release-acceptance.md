@@ -1,9 +1,11 @@
 ---
 labels: [ready-for-human]
-status: open
+status: done
 ---
 
 # 05: 独立部署与发布专项验收
+
+> **历史留档（2026-10-21 关闭）**：部署与验收的可行部分已由 [`.scratch/release-phase1/`](../../release-phase1/map.md) 票 07（真机单身份，M03/M04/M06/M11/M12/M16–M19/M21 通过）与票 09（本地干净 clone + 平台半程实跑，`check:cloud-env` exit 0）接续完成；「他人 clone 后独立部署」按票 10 定位已移出范围。本票清单中 6 项未勾选的验收（M01/M02/M05/M07–M09/M10/M13–M15/M20/M22）仍是真实缺口，保留在 [`docs/public-release-acceptance.md`](../../../docs/public-release-acceptance.md) 的 `Blocked` 行与 release-phase1 map 的 `Not yet specified`，属阶段二。
 
 **What to build:** 自行部署者能按说明使用自己的 AppID 和云环境运行工具，不误连运营者生产数据；维护者获得真实双用户、真机、删除及离线恢复证据，知道哪些项目通过、哪些仍阻断发布。
 

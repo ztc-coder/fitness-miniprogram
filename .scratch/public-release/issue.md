@@ -1,11 +1,20 @@
 ---
 title: 免费公开小程序首版最小发布闭环
 labels: [ready-for-human]
-status: open
+status: done
 created: 2026-10-17
 ---
 
 # 免费公开小程序首版最小发布闭环
+
+## 收口为历史留档（2026-10-21）
+
+本 effort 已完成使命并被后续地图接续，故关闭为**历史留档**，不代表其中的提审/发布事项已经完成：
+
+- 阶段一（可部署源码交付）由 [`.scratch/release-phase1/map.md`](../release-phase1/map.md) 接续并已 resolved：9 张子票全关、`v0.1.0` 已 tag 并 public 发布、`check:cloud-env` 与 `check:public-info` 均 exit 0。
+- 本目录下 01/02/03 的源码交付已并入主线（最终 `e464aac`），04 原为 done，05/06 与本父票一并转为 done。
+- **仍未解除的发布阻断（阶段二）**不做删除，已移交到 release-phase1 map 的 `Not yet specified`：Gym visual 媒体书面授权与 2,590 对象分发、后台《用户隐私保护指引》核对、生产 AppID/配额、`docs/public-release-acceptance.md` 中 12 行仍为 `Blocked` 的验收项、双设备并发验收、人工放行授权。
+- 本节结论以票内已有证据为准；不把“票已关闭”解释为“已可提审上线”。
 
 ## 本轮实施状态（更新）
 

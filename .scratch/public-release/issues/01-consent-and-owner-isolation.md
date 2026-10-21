@@ -1,9 +1,11 @@
 ---
 labels: [ready-for-human]
-status: open
+status: done
 ---
 
 # 01: 本地可用、同意后启用本人云服务
+
+> **历史留档（2026-10-21 关闭）**：源码与自动边界测试已并入主线，工作区当前 45 套 / 654 passed / 28 skipped。真实云端权限、双身份与设备验收由 [`.scratch/release-phase1/`](../../release-phase1/map.md) 票 07/09 接续完成（M03/M04 真机通过）；仍未验证的项（M01/M02/M05 等）保留在 [`docs/public-release-acceptance.md`](../../../docs/public-release-acceptance.md) 的 `Blocked` 行，属阶段二。下方「Blocked」表述为当时状态，不代表当前仍阻塞。
 
 **What to build:** 用户不登录、不启用云服务也能完成本地训练；主动同意后，通过可信微信身份访问本人计划和训练记录。身份获取失败、缓存归属不明或身份发生变化时，不泄漏或错误上传其他人的数据。继续使用 CloudBase，不引入账号密码、手机号或头像昵称采集。
 
