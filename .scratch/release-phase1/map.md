@@ -37,6 +37,7 @@
 
 - [单身份真机验收（自有手机 + 自有微信号）](.scratch/release-phase1/issues/07-device-acceptance.md)：2026-10-21 维护者本人真机 + 双身份跑完，`docs/public-release-acceptance.md` 的 M03/M04/M06/M11/M12/M16/M17/M18/M19/M21 十行由 `Blocked` 转**通过**（末列带日期，文末补记写实际结果与缺口），其余 12 行仍 Blocked 并逐条写明缺什么。两条结论性事实：① 清缓存/重装使本机 `syncGeneration` 归零、与云端代际不等，触发删除屏障，必须走「我的 → 数据管理 → 重新使用云同步」显式协调，代价是清掉本机未同步数据；② 新身份看到的「力量循环」是 `utils/db.js:430` `ensureSeedPlans` 的种子计划（`fitness:seedVersion` 按 owner 分桶，每个新身份各种一次），不是跨账号泄漏，隔离验收要判断「B 里有没有 A 的业务数据」而不是「B 是否为空」。证据缺口：无脱敏截图/日志路径、无设备型号与基础库版本。
 - [按 README 从零部署自验证](.scratch/release-phase1/issues/09-deploy-rehearsal.md)：本地半程（干净 clone：`npm ci`、43 套 611 passed、三项检查、修掉「配置无处可填」与「填配置后测试假红」两处卡点）+ 平台半程（维护者本人：三集合与自定义规则 `{"read": false, "write": false}`、部署 `login`/`personalData`、编译预览、云同步读写核对、复合索引 `plans`/`sessions`）均实跑，`check:cloud-env` 转 **exit 0**；产出 `docs/deployment-rehearsal.md` §7 逐动作记录与卡点 C（清缓存后的代际协调）。仍未做：媒体授权与 2,590 对象上传、配额告警、后台隐私指引核对、两台真机同时在线。
+- [阶段一交付：v0.1.0 公开与发布说明](.scratch/release-phase1/issues/06-phase1-release.md)：2026-10-21 收口，仓库由 private 转 **public**（`gh repo edit --visibility public`），annotated tag `v0.1.0` 与 GitHub Release（正文即 `docs/release-notes-v0.1.0.md`，8 条已知限制原样保留）同日落地，匿名访问仓库页返回 200。**关键修正**：默认分支原为 `main`（停在 `fe2f5d5`、落后 49 提交），公开前先 `git merge --ff-only feat/public-release` 快进 `main` 到发布提交，否则公开页展示旧代码。发布前把 31 个改动文件分成 4 个提交入库并复跑全量：45 套 654 passed / 28 skipped、`check:package` 1,213.6 KiB / 96 文件 PASS、`check:public-info` 与 `check:cloud-env` exit 0；`git grep` 未发现密钥，AppID/环境 ID/mediaRoot 为公开标识、公开邮箱为维护者主动公开。
 
 ## Not yet specified
 
@@ -53,13 +54,28 @@
 - 动作库扩容与筛选：已由 `.scratch/library-seven-parts/`、`.scratch/full-catalog/` 等既有 effort 处理。
 - **他人 clone 后独立部署**：项目定位为个人项目（票 10，2026-10-21），`docs/independent-deployment.md` 仅留档，不再提供该路径。
 
-
 ## Comments
-
 
 ## Answer
 
-Status: open
+Status: resolved
 Type: map
 Blocked by:
 Labels: wayfinder:map
+
+## 进度
+
+- 2026-10-21 收口：9 张子票全部关闭（02 许可、03 媒体解耦、04 公开资料、05 云环境守卫、06 发布、07 真机验收、08 测试隔离、09 部署预演、10 AppID 定位修订），可接 0 张、被阻塞 0 张。
+
+**Destination 逐条对账**：
+
+1. 「维护者自己的 AppID + 云环境 + 真实资料齐备」——`config/cloud-env.js:9-11` 写入本项目 AppID/环境 ID/媒体根，`config/public-info.js:4-5` 写入运营者与公开渠道，`check:cloud-env`、`check:public-info` 均 exit 0（票 04、10）。
+2. 「从仓库直接编译即可发布」——干净 clone 与平台半程实跑均通过（票 09），`docs/deployment-rehearsal.md` §7 逐动作留档；`check:package` PASS 1,213.6 KiB / 96 文件。
+3. 「动作媒体不在仓库内」——`tests/media-decoupling.test.js` 6 条守卫，仓库只存路径字符串（票 03）。
+4. 「配置不得误连未知云环境」——未填 `envId` 时启动硬拦截云能力，游客模式 AppID 亦被拒（票 05/10）。
+5. 「交付渠道 GitHub 公开仓库 + `v0.1.0` tag」——仓库已 public、tag 与 Release 已发布（票 06）。
+
+**结论**：阶段一 Destination 达成。阶段二（正式提审上线：发布主体与类目资格、备案、生产 AppID 与云环境、后台《用户隐私保护指引》填报、提审材料）按 Notes 的约定本 map 不展开，已留在 Not yet specified；重新评估时另开 effort。
+
+**移交到阶段二的未决项**（不是阶段一的缺口，但会影响提审）：`docs/public-release-acceptance.md` 仍 12 行 Blocked（M01/M02 受控重跑、M05 请求证据、M07–M09 故障注入、M10/M13–M15 并发与第二设备、M20 后台隐私核对、M22 配额与许可）；Gym visual 媒体书面授权与 2,590 个 180×180 对象分发未落地。
+
