@@ -217,12 +217,4 @@ Page(themePage({
     wx.navigateTo({ url: `/pages/help/help?section=${section}` });
   },
 
-  onShowLicense() {
-    wx.showModal({
-      ...(this.data.theme === 'light' ? { confirmColor: '#3E5429' } : {}),
-      title: '媒体授权状态',
-      content: '动作示意图版权归 Gym visual。正式上线前必须取得书面授权、保留 © Gym visual — https://gymvisual.com/ 署名,并遵守 180×180 分辨率限制。',
-      showCancel: false,
-    });
-  },
 }));

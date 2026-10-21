@@ -223,10 +223,10 @@ test('我的浅色原生说明弹窗只设置可控按钮色，深色不改变�
   await page.onShow();
   page.onShowLoginInfo();
   expect(wx.showModal).toHaveBeenLastCalledWith(expect.objectContaining({ confirmColor: '#3E5429', showCancel: false }));
-  page.onShowLicense();
+  page.onShowLoginInfo();
   expect(wx.showModal).toHaveBeenLastCalledWith(expect.objectContaining({ confirmColor: '#3E5429', showCancel: false }));
   page.onToggleTheme({ detail: { value: false } });
-  page.onShowLicense();
+  page.onShowLoginInfo();
   expect(wx.showModal.mock.calls.at(-1)[0]).not.toHaveProperty('confirmColor');
 });
 

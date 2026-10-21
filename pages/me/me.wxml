@@ -93,12 +93,6 @@
       <view class="setting-name">使用帮助与训练安全</view>
       <text class="setting-chevron">›</text>
     </view>
-    <view class="setting-row" bindtap="onShowLicense" role="button" aria-label="查看媒体与图库授权状态：待处理">
-      <view class="icon-tile" aria-hidden="true">▤</view>
-      <view class="setting-name">媒体与图库授权</view>
-      <text class="setting-value warn">待处理</text>
-      <text class="setting-chevron">›</text>
-    </view>
     <view class="setting-row">
       <view class="icon-tile" aria-hidden="true">ⓘ</view>
       <view class="setting-name">当前版本</view>

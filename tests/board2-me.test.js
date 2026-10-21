@@ -92,8 +92,6 @@ test('settings, offline flush and informational handlers retain existing behavio
   expect(wx.showToast).toHaveBeenCalledWith({ title: '仅本地保存；请先启用或重试本人云服务', icon: 'none' });
   page.onShowLoginInfo();
   expect(wx.showModal).toHaveBeenLastCalledWith(expect.objectContaining({ title: '登录状态' }));
-  page.onShowLicense();
-  expect(wx.showModal).toHaveBeenLastCalledWith(expect.objectContaining({ title: '媒体授权状态' }));
 });
 
 test('connected network note reports network type rather than claiming cloud connectivity', async () => {
