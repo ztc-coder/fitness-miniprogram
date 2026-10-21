@@ -457,7 +457,7 @@ async function main() {
   const dryRun = !execute;
 
   if (!ENV_ID) {
-    console.error('未配置云环境:先在 config/cloud-env.js 填写自己的 envId(不要沿用原运营者环境),本轮不执行同步。');
+    console.error('未配置云环境:先在 config/cloud-env.js 填写 envId(留空即未配置),本轮不执行同步。');
     process.exit(1);
   }
 

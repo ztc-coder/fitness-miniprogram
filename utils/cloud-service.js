@@ -47,7 +47,7 @@ function disable() {
 }
 function initialize() {
   if (!wx.cloud) throw new Error('当前微信版本不支持云服务');
-  // 硬校验在 init 之前：未配置自己的环境时绝不初始化云，避免连到原运营者环境。
+  // 校验在 init 之前：envId 未配置时绝不初始化云，保持本地模式。
   assertConfigured();
   if (!initialized) { wx.cloud.init({ env: text(cloudEnv.envId), traceUser: false }); initialized = true; }
 }

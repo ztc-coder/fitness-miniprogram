@@ -3,13 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('../config/cloud-env');
-const {
-  getCloudIssues,
-  getMediaNotices,
-  isAppIdLike,
-  isLegacyMediaRoot,
-  text,
-} = require('../utils/cloud-env');
+const { getCloudIssues, getMediaNotices, isAppIdLike, text } = require('../utils/cloud-env');
 
 function readProjectAppId() {
   const projectPath = path.join(__dirname, '..', 'project.config.json');
@@ -18,10 +12,14 @@ function readProjectAppId() {
 }
 
 function collect(projectAppId) {
-  const issues = getCloudIssues(config, { appId: projectAppId });
+  const issues = [];
   const configuredAppId = text(config.appId);
+  const configuredEnvId = text(config.envId);
+  if (!configuredEnvId) {
+    issues.push('envId：config/cloud-env.js 的 envId 为空，未配置云开发环境');
+  }
   if (!projectAppId) {
-    issues.push('appId：project.config.json 的 appid 为空，需填自己的小程序 AppID');
+    issues.push('appId：project.config.json 的 appid 为空，需填本项目的 AppID');
   } else if (!isAppIdLike(projectAppId)) {
     issues.push('appId：project.config.json 的 appid 不像小程序 AppID（wx + 16 位十六进制）');
   }
@@ -31,10 +29,7 @@ function collect(projectAppId) {
   if (configuredAppId && projectAppId && configuredAppId !== projectAppId) {
     issues.push('appId：config/cloud-env.js 与 project.config.json 的 appid 不一致');
   }
-  if (isLegacyMediaRoot(config.mediaRoot)) {
-    issues.push('mediaRoot：仍指向原运营者存储桶，会误连他人存储');
-  }
-  return { issues, notes: getMediaNotices(config) };
+  return { issues, notes: getMediaNotices(config), cloud: getCloudIssues(config, { appId: projectAppId }) };
 }
 
 function main() {
@@ -42,14 +37,15 @@ function main() {
   try {
     projectAppId = readProjectAppId();
   } catch (err) {
-    console.error('发布阻断：无法读取 project.config.json 的 appid\n- ' + (err && err.message ? err.message : err));
+    console.error('配置检查未通过：无法读取 project.config.json 的 appid\n- ' + (err && err.message ? err.message : err));
     process.exitCode = 1;
     return;
   }
-  const { issues, notes } = collect(projectAppId);
+  const { issues, notes, cloud } = collect(projectAppId);
   notes.forEach(note => console.log('提示：' + note));
+  cloud.filter(item => item.indexOf('游客模式') !== -1).forEach(item => issues.push(item));
   if (issues.length) {
-    console.error('发布阻断：部署配置未填写自己的值\n' + issues.map(issue => '- ' + issue).join('\n'));
+    console.error('配置检查未通过\n' + issues.map(issue => '- ' + issue).join('\n'));
     console.error('填好 config/cloud-env.js 与 project.config.json 后重跑；这只查配置，不代表云环境已可用。');
     process.exitCode = 1;
     return;

@@ -1,4 +1,5 @@
-// 票 05：默认值移除 + 未配置时硬拦截云能力，本地训练与媒体降级不受影响。
+// 票 05 + 票 10：未配置 envId 时禁用云能力，本地训练与媒体降级不受影响；
+// 个人项目没有「他人 AppID/云环境」之分，填了本项目的值即放行。
 const ENV_KEYS = ['FITNESS_CLOUD_APPID', 'FITNESS_CLOUD_ENV_ID', 'FITNESS_CLOUD_MEDIA_ROOT'];
 const SAVED = {};
 ENV_KEYS.forEach(key => { SAVED[key] = process.env[key]; });
@@ -52,7 +53,6 @@ describe('部署配置校验(utils/cloud-env)', () => {
     getCloudIssues,
     getMediaNotices,
     isAppIdLike,
-    isLegacyMediaRoot,
   } = require('../utils/cloud-env');
 
   test('未配置环境 ID 时阻断,并指向配置文件', () => {
@@ -62,10 +62,11 @@ describe('部署配置校验(utils/cloud-env)', () => {
     expect(issues[0]).toContain('config/cloud-env.js');
   });
 
-  test('仍是原运营者环境 ID 或 AppID 时阻断', () => {
-    expect(getCloudIssues({ envId: 'cloud1-d2ga0mned4bbf9b29' }, {})[0]).toContain('原运营者环境');
-    expect(getCloudIssues({ envId: 'my-env' }, { appId: 'wxa884033ad71b4514' })[0]).toContain('原运营者 AppID');
-    expect(getCloudIssues({ appId: 'wxa884033ad71b4514', envId: 'my-env' }, {})[0]).toContain('原运营者 AppID');
+  test('填了本项目自己的环境 ID 与 AppID 即放行（不再有「他人值」判定）', () => {
+    expect(getCloudIssues(
+      { appId: 'wxa884033ad71b4514', envId: 'cloud1-d2ga0mned4bbf9b29' },
+      { appId: 'wxa884033ad71b4514' }
+    )).toEqual([]);
   });
 
   test('游客模式阻断', () => {
@@ -79,14 +80,11 @@ describe('部署配置校验(utils/cloud-env)', () => {
     )).toEqual([]);
   });
 
-  test('AppID 形状与媒体根判断', () => {
+  test('AppID 形状与媒体根提示', () => {
     expect(isAppIdLike('wx0000000000000000')).toBe(true);
     expect(isAppIdLike('touristappid')).toBe(false);
     expect(isAppIdLike('')).toBe(false);
-    expect(isLegacyMediaRoot('cloud://cloud1-d2ga0mned4bbf9b29.636c-x-1')).toBe(true);
-    expect(isLegacyMediaRoot('cloud://my-env.636c-my-env-1')).toBe(false);
     expect(getMediaNotices({ mediaRoot: '' })[0]).toContain('降级');
-    expect(getMediaNotices({ mediaRoot: 'cloud://cloud1-d2ga0mned4bbf9b29.636c-x-1' })[0]).toContain('原运营者');
     expect(getMediaNotices({ mediaRoot: 'cloud://my-env.636c-my-env-1' })).toEqual([]);
   });
 });
@@ -162,11 +160,13 @@ describe('配置齐全时正常启云', () => {
     expect(service.ready()).toBe(true);
   });
 
-  test('编译结果仍是原运营者 AppID 时仍然拦截', async () => {
+  test('编译结果就是本项目自己的 AppID 时正常启云', async () => {
+    jest.useFakeTimers();
     const { cloud } = runtime({ appId: 'wxa884033ad71b4514' });
     const service = require('../utils/cloud-service');
-    await expect(service.enable()).rejects.toThrow('原运营者 AppID');
-    expect(cloud.init).not.toHaveBeenCalled();
+    const state = await service.enable();
+    expect(cloud.init).toHaveBeenCalledWith({ env: 'test-env-id', traceUser: false });
+    expect(state).toMatchObject({ status: 'ready' });
   });
 
   test('游客模式编译结果同样拦截', async () => {

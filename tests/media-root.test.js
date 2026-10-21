@@ -1,8 +1,6 @@
 const config = require('../config/cloud-env');
 const media = require('../data/media-root');
 
-const LEGACY_MEDIA_ROOT = 'cloud://cloud1-d2ga0mned4bbf9b29.636c-cloud1-d2ga0mned4bbf9b29-1456520720';
-
 describe('CloudBase 媒体前缀配置(data/media-root)', () => {
   test('媒体根来自 config/cloud-env.js,目录相对路径解析为 fileID', () => {
     expect(config.mediaRoot).toBe(process.env.FITNESS_CLOUD_MEDIA_ROOT);
@@ -21,14 +19,16 @@ describe('CloudBase 媒体前缀配置(data/media-root)', () => {
       .toBe('https://cdn.example.com/exercises/images/0001-2gPfomN.jpg');
   });
 
-  test('媒体根仍是原运营者存储桶时按未配置处理,不解析出地址', () => {
+  test('配置的云存储桶根原样使用,不再按历史前缀清空', () => {
     const saved = process.env.FITNESS_CLOUD_MEDIA_ROOT;
-    process.env.FITNESS_CLOUD_MEDIA_ROOT = LEGACY_MEDIA_ROOT;
+    const ownRoot = 'cloud://cloud1-d2ga0mned4bbf9b29.636c-cloud1-d2ga0mned4bbf9b29-1456520720';
+    process.env.FITNESS_CLOUD_MEDIA_ROOT = ownRoot;
     jest.resetModules();
     try {
       const fresh = require('../data/media-root');
-      expect(fresh.MEDIA_ROOT).toBe('');
-      expect(fresh.resolveAsset('exercises/videos/0001-2gPfomN.gif')).toBe('');
+      expect(fresh.MEDIA_ROOT).toBe(ownRoot);
+      expect(fresh.resolveAsset('exercises/videos/0001-2gPfomN.gif'))
+        .toBe(ownRoot + '/exercises/videos/0001-2gPfomN.gif');
     } finally {
       if (saved === undefined) delete process.env.FITNESS_CLOUD_MEDIA_ROOT;
       else process.env.FITNESS_CLOUD_MEDIA_ROOT = saved;
