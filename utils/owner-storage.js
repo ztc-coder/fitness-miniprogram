@@ -54,17 +54,32 @@ function claimAnonymous(owner) {
   const anonymousGeneration = readOwner('fitness:syncGeneration', '') || 0;
   if (currentGeneration !== anonymousGeneration && ['fitness:plans', 'fitness:trainingDraft', 'fitness:pendingQueue', 'fitness:completedTraining', 'fitness:planSync']
     .some(key => readOwner(key, '') !== undefined)) throw new Error('匿名数据属于旧代际，不能认领到删除后的新代际；请保留本地或明确清本机后新建');
-  // 不覆盖此身份已有数据。页面应在首次云读取/上传前询问。
-  for (const key of KEYS.filter(key => !key.includes('Version'))) {
-    if (readOwner(key, owner) !== undefined && readOwner(key, '') !== undefined) throw new Error('当前身份已有本地数据，不能覆盖认领');
+  const protectedKeys = ['fitness:syncGeneration', 'fitness:syncBarrier', 'fitness:deletionOperation'];
+  if (readOwner('fitness:deletionOperation', owner)) throw new Error('有未完成的删除，请到数据管理继续');
+  if (readOwner('fitness:syncBarrier', owner)) throw new Error('删除后的本机数据需确认，请到数据管理查看');
+  function empty(key, value) {
+    if (value === undefined || value === null) return true;
+    if (['fitness:plans', 'fitness:pendingQueue', 'fitness:completedTraining'].includes(key)) return Array.isArray(value) && !value.length;
+    if (key === 'fitness:planSync') return Object.keys(value).every(k => ['tasks', 'deleted', 'completed'].includes(k) && Array.isArray(value[k]) && !value[k].length);
+    return false;
   }
-  revision++; // claiming changes the scope of any outstanding destructive confirmation
-  for (const key of KEYS) {
+  const keys = KEYS.filter(key => !protectedKeys.includes(key));
+  // Preflight every key before writing. Only empty/equivalent fields can coexist;
+  // distinct business data (including task/tombstone state) requires future merge support.
+  for (const key of keys.filter(key => !key.includes('Version') && key !== 'fitness:planMigrationCloudSynced')) {
+    const own = readOwner(key, owner), anonymous = readOwner(key, '');
+    if (!empty(key, own) && !empty(key, anonymous) && JSON.stringify(own) !== JSON.stringify(anonymous)) {
+      throw new Error('当前微信已有记录，不能直接加入；两份记录均已保留');
+    }
+  }
+  revision++;
+  for (const key of keys) {
     const saved = envelope(key);
-    if (saved.buckets.some(b => b.owner === owner)) {
+    const own = readOwner(key, owner), anonymous = readOwner(key, '');
+    if (own !== undefined && (!empty(key, own) || empty(key, anonymous))) {
       saved.buckets = saved.buckets.filter(b => b.owner !== '');
     } else {
-      saved.buckets = saved.buckets.map(b => b.owner === '' ? { owner, value: b.value } : b);
+      saved.buckets = saved.buckets.filter(b => b.owner !== owner).map(b => b.owner === '' ? { owner, value: b.value } : b);
     }
     persistEnvelope(key, saved);
   }

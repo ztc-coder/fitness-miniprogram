@@ -41,7 +41,7 @@ test('我的区分计划和训练的本地状态，手动失败不会提示成�
   await enableCloud(); require('../utils/owner-storage').claimAnonymous('fixture-user');
   await page.onFlushQueue();
   expect(page.data.syncStatus.plans.pending).toBe(1);
-  expect(wx.showToast.mock.calls.at(-1)[0].title).toContain('待处理');
+  expect(wx.showToast.mock.calls.at(-1)[0].title).toBe('同步未完成，可查看详情');
   delete global.Page;
 });
 test('停用发生于网络检测之前：旧单飞失败且不执行网络请求或确认任务', async () => {

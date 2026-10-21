@@ -1,0 +1,14 @@
+.data-management-page { min-height: 100vh; padding: 30rpx 32rpx calc(48rpx + env(safe-area-inset-bottom)); background: var(--bg); }
+.status-card, .data-card, .result-panel { padding: 28rpx; margin-bottom: 24rpx; border: 1rpx solid var(--line); border-radius: 26rpx; background: var(--card-gradient); box-shadow: var(--card-shadow); }
+.status-card { border-color: var(--signal-line); }
+.card-title { font-size: 32rpx; font-weight: 800; color: var(--ink); }
+.card-copy { margin-top: 12rpx; font-size: 25rpx; line-height: 1.65; color: var(--ink-dim); }
+.danger-card { border-color: var(--danger); }
+.danger-card .card-title { color: var(--danger); }
+.data-management-page .data-button { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; min-height: 88rpx; margin: 24rpx 0 0; padding: 18rpx 24rpx; border: 1rpx solid var(--line-strong); border-radius: 18rpx; background: var(--surface-2); color: var(--ink); font-size: 27rpx; font-weight: 700; line-height: 1.5; white-space: normal; }
+.data-management-page .data-button::after { border: 0; }
+.data-management-page .danger-button { color: var(--danger); border-color: var(--danger); }
+.data-management-page .data-button[disabled] { opacity: 0.45; }
+.data-management-page .help-button { color: var(--signal); background: transparent; margin-top: 8rpx; }
+.result-panel { color: var(--ink); font-size: 26rpx; line-height: 1.65; border-color: var(--signal-line); }
+.theme-light .status-card { border-color: var(--line-strong); }

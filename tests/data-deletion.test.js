@@ -97,7 +97,7 @@ test('我的清本机二次确认展示全部身份损失/草稿/待同步，离
   saved.set('fitness:settings', { theme: 'light', unit: 'lb' });
   wx.cloud.callFunction = jest.fn(() => { throw Error('离线不应联网'); });
   wx.showModal = jest.fn(); wx.showToast = jest.fn();
-  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  let definition; global.Page = p => { definition = p; }; require('../pages/data-management/data-management');
   const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
   page.onClearLocal();
   expect(wx.showModal.mock.calls[0][0].content).toContain('全部身份');
@@ -110,7 +110,7 @@ test('我的清本机二次确认展示全部身份损失/草稿/待同步，离
   expect(saved.has('fitness:trainingDraft')).toBe(false); expect(saved.has('fitness:pendingQueue')).toBe(false);
   expect(saved.get('fitness:settings')).toEqual({ theme: 'light', unit: 'lb' });
   expect(require('../utils/cloud-service').snapshot().consent).toBe(false);
-  expect(wx.cloud.callFunction).not.toHaveBeenCalled(); expect(page.data.monthSessions).toBe(0);
+  expect(wx.cloud.callFunction).not.toHaveBeenCalled(); expect(page.data.serviceLabel).toBe('仅本地');
 });
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 test.each(['write', 'delete'])('事务冲突必须重读 owner 锁：暂停 %s commit 后交错，不允许删除后旧写复活', async first => {
@@ -223,7 +223,7 @@ test('我的全部删除二次确认本人身份和损失，失败不清本机�
   wx.showModal = jest.fn(); wx.showToast = jest.fn();
   const call = wx.cloud.callFunction; let fail = true;
   wx.cloud.callFunction = async args => { if (fail && args.data && args.data.action === 'deleteAll') throw Error('断网'); return call(args); };
-  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  let definition; global.Page = p => { definition = p; }; require('../pages/data-management/data-management');
   const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
   await page.onDeleteAll();
   const first = wx.showModal.mock.calls[0][0]; expect(first.content).toContain('当前本人身份：A');
@@ -273,7 +273,9 @@ test('迟到的启用同意确认不能覆盖稍后的撤回或清本机决定',
   const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
   page.onToggleOffline();
   const modal = wx.showModal.mock.calls[0][0];
-  page.onWithdrawConsent();
+  require('../pages/data-management/data-management');
+  const managementPage = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
+  managementPage.onWithdrawConsent();
   const call = wx.cloud.callFunction; wx.cloud.callFunction = jest.fn(call);
   await modal.success({ confirm: true });
   expect(require('../utils/cloud-service').snapshot().consent).toBe(false);
@@ -340,7 +342,7 @@ test('清本机确认后同身份认领改变损失范围，旧二次确认不�
   const { saved } = runtime(); saved.set('fitness:plans', [{ id: 'anonymous', cycleDays: [] }]);
   const service = require('../utils/cloud-service'); await service.enable();
   wx.showModal = jest.fn(); wx.showToast = jest.fn();
-  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  let definition; global.Page = p => { definition = p; }; require('../pages/data-management/data-management');
   const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
   page.onClearLocal(); wx.showModal.mock.calls[0][0].success({ confirm: true });
   require('../utils/owner-storage').claimAnonymous('A');
@@ -417,12 +419,13 @@ test.each(['unexecuted', 'lost-response'])('双设备：A 的 %s 任务被 B 的
   expect((await management.deleteAll()).status).toBe('retry');
   expect(management.getDeletion()).toEqual(original);
   wx.showModal = jest.fn(); wx.showToast = jest.fn();
-  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  let definition; global.Page = p => { definition = p; }; require('../pages/data-management/data-management');
   const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
   await page.onRecoverDeletion();
   expect(management.getDeletion()).toMatchObject({ id: original.id, generation: original.generation, state: 'superseded' });
   const first = wx.showModal.mock.calls[0][0];
-  expect(first.content).toContain('当前本人身份：A'); expect(first.content).toContain('代际');
+  expect(first.content).toContain('当前本人身份：A'); expect(first.content).toContain('另一设备已完成删除，本机旧数据');
+  expect(first.content).not.toContain(original.id);
   expect(first.content).toContain('1 份进行中草稿'); expect(first.content).toContain('不会删除当前云端新数据');
   expect(require('../utils/owner-storage').getStorageSync('fitness:trainingDraft')).toEqual({ id: 'a-draft' });
   first.success({ confirm: true });
@@ -503,7 +506,7 @@ test('其他设备的新任务仍 deleting 时只标记替代、不协调放弃�
 test.each(['first-cancel', 'second-cancel', 'local-change'])('恢复 UI 的 %s 不放弃本机或替代任务记录', async choice => {
   const { management } = await supersededRecovery();
   wx.showModal = jest.fn(); wx.showToast = jest.fn();
-  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  let definition; global.Page = p => { definition = p; }; require('../pages/data-management/data-management');
   const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
   await page.onRecoverDeletion();
   wx.showModal.mock.calls[0][0].success({ confirm: choice !== 'first-cancel' });
@@ -516,7 +519,7 @@ test.each(['first-cancel', 'second-cancel', 'local-change'])('恢复 UI 的 %s �
 test('恢复 UI 的部分本机清理失败如实报告未完成，原任务可再次检查，不挂在处理中', async () => {
   const { management } = await supersededRecovery();
   wx.showModal = jest.fn(); wx.showToast = jest.fn();
-  let definition; global.Page = p => { definition = p; }; require('../pages/me/me');
+  let definition; global.Page = p => { definition = p; }; require('../pages/data-management/data-management');
   const page = { ...definition, data: { ...definition.data }, setData(p) { Object.assign(this.data, p); } };
   await page.onRecoverDeletion(); wx.showModal.mock.calls[0][0].success({ confirm: true });
   const set = wx.setStorageSync;

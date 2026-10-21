@@ -1,0 +1,54 @@
+<view class="page data-management-page theme-{{theme}}">
+  <view class="status-card">
+    <view class="card-title">{{serviceLabel}}</view>
+    <view class="card-copy">{{localSummary}}</view>
+    <view class="card-copy">本地保存不等于云端确认。清理前请看清操作范围。</view>
+  </view>
+
+  <view class="data-card" wx:if="{{canClaim}}">
+    <view class="card-title">同步本机记录</view>
+    <view class="card-copy">本机还有未确认归属的记录。确认属于你后，才会加入本人云同步；取消仍保留在本机。</view>
+    <button class="data-button" bindtap="onClaimLocalData" disabled="{{deleting}}">同步本机记录</button>
+  </view>
+
+  <view class="data-card">
+    <view class="card-title">云服务</view>
+    <view class="card-copy">撤回后停止新增身份、同步和远程媒体请求；本机训练保留，云端数据不删除。已在途请求不能取消。</view>
+    <button wx:if="{{consented}}" class="data-button" bindtap="onWithdrawConsent" disabled="{{deleting}}">撤回云服务同意</button>
+  </view>
+
+  <view class="data-card">
+    <view class="card-title">清除本机数据</view>
+    <view class="card-copy">清除这台设备所有身份及未归属的训练数据，保留主题和单位。不删除云端；再次启用云服务可能重新下载。</view>
+    <button class="data-button" bindtap="onClearLocal" disabled="{{deleting}}">清除本机数据</button>
+  </view>
+
+  <view class="data-card danger-card">
+    <view class="card-title">删除全部个人数据</view>
+    <view class="card-copy">联网删除本人云端计划与训练记录，确认后清除当前身份的本机数据。其他身份及未归属数据不受影响，偏好保留。</view>
+    <view class="card-copy">无法即时擦除其他离线设备；已在途请求可能已执行，必要防复活技术元数据仍保留。</view>
+    <button wx:if="{{!pendingDeletion}}" class="data-button danger-button" bindtap="onDeleteAll" disabled="{{deleting}}">删除全部个人数据</button>
+  </view>
+
+  <view class="data-card" wx:if="{{canCheckDeletion}}">
+    <view class="card-title">检查未完成的删除</view>
+    <view class="card-copy">如曾删除中断，联网确认本人后继续</view>
+    <button class="data-button" bindtap="onCheckDeletion" disabled="{{deleting}}">检查删除状态</button>
+  </view>
+
+  <view class="data-card" wx:if="{{pendingDeletion}}">
+    <view class="card-title">处理未完成的删除</view>
+    <view class="card-copy">删除尚未确认完成。继续原来的删除，或检查另一设备是否已完成；检查不会直接清理本机，仍需再次确认。</view>
+    <button class="data-button danger-button" bindtap="onDeleteAll" disabled="{{deleting}}">继续删除</button>
+    <button class="data-button" bindtap="onRecoverDeletion" disabled="{{deleting}}">检查其他设备的删除结果</button>
+  </view>
+
+  <view class="data-card" wx:if="{{canReconcile}}">
+    <view class="card-title">重新使用云同步</view>
+    <view class="card-copy">另一设备删除过数据。清理当前身份的本机旧记录后才能重新同步；不会恢复已删除的数据。</view>
+    <button class="data-button" bindtap="onReconcile" disabled="{{deleting}}">重新使用云同步</button>
+  </view>
+
+  <view wx:if="{{dataResult}}" class="result-panel" aria-live="polite">{{dataResult}}</view>
+  <button class="data-button help-button" bindtap="onOpenHelp">数据管理指引</button>
+</view>

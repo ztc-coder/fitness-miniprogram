@@ -97,7 +97,9 @@ function fetchPlans() {
   return fetchCloudPlans().catch((err) => {
     service.assertCurrent(token);
     markRead('plans', service.ready() ? '读取未完整，请重试' : '仅本地');
-    console.warn('云端计划读取失败,使用本地缓存', err);
+    // 启动竞态:页面 onLoad 早于 service.restore() 完成时按本地缓存渲染,不是故障。
+    if (service.ready()) console.warn('云端计划读取失败,使用本地缓存', err);
+    else console.info('云服务尚未就绪,本次计划读取使用本地缓存');
     return readLocalPlans().map(normalizePlan);
   });
 }

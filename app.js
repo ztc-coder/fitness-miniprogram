@@ -16,7 +16,7 @@ App({
             '',
             issues.join('\n'),
             '',
-            '填好 config/cloud-env.js 与 project.config.json 后重启即可。步骤见 README「安全起点」。',
+            '填好 config/cloud-env.js 与 project.config.json 后重启即可。步骤见 README「部署配置」。',
           ].join('\n'),
           showCancel: false,
         });

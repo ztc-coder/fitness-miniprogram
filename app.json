@@ -8,7 +8,8 @@
     "pages/library/library",
     "pages/plan-day/plan-day",
     "pages/session-detail/session-detail",
-    "pages/help/help"
+    "pages/help/help",
+    "pages/data-management/data-management"
   ],
   "window": {
     "navigationBarBackgroundColor": "#08110e",
