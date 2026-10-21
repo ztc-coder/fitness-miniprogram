@@ -133,9 +133,11 @@ tests/             Jest 单测（domain、离线目录、页面级分页、db �
 | 今天 | `pages/today/today` | active 计划当前游标指向的训练日 + 动作清单 + 「开始训练」入口 |
 | 计划 | `pages/plan/plan` | 管理循环计划（增删动作、调顺序）、设为 active |
 | 记录 | `pages/records/records` | 按场次时间线倒序回看；单动作趋势曲线 |
-| 我的 | `pages/me/me` | 设置、个人信息 |
+| 我的 | `pages/me/me` | 本月概览、偏好、简洁云同步卡片与数据管理入口 |
 
-非 tab 页：`pages/training/training`（打卡中）、`pages/library/library`（动作库）、`pages/plan-day/plan-day`（训练日编辑）、`pages/session-detail/session-detail`（记录详情）。
+非 tab 页：`pages/training/training`（打卡中）、`pages/library/library`（动作库）、`pages/plan-day/plan-day`（训练日编辑）、`pages/session-detail/session-detail`（记录详情）、`pages/help/help`（隐私/帮助/支持）、`pages/data-management/data-management`（独立数据管理）。
+
+「我的」不常驻展示任务 ID、尝试次数或技术恢复按钮。清本机、全量删除和撤回入口放在数据管理页的卡片内，保留危险操作二次确认；异常恢复按状态出现。本机记录归属在启云时询问，取消后可在数据管理页条件重试，不静默认领。
 
 ## 6. 数据模型速查
 

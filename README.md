@@ -2,19 +2,19 @@
 
 微信原生力量训练记录工具：第 N 天循环计划、逐组打卡、完成历史、离线动作目录和浅深主题。动作库为 1,295 条非 cardio 目录，支持关键词(含俗称别名)/七类部位/器械原值筛选。成绩先在本地成立，逐组记录不联网；首版不支持多设备并发编辑或备份恢复。
 
-## 安全起点：没有自己的云环境，就不要启云
+## 部署配置：两个配置点，填本项目的值
 
-**仓库不带可用的部署默认值：`project.config.json` 的 `appid` 为空，`config/cloud-env.js` 的 `envId`、`mediaRoot` 也为空。** 这不是“能用只是没换”，也不是可以忽略的占位——启动时 `utils/cloud-service` 会硬拦截：不初始化 `wx.cloud`、不恢复旧同意、不请求远程媒体，只弹窗说明「云能力已禁用」，本地计划、训练、历史与动作库照常可用（与未同意时的边界一致）。所以干净 clone 不会误连原运营者的云环境。
+这是**个人项目**：自己开发、自己上传发布，供本人与其他使用者使用；不面向「他人 clone 后改造部署」（该场景 2026-10-21 起移出范围，见[地图 00](.scratch/release-phase1/map.md)）。所以仓库里放的就是本项目自己的部署值，配置只有两个点：
 
-要启用云同步，必须把三项都换成自己的值，填完重启：
-
-| 必须替换 | 位置 | 说明 |
+| 配置项 | 位置 | 说明 |
 |---|---|---|
-| 自己的 AppID | `project.config.json` → `appid` | 开发者工具导入时选择自己主体的小程序 |
-| 自己的环境 ID | `config/cloud-env.js` → `envId` | 缺失或仍是原运营者环境时云能力保持禁用 |
-| 自己有权使用的存储桶/域名根 | `config/cloud-env.js` → `mediaRoot` | 可留空：媒体逐级降级为占位，不阻塞训练 |
+| AppID | `project.config.json` → `appid` | 本项目的小程序 AppID；`config/cloud-env.js` 若也填了 `appId`，两处必须一致 |
+| 环境 ID | `config/cloud-env.js` → `envId` | 本项目云开发环境；**留空 = 未配置**，云同步不可用 |
+| 媒体根 | `config/cloud-env.js` → `mediaRoot` | 本项目有权使用的存储桶/域名根，可留空：媒体逐级降级为占位，不阻塞训练 |
 
-`npm run check:cloud-env` 会检查 `project.config.json` 的 `appid`、`config/cloud-env.js` 的三项，以及是否仍是原运营者基线；任一项没填好就退出 1。这仍然是人工替换与人工核对，不是自动部署。旧安装需先在不启动小程序的情况下清除开发者工具本地存储，避免已存同意自动启云。不要连接或共享原运营者的生产环境。AppID/环境定位符不是密钥；它们仍不能作为“可以使用他人环境”的许可。禁止向仓库提交私人凭据、管理密钥、身份日志或未批准的联系方式。完整步骤见 [独立部署指南](docs/independent-deployment.md)，不要沿用旧版“只部署 login、仅创建者可写”的操作。
+`envId` 留空时启动会禁用云能力并弹窗说明：不初始化 `wx.cloud`、不恢复旧同意、不请求远程媒体，本地计划、训练、历史与动作库照常可用（与未同意时的边界一致）。
+
+`npm run check:cloud-env` 检查 `envId` 是否填了、`project.config.json` 的 `appid` 是否为空或形状不对、两处 `appId` 是否一致；任一项不合格就退出 1。它只查本地配置，不代表云环境可用。AppID/环境 ID 不是密钥，但**不要提交私人凭据、管理密钥、身份日志或未批准的联系方式**。
 
 ## 本地检查（不部署、不编译）
 
@@ -28,7 +28,7 @@ npm run check:cloud-env
 npm run check:public-info
 ```
 
-`check:cloud-env` 当前**预期退出 1 / Blocked**：仓库刻意不带部署默认值（空 `appid`、空 `envId`），填好自己的值才会通过，且通过只代表配置齐了，不代表云环境可用（已实测：填入形状正确但实际不存在的值也会 exit 0，正说明它替代不了控制台核对）。填好 `config/cloud-env.js` 顶部三行后 `npm test` 仍应全绿（已实测）。`check:public-info` 已通过（exit 0）：`config/public-info.js` 的运营者、公开隐私/支持渠道由维护者提供并置 `verified: true`。该文件随小程序公开打包——**你若部署自己的小程序，必须替换成你已批准的对外资料**，不要沿用维护者的联系方式；换成空值或示例值时检查会重新阻断（缺项 exit 1，占位文本同样拦截）。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
+`check:cloud-env` 当前**exit 0**：本项目自己的 AppID 与环境已填好（2026-10-21 起不再有「原运营者基线」判定，见[票 10](.scratch/release-phase1/issues/10-appid.md)）。把 `envId` 清空它会退出 1，那是「未配置」的正常反应；通过只代表配置齐了，不代表云环境可用（已实测：填入形状正确但实际不存在的值也会 exit 0，正说明它替代不了控制台核对）。配置填好时 `npm test` 仍全绿（已实测）。`check:public-info` 已通过（exit 0）：`config/public-info.js` 的运营者、公开隐私/支持渠道由维护者提供并置 `verified: true`。该文件随小程序公开打包——**你若部署自己的小程序，必须替换成你已批准的对外资料**，不要沿用维护者的联系方式；换成空值或示例值时检查会重新阻断（缺项 exit 1，占位文本同样拦截）。不要用示例信息让检查变绿。`check:package` 只按排除规则统计未压缩候选源码，低于 2 MiB 不代表微信最终编译包体合格；最终须开发者工具代码依赖分析、预览与真机确认。
 
 `npm test` 不依赖仓库外的数据集：生成器与索引的用例默认读仓库夹具 `tests/fixtures/exercises-dataset/`（3 条合成动作，无媒体文件）。只有两条「与完整上游数据集逐条一致」的比对需要真实数据集，缺 `/tmp/exercises-dataset` 时显式跳过并注明启用条件——把数据集放好并设 `DATASET_DIR=<目录>` 后再跑就会自动启用。生成器本身仍可用 `node scripts/build-exercises.js --src <数据集目录> --out <输出目录>` 指向真实数据。
 
@@ -36,7 +36,7 @@ npm run check:public-info
 
 同意/所有者隔离、持久同步及个人数据清理已有源码与 mock 自动回归；不等于已部署或真实云端权限已验收。未同意时可本地训练，不取身份/同步/远程媒体；同意后静默身份与本人同步。撤回不是云删除，清本机不是全端删除，离线设备不能即时远程擦除。
 
-- [本轮验收矩阵与版本证据](docs/public-release-acceptance.md)：第05票保持 **open / ready-for-human / Blocked**，尚缺真实双微信、设备及最终编译包。
+- [本轮验收矩阵与版本证据](docs/public-release-acceptance.md)：2026-10-21 真机 + 双身份验收后，M03/M04/M06/M11/M12/M16/M17/M18/M19/M21 十行转为**通过**，其余 12 行仍 `Blocked` 并逐条写明缺口（未附截图与版本号，提审前需补）。
 - [公开发布父规格](.scratch/public-release/issue.md)、[实施记录](.scratch/public-release/implementation.md)、[双轴审查](.scratch/public-release/code-review.md)、[人工闸门](.scratch/public-release/human-clearance.md)：源码双轴审查及修复复测完成，无待处理P0–P2；不因本地结果关闭父任务或第01/02/03真实验收。
 - [同意与隔离](docs/consent-owner-isolation.md)、[可靠同步](docs/durable-sync.md)、[数据删除](docs/data-deletion.md)、[隐私核对](docs/public-privacy-checklist.md)。
 
